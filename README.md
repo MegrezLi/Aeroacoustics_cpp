@@ -14,7 +14,7 @@ OpenFAST 气动声学的 C++17 实现，支持 Intel oneMKL，并通过 C ABI �
 
 ## 快速开始
 
-需要 CMake ≥3.20 和支持 C++17 的编译器。普通版不需要 MKL、Python 或 Fortran。
+需要 CMake ≥3.20 和支持 C++17 的编译器。
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -22,7 +22,7 @@ cmake --build build --config Release -j 4
 ./build/aeroacoustics_example spectrum.csv
 ```
 
-Windows PowerShell，使用本机已经安装的 GCC 16.2.0：
+Windows PowerShell，使用已经安装的 GCC 16.2.0：
 
 ```powershell
 . ./tools/use_gcc.ps1
@@ -31,9 +31,9 @@ cmake --build build-gcc16 -j 4
 ./build-gcc16/aeroacoustics_example.exe spectrum.csv
 ```
 
-其他安装位置使用 `. ./tools/use_gcc.ps1 -GccBin '你的 mingw64/bin 路径'`。该脚本只设置当前终端，不修改系统 PATH。旧 GCC 7.3 已保留；新工具链安装在 `D:/Code_Configuration/gcc-16.2.0`。
+其他安装位置使用 `. ./tools/use_gcc.ps1 -GccBin '你的 mingw64/bin 路径'`。新工具链安装在 `D:/Code_Configuration/gcc-16.2.0`。
 
-默认截面来自 OpenFAST `Aero_Tests` 的数值设置，输出 34 个频带和 7 类声源，OASPL 约为 **83.30258655488 dB**。它是截面示例；完整风机算例见下文。
+默认截面来自 OpenFAST `Aero_Tests` 的数值设置，输出 34 个频带和 7 类声源，OASPL 约为 **83.30258655488 dB**。
 
 ## 使用 Intel oneMKL
 
