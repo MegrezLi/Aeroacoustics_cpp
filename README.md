@@ -2,8 +2,6 @@
 
 OpenFAST 气动声学的 C++17 实现，支持 Intel oneMKL，并通过 C ABI 接入 OpenFAST 官方整机算例。
 
-本项目从随附的 Python 版本及 OpenFAST Fortran 源码移植。C++ 数值库运行时不调用 Python，也不调用 Fortran 声学公式。完整风机仿真仍由 OpenFAST 提供结构、气动、耦合、时间推进和输入输出。
-
 ## 已实现的算法
 
 - BPM：层流边界层涡脱落、湍流边界层尾缘噪声（压力面／吸力面／分离）、尾缘钝度、叶尖噪声。
