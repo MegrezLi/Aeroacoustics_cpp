@@ -1,0 +1,1047 @@
+--- a/modules/aerodyn/src/AeroAcoustics.f90
++++ b/modules/aerodyn/src/AeroAcoustics.f90
+@@ -30,6 +30,7 @@
+ !  [3] Lowson, M.V.; Assessment and Prediction of Wind Turbine Noise, Volumes 13-284 of ETSU W. 1993. https://books.google.com/books?id=IgVKGwAACAAJ
+ 
+ module AeroAcoustics
++   use iso_c_binding, only: c_int, c_double, c_long_long
+     
+    use NWTC_Library
+    use AeroAcoustics_Types
+@@ -53,6 +54,24 @@
+    REAL(ReKi), parameter :: RotorRegionAlph_delta = 60.0_ReKi ! degrees : size of bin, must be a number that evenly divides 360 degrees
+    REAL(ReKi), parameter :: RotorRegionRad_delta  =  5.0_ReKi ! meters : size of bin along blade span (rotor radius)
+    REAL(ReKi), parameter :: RotorRegionTimeSampling  =  5.0_ReKi ! seconds (for Num_total_sampleTI)
++
++
++   ! Aeroacoustics_cpp: no Python or Fortran numerical kernel at runtime.
++   interface
++      function cpp_acoustic_kernel(op, n, freq, x, flags, output) &
++         bind(C, name="aeroacoustics_kernel") result(status)
++         import c_int, c_double
++         integer(c_int), value :: op, n
++         real(c_double), intent(in) :: freq(*), x(*)
++         integer(c_int), intent(in) :: flags(*)
++         real(c_double), intent(out) :: output(*)
++         integer(c_int) :: status
++      end function
++      function cpp_acoustic_calls() bind(C, name="aeroacoustics_call_count") result(n)
++         import c_long_long
++         integer(c_long_long) :: n
++      end function
++   end interface
+ 
+    contains    
+ !----------------------------------------------------------------------------------------------------------------------------------   
+@@ -676,6 +695,7 @@
+     integer(IntKi)                               :: j
+ 
+       ! Initialize ErrStat
++    write(*,'(A,I0)') "C++ acoustic kernel calls: ",cpp_acoustic_calls()
+     ErrStat = ErrID_None
+     ErrMsg  = ""
+     
+@@ -1100,99 +1120,31 @@
+     REAL(ReKi),                                 INTENT(IN   ) :: StallVal               !  
+     TYPE(AA_ParameterType),                     INTENT(IN   ) :: p          ! Noise module Parameters
+     REAL(ReKi),DIMENSION(size(p%FreqList)),     INTENT(  OUT) :: SPLLAM         !
+-
+-    ! Local variables
+-    real(ReKi)     :: STPRIM   !  STROUHAL NUMBER BASED ON PRESSURE SIDE BOUNDARY LAYER THICKNESS    ---
+-    real(ReKi)     :: M        ! MACH NUMBER
+-    real(ReKi)     :: RC       ! REYNOLDS NUMBER BASED ON  CHORD
+-    real(ReKi)     :: DELTAP   ! PRESSURE SIDE BOUNDARY LAYER THICKNESS METERS
+-    real(ReKi)     :: DSTRS    ! SUCTION SIDE BOUNDARY LAYER DISPLACEMENT THICKNESS           METERS
+-    real(ReKi)     :: DSTRP    ! PRESSURE SIDE BOUNDARY LAYER DISPLACEMENT THICKNESS           METERS
+-    real(ReKi)     :: DBARH    ! HIGH FREQUENCY DIRECTIVITY             ---
+-    real(ReKi)     :: ST1PRIM  ! REFERENCE STROUHAL NUMBER          ---
+-    real(ReKi)     :: STPKPRM  ! PEAK STROUHAL NUMBER               ---
+-    real(ReKi)     :: RC0      ! REFERENCE REYNOLDS NUMBER          ---
+-    real(ReKi)     :: D        ! REYNOLDS NUMBER RATIO              ---
+-    real(ReKi)     :: G1       ! SOUND PRESSURE LEVEL FUNCTION      DB
+-    real(ReKi)     :: G2       ! OVERALL SOUND PRESSURE LEVEL FUNCTION    DB
+-    real(ReKi)     :: G3       ! OVERALL SOUND PRESSURE LEVEL FUNCTION    DB
+-    real(ReKi)     :: E        ! STROUHAL NUMBER RATIO              ---
+-    real(ReKi)     :: SCALE    ! GEOMETRIC SCALING TERM
+-    integer(intKi) :: I        ! I A generic index for DO loops.
+-    
+-    !compute reynolds number and mach number
+-    M          = U  / p%SpdSound        ! MACH NUMBER
+-    RC         = U  * C/p%KinVisc       ! REYNOLDS NUMBER BASED ON  CHORD
+-    
+-    ! compute boundary layer thicknesses
+-    IF (p%X_BLMethod .eq. X_BLMethod_Tables) THEN
+-        DELTAP = d99Var2
+-        DSTRS  = dstarVar1
+-        DSTRP  = dstarVar2
+-    ELSE
+-        CALL THICK(C,RC,ALPSTAR,p,DELTAP,DSTRS,DSTRP,StallVal)
+-    ENDIF
+-    
+-    ! compute directivity function
+-    DBARH = DIRECTH_TE(M,THETA,PHI)
+-
+-    IF (DBARH <= 0) THEN
+-        SPLLAM = 0.
+-        RETURN
+-    ENDIF
+-    
+-    ! compute reference strouhal number                                 ! Eq 55 from BPM Airfoil Self-noise and Prediction paper
+-    if (RC .LE. 1.3E+05) then
+-       ST1PRIM = .18
+-    elseif (RC.LE.4.0E+05) then
+-       ST1PRIM=.001756*RC**.3931
+-    else
+-       ST1PRIM = .28
+-    end if
+-    STPKPRM  = 10.**(-.04*ALPSTAR) * ST1PRIM                            ! Eq 56 from BPM Airfoil Self-noise and Prediction paper
+-
+-    ! compute reference reynolds number                                 ! Eq 59 from BPM Airfoil Self-noise and Prediction paper
+-    IF (ALPSTAR .LE. 3.0) then
+-       RC0=10.**(.215*ALPSTAR+4.978)
+-    else
+-       RC0=10.**(.120*ALPSTAR+5.263)
+-    end if
+-    
+-    ! compute peak scaled spectrum level
+-    D   = RC / RC0                                                      ! Used in Eq 58 from BPM Airfoil Self-noise and Prediction paper
+-    if (D .LE. .3237) then
+-       G2 =77.852*LOG10AA(D)+15.328       ! Begin Eq 58 from BPM Airfoil Self-noise and Prediction paper
+-    elseif (D .LE. .5689) then
+-       G2 = 65.188*LOG10(D) + 9.125
+-    elseif (D .LE. 1.7579) then
+-       G2 = -114.052 * LOG10(D)**2
+-    elseif (D .LE. 3.0889) then
+-       G2 = -65.188*LOG10(D)+9.125
+-    else 
+-       G2 =-77.852*LOG10(D)+15.328
+-    end if
+-    
+-    ! compute angle-dependent level for shape curve
+-    G3      = 171.04 - 3.03 * ALPSTAR                                    ! Eq 60 from BPM Airfoil Self-noise and Prediction paper
+-    SCALE   = 10. * Log10AA(DELTAP*M**5*DBARH*L/R**2)                    ! From Eq 53 from BPM Airfoil Self-noise and Prediction paper
+-    
+-    ! Compute scaled sound pressure levels for each strouhal number
+-    DO I=1,SIZE(p%FreqList)
+-        STPRIM  = p%FreqList(I) * DELTAP / U                            ! Eq 54 from BPM Airfoil Self-noise and Prediction paper
+-        E       = STPRIM / STPKPRM                                      ! Used in Eq 57 from BPM Airfoil Self-noise and Prediction paper
+-        IF (E .LE. .5974) then
+-           G1 = 39.8*LOG10AA(E)-11.12                   ! Begin Eq 57 from BPM Airfoil Self-noise and Prediction paper   
+-        ELSEIF(E .LE. .8545) then
+-           G1 = 98.409 * LOG10(E) + 2.0
+-        ELSEIF (E .LE. 1.17) then
+-           G1 = -5.076+SQRT(2.484-506.25*(LOG10(E))**2)
+-        ELSEIF (E .LE. 1.674) then
+-           G1 = -98.409 * LOG10(E) + 2.0
+-        ELSE
+-           G1 = -39.80*LOG10(E)-11.12
+-        END IF
+-        SPLLAM(I) = G1 + G2 + G3 + SCALE                                      ! Eq 53 from BPM Airfoil Self-noise and Prediction paper
+-    ENDDO
++    real(c_double) :: args(26), cpp_freq(size(p%FreqList))
++    real(c_double) :: result(3*size(p%FreqList))
++    integer(c_int) :: flags(3), status, nfreq
++    args=0.0_c_double
++    args(17)=real(p%SpdSound,c_double)
++    args(18)=real(p%KinVisc,c_double)
++    args(19)=real(p%AirDens,c_double)
++    args(20)=real(p%LTurb,c_double)
++    flags=[int(p%X_BLMethod,c_int),int(p%ITRIP,c_int),merge(1_c_int,0_c_int,p%ROUND)]
++    args(1)=real(ALPSTAR,c_double)
++    args(2)=real(C,c_double)
++    args(3)=real(U,c_double)
++    args(4)=real(THETA,c_double)
++    args(5)=real(PHI,c_double)
++    args(6)=real(L,c_double)
++    args(7)=real(R,c_double)
++    args(8)=real(StallVal,c_double)
++    args(9)=real(d99Var2,c_double)
++    args(10)=real(dstarVar1,c_double)
++    args(11)=real(dstarVar2,c_double)
++    nfreq=int(size(p%FreqList),c_int)
++    cpp_freq=real(p%FreqList,c_double)
++    status=cpp_acoustic_kernel(1_c_int,nfreq,cpp_freq,args,flags,result)
++    if (status /= 0) error stop "Aeroacoustics_cpp kernel failed: LBLVS"
++    SPLLAM=real(result(0*nfreq+1:1*nfreq),ReKi)
+ END SUBROUTINE LBLVS
+ !==================================================================================================================================!
+ SUBROUTINE TBLTE(ALPSTAR,C,U,THETA,PHI,L,R,p,d99Var2,dstarVar1,dstarVar2,StallVal,SPLP,SPLS,SPLALPH)
+@@ -1204,226 +1156,40 @@
+     REAL(ReKi),                             INTENT(IN   )  :: L              ! SPAN(m)
+     REAL(ReKi),                             INTENT(IN   )  :: R              ! SOURCE TO OBSERVER DISTANCE (m)
+     TYPE(AA_ParameterType),                 INTENT(IN   )  :: p              ! Noise Module Parameters
+-
+-!    REAL(ReKi)                               :: L              ! SPAN(m)
+-!    REAL(ReKi)                               :: R              ! SOURCE TO OBSERVER DISTANCE (m)
+-
+     REAL(ReKi),                             INTENT(IN   )  :: d99Var2        !  
+     REAL(ReKi),                             INTENT(IN   )  :: dstarVar1              !  
+     REAL(ReKi),                             INTENT(IN   )  :: dstarVar2              !  
+     REAL(ReKi),                             INTENT(IN   )  :: StallVal              !  
+-
+     REAL(ReKi),DIMENSION(size(p%FreqList)),  INTENT(  OUT)  :: SPLP           ! SOUND PRESSURE LEVEL DUE TO PRESSURE SIDE OF AIRFOIL (db)
+     REAL(ReKi),DIMENSION(size(p%FreqList)),  INTENT(  OUT)  :: SPLS           ! SOUND PRESSURE LEVEL DUE TO SUCTION SIDE OF AIRFOIL  (db)
+     REAL(ReKi),DIMENSION(size(p%FreqList)),  INTENT(  OUT)  :: SPLALPH        ! SOUND PRESSURE LEVEL DUE TO ANGLE OF ATTACK CONTRIBUTION (db)
+-    
+-    ! Local variables
+-    real(ReKi)   :: STP        ! PRESSURE SIDE STROUHAL NUMBER          --- 
+-    real(ReKi)   :: STS        ! SUCTION SIDE STROUHAL NUMBER           ---
+-    real(ReKi)   :: DSTRS      ! SUCTION SIDE DISPLACEMENT THICKNESS   METERS
+-    real(ReKi)   :: DSTRP      ! PRESSURE SIDE DISPLACEMENT THICKNESS  METERS
+-    real(ReKi)   :: RDSTRS     ! REYNOLDS NUMBER BASED ON SUCTION  SIDE DISPLACEMENT THICKNESS 
+-    real(ReKi)   :: RDSTRP     ! REYNOLDS NUMBER BASED ON PRESSURE SIDE DISPLACEMENT THICKNESS
+-    real(ReKi)   :: ST1        ! PEAK STROUHAL NUMBER                   ---
+-    real(ReKi)   :: ST2        ! PEAK STROUHAL NUMBER                   ---
+-    real(ReKi)   :: ST1PRIM    ! PEAK STROUHAL NUMBER                   ---
+-    real(ReKi)   :: A0         ! FUNCTION USED IN 'A' CALCULATION
+-    real(ReKi)   :: A02        ! FUNCTION USED IN 'A' CALCULATION
+-    real(ReKi)   :: ARA0       ! INTERPOLATION FACTOR
+-    real(ReKi)   :: ARA02      ! INTERPOLATION FACTOR
+-    real(ReKi)   :: B0         ! FUNCTION USED IN 'B' CALCULATION
+-    real(ReKi)   :: BMINB0     ! MINIMUM 'B' EVALUATED AT B0            DB
+-    real(ReKi)   :: BMINB      ! MINIMUM 'B' EVALUATED AT B             DB
+-    real(ReKi)   :: BMAXB0     ! MAXIMUM 'B' EVALUATED AT B0            DB
+-    real(ReKi)   :: BMAXB      ! MAXIMUM 'B' EVALUATED AT B             DB
+-    real(ReKi)   :: BRB0       ! INTERPOLATION FACTOR                   DB
+-    real(ReKi)   :: STPEAK     ! PEAK STROUHAL NUMBER                   ---
+-    real(ReKi)   :: AMINA      ! MINIMUM 'A' CURVE EVALUATED AT STROUHAL NUMBER RATIO                DB
+-    real(ReKi)   :: AMINB      ! MINIMUM 'A' CURVE EVALUATED AT B       DB
+-    real(ReKi)   :: AMAXA      ! MAXIMUM 'A' CURVE EVALUATED AT STROUHAL NUMBER RATIO    (DB)
+-    real(ReKi)   :: AMAXB      ! MAXIMUM 'A' CURVE EVALUATED AT B       DB
+-    real(ReKi)   :: AMINA0     ! MAXIMUM 'B' EVALUATED AT B0            DB
+-    real(ReKi)   :: AMINA02    ! MINIMUM 'A' CURVE EVALUATED AT A02     DB
+-    real(ReKi)   :: AMAXA0     ! MAXIMUM 'A' CURVE EVALUATED AT A0      DB
+-    real(ReKi)   :: AMAXA02    ! MAXIMUM 'A' CURVE EVALUATED AT A02      DB
+-    real(ReKi)   :: A          ! STROUHAL NUMBER RATIO                 ---
+-    real(ReKi)   :: B          ! STROUHAL NUMBER RATIO                 ---
+-    real(ReKi)   :: AA         ! 'A' SPECTRUM SHAPE EVALUATED AT STROUHAL NUMBER RATIO         DB
+-    real(ReKi)   :: BB         ! 'B' SPECTRUM SHAPE EVALUATED AT STROUHAL NUMBER RATIO                DB
+-    real(ReKi)   :: DELK1      ! CORRECTION TO AMPLITUDE FUNCTION       DB
+-    real(ReKi)   :: GAMMA      ! USED IN 'B' COMPUTATION                ---
+-    real(ReKi)   :: BETA       ! USED IN 'B' COMPUTATION               ---
+-    real(ReKi)   :: GAMMA0     ! USED IN 'B' COMPUTATION                ---
+-    real(ReKi)   :: BETA0      ! USED IN 'B' COMPUTATION               ---
+-    real(ReKi)   :: K1         ! AMPLITUDE FUNCTION (DB)
+-    real(ReKi)   :: K2         ! AMPLITUDE FUNCTION (DB)
+-    !real(ReKi)   :: P1         ! PRESSURE SIDE PRESSURE (NT/M2)
+-    !real(ReKi)   :: P2         ! SUCTION SIDE PRESSURE                      (NT/M2)
+-    !real(ReKi)   :: P4         ! PRESSURE FROM ANGLE OF ATTACK CONTRIBUTION (NT/M2)
+-    real(ReKi)   :: M          ! MACH NUMBER
+-    real(ReKi)   :: RC         ! REYNOLDS NUMBER BASED ON  CHORD
+-    real(ReKi)   :: DELTAP     ! PRESSURE SIDE BOUNDARY LAYER THICKNESS METERS
+-    real(ReKi)   :: XCHECK     ! USED TO CHECK FOR ANGLE OF ATTACK CONTRIBUTION     
+-    real(ReKi)   :: DBARH      ! HIGH FREQUENCY DIRECTIVITY             ---
+-    real(ReKi)   :: DBARL      ! LOW FREQUENCY DIRECTIVITY              ---
+-    
+-    integer(intKi)      :: I          ! I A generic index for DO loops.
+-
+-    LOGICAL     :: SWITCH  !!LOGICAL FOR COMPUTATION OF ANGLE OF ATTACK CONTRIBUTION  
+-
+-    ! Compute reynolds number and mach number
+-    M          = U  / p%SpdSound
+-    RC         = U  * C/p%KinVisc
+-    
+-    ! Compute boundary layer thicknesses
+-    IF (p%X_BLMethod .eq. X_BLMethod_Tables) THEN
+-        DELTAP = d99Var2
+-        DSTRS  = dstarVar1
+-        DSTRP  = dstarVar2
+-    ELSE
+-        CALL THICK(C,RC,ALPSTAR,p,DELTAP,DSTRS,DSTRP,StallVal)
+-    ENDIF
+-    
+-    ! Compute directivity function
+-    DBARL = DIRECTL(M,THETA,PHI)
+-    DBARH = DIRECTH_TE(M,THETA,PHI)
+-    !      IF (DBARH <= 0) THEN
+-    !          SPLP = 0.
+-    !          SPLS = 0.
+-    !          SPLALPH = 0.
+-    !          RETURN
+-    !      ENDIF
+-    ! Calculate the reynolds numbers based on pressure and suction displacement thickness
+-    RDSTRS = DSTRS * U  / p%KinVisc
+-    RDSTRP = DSTRP * U  / p%KinVisc
+-    
+-    ! Determine peak strouhal numbers to be used for 'a' and 'b' curve calculations
+-    ST1    = .02 * M ** (-.6)                                                          ! Eq 32 from BPM Airfoil Self-noise and Prediction paper
+-    
+-     ! Eq 34 from BPM Airfoil Self-noise and Prediction paper
+-    IF  (ALPSTAR .LE. 1.333) then
+-       ST2 = ST1
+-    elseif (ALPSTAR .LE. StallVal) then
+-       ST2 = ST1*10.**(.0054*(ALPSTAR-1.333)**2)
+-    else
+-       ST2 = 4.72 * ST1
+-    end if
+-    
+-    ST1PRIM = (ST1+ST2)/2.                                                             ! Eq 33 from BPM Airfoil Self-noise and Prediction paper
+-    A0 = A0COMP(RC)      ! compute -20 dB dropout   (returns A0)
+-    A02 = A0COMP(3.0_ReKi*RC)   ! compute -20 dB dropout for AoA > AoA_0   (returns A02)
+-    ! Evaluate minimum and maximum 'a' curves at a0
+-    AMINA0 = AMIN(A0)
+-    AMAXA0 = AMAX(A0)
+-    AMINA02 = AMIN(A02)
+-    AMAXA02 = AMAX(A02)
+-    ! Compute 'a' max/min ratio                                                        ! Eq 39 from BPM Airfoil Self-noise and Prediction paper   
+-    ARA0  = (20. + AMINA0) / (AMINA0 - AMAXA0)
+-    ARA02 = (20. + AMINA02)/ (AMINA02- AMAXA02)
+-    
+-    ! Compute b0 to be used in 'b' curve calculations                                  ! Eq 44 from BPM Airfoil Self-noise and Prediction paper
+-    IF (RC .LT. 9.52E+04) then
+-       B0 = .30
+-    elseif (RC .LT. 8.57E+05) then
+-       B0 = (-4.48E-13)*(RC-8.57E+05)**2 + .56
+-    else
+-       B0 = .56
+-    end if
+-    
+-    ! Evaluate minimum and maximum 'b' curves at b0
+-    BMINB0 = BMIN(B0)
+-    BMAXB0 = BMAX(B0)
+-    ! Compute 'b' max/min ratio
+-    BRB0  = (20. + BMINB0) / (BMINB0 - BMAXB0)
+-
+-    ! For each center frequency, compute an 'a' prediction for the pressure side
+-    STPEAK = ST1
+-    IF (RC .LT. 2.47E+05) then
+-       K1 = -4.31 * LOG10AA(RC) + 156.3        ! Begin Eq 47 from BPM Airfoil Self-noise and Prediction paper         
+-    elseif (RC .LE. 8.0E+05) then
+-       K1 = -9.0 * LOG10(RC) + 181.6
+-    else
+-       K1 = 128.5
+-    end if
+-    
+-    IF (RDSTRP .LE. 5000.) then
+-       DELK1 = -ALPSTAR*(5.29-1.43*LOG10AA(RDSTRP))                   ! Begin Eq 48 from BPM Airfoil Self-noise and Prediction paper
+-    else
+-       DELK1 = 0.0
+-    end if
+-    
+-    GAMMA   = 27.094 * M +  3.31                                                       ! Begin Eq 49 from BPM Airfoil Self-noise and Prediction paper
+-    BETA    = 72.650 * M + 10.74
+-    GAMMA0  = 23.430 * M +  4.651
+-    BETA0   =-34.190 * M - 13.820                                                      ! end
+-
+-    if (ALPSTAR .LE. (GAMMA0-GAMMA)) then
+-       K2 = -1000.0                                      ! Begin Eq 49 from BPM Airfoil Self-noise and Prediction paper
+-    else if (ALPSTAR.LE.(GAMMA0+GAMMA)) then
+-       K2=SQRT(BETA**2-(BETA/GAMMA)**2*(ALPSTAR-GAMMA0)**2)+BETA0
+-    else
+-       K2 = -12.0
+-    end if
+-    K2 = K2 + K1                                                                       ! end
+-    
+-    ! Check for 'a' computation for suction side
+-    XCHECK = GAMMA0
+-    SWITCH = .FALSE.
+-    !older version:
+-    !      IF ((ALPSTAR .GE. XCHECK).OR.(ALPSTAR .GT. 12.5))SWITCH=.TRUE. 
+-    ! newer version
+-    IF ((ALPSTAR .GE. XCHECK).OR.(ALPSTAR .GT. StallVal))SWITCH=.TRUE. 
+-    DO  I=1,size(p%FreqList)
+-        STP= p%FreqList(I) * DSTRP / U                                     ! Eq 31 from BPM Airfoil Self-noise and Prediction paper   
+-        A      = LOG10AA( STP / STPEAK )                                           ! Eq 37 from BPM Airfoil Self-noise and Prediction paper
+-        AMINA = AMIN(A)
+-        AMAXA = AMAX(A)
+-        AA     = AMINA + ARA0 * (AMAXA - AMINA)                            ! Eq 40 from BPM Airfoil Self-noise and Prediction paper
+-
+-        SPLP(I)=AA+K1-3.+10.*LOG10AA(DSTRP*M**5*DBARH*L/R**2)+DELK1        ! Eq 25 from BPM Airfoil Self-noise and Prediction paper
+-        STS = p%FreqList(I) * DSTRS / U                                    ! Eq 31 from BPM Airfoil Self-noise and Prediction paper
+-
+-        IF (.NOT. SWITCH) THEN
+-            A      = LOG10AA( STS / ST1PRIM )
+-            AMINA = AMIN(A)
+-            AMAXA = AMAX(A)
+-            AA = AMINA + ARA0 * (AMAXA - AMINA)
+-            SPLS(I) = AA+K1-3.+10.*LOG10AA(DSTRS*M**5*DBARH* L/R**2)       ! Eq 26 from BPM Airfoil Self-noise and Prediction paper
+-            !  'B' CURVE COMPUTATION
+-            !        B = ABS(LOG10(STS / ST2))
+-            B = LOG10AA(STS / ST2) ! abs not needed absolute taken in the BMAX,BMIN   ! Eq 43 from BPM Airfoil Self-noise and Prediction paper
+-            BMINB = BMIN(B)
+-            BMAXB = BMAX(B)
+-            BB = BMINB + BRB0 * (BMAXB-BMINB)                              ! Eq 46 from BPM Airfoil Self-noise and Prediction paper
+-            SPLALPH(I)=BB+K2+10.*LOG10AA(DSTRS*M**5*DBARH*L/R**2)          ! Eq 27 from BPM Airfoil Self-noise and Prediction paper
+-        ELSE
+-            ! The 'a' computation is dropped if 'switch' is true
+-            SPLS(I) = 10.*LOG10AA(DSTRS*M**5*DBARL*L/R**2)
+-            
+-            !    SPLP(I) = 0.0 + 10.*LOG10(DSTRS*M**5*DBARL*L/R**2) ! changed the line below because the SPLP should be calculatd with DSTRP not with DSTRS
+-            SPLP(I) = 10.*LOG10AA(DSTRP*M**5*DBARL*L/R**2) ! this is correct
+-            
+-            !        B = ABS(LOG10(STS / ST2))
+-            B = LOG10AA(STS / ST2) ! abs not needed absolute taken in the AMAX,AMIN
+-            AMINB = AMIN(B)
+-            AMAXB = AMAX(B)
+-            BB = AMINB + ARA02 * (AMAXB-AMINB)
+-            SPLALPH(I)=BB+K2+10.*LOG10AA(DSTRS*M**5*DBARL*L/R**2)
+-        ENDIF
+-        ! Sum all contributions from 'a' and 'b' on both pressure and suction side on a mean-square pressure basis
+-        IF (SPLP(I)    .LT. -100.) SPLP(I)    = -100.                      ! Similar to Eq 28 of BPM Airfoil Self-noise and Prediction paper
+-        IF (SPLS(I)    .LT. -100.) SPLS(I)    = -100.                      ! Similar to Eq 29 of BPM Airfoil Self-noise and Prediction paper      
+-        IF (SPLALPH(I) .LT. -100.) SPLALPH(I) = -100.                      ! Eq 30 of BPM Airfoil Self-noise and Prediction paper recommends SPLALPH = 10log(stuff) + A' + K2, where A' is calculated same as A but with x3 Rc   
+-
+-        !P1  = 10.**(SPLP(I) / 10.)            ! SPL_Pressure
+-        !P2  = 10.**(SPLS(I) / 10.)            ! SPL_Suction
+-        !P4  = 10.**(SPLALPH(I) / 10.)         ! SPL_AoA   
+-        !SPLTBL(I) = 10. * LOG10AA(P1 + P2 + P4)                                     ! Eq 24 from BPM Airfoil Self-noise and Prediction paper
+-
+-
+-
+-   ENDDO
+-
++    real(c_double) :: args(26), cpp_freq(size(p%FreqList))
++    real(c_double) :: result(3*size(p%FreqList))
++    integer(c_int) :: flags(3), status, nfreq
++    args=0.0_c_double
++    args(17)=real(p%SpdSound,c_double)
++    args(18)=real(p%KinVisc,c_double)
++    args(19)=real(p%AirDens,c_double)
++    args(20)=real(p%LTurb,c_double)
++    flags=[int(p%X_BLMethod,c_int),int(p%ITRIP,c_int),merge(1_c_int,0_c_int,p%ROUND)]
++    args(1)=real(ALPSTAR,c_double)
++    args(2)=real(C,c_double)
++    args(3)=real(U,c_double)
++    args(4)=real(THETA,c_double)
++    args(5)=real(PHI,c_double)
++    args(6)=real(L,c_double)
++    args(7)=real(R,c_double)
++    args(8)=real(StallVal,c_double)
++    args(9)=real(d99Var2,c_double)
++    args(10)=real(dstarVar1,c_double)
++    args(11)=real(dstarVar2,c_double)
++    nfreq=int(size(p%FreqList),c_int)
++    cpp_freq=real(p%FreqList,c_double)
++    status=cpp_acoustic_kernel(2_c_int,nfreq,cpp_freq,args,flags,result)
++    if (status /= 0) error stop "Aeroacoustics_cpp kernel failed: TBLTE"
++    SPLP=real(result(0*nfreq+1:1*nfreq),ReKi)
++    SPLS=real(result(1*nfreq+1:2*nfreq),ReKi)
++    SPLALPH=real(result(2*nfreq+1:3*nfreq),ReKi)
+ END SUBROUTINE TBLTE
+ !==================================================================================================================================!
+ SUBROUTINE TIPNOIS(ALPHTIP,ALPRAT2,C,U ,THETA,PHI, R,p,SPLTIP)
+@@ -1436,54 +1202,28 @@
+     REAL(ReKi),                               INTENT(IN   )  :: R              !< SOURCE TO OBSERVER DISTANCE        METERS
+     TYPE(AA_ParameterType) ,                  INTENT(IN   )  :: p              !< Parameters
+     REAL(ReKi),DIMENSION(size(p%FreqList)),   INTENT(  OUT)  :: SPLTIP         !<
+-    
+-    ! local variables
+-    REAL(ReKi)        :: M        ! MACH NUMBER                         ---
+-    REAL(ReKi)        :: MM       ! MAXIMUM MACH NUMBER                 ---
+-    REAL(ReKi)        :: ALPTIPP  ! CORRECTED TIP ANGLE OF ATTACK      DEGREES
+-    REAL(ReKi)        :: DBARH    ! DIRECTIVITY                         ---
+-    REAL(ReKi)        :: SCALE    ! SCALING TERM                        ---
+-    REAL(ReKi)        :: STPP     ! STROUHAL NUMBER                     ---
+-    REAL(ReKi)        :: UM       ! MAXIMUM VELOCITY                  METERS/SEC
+-    REAL(ReKi)        :: L        ! CHARACTERISTIC LENGTH FOR TIP      METERS
+-    REAL(ReKi)        :: TERM     ! SCALING TERM                        ---
+-    integer(intKi)    :: I        !I A generic index for DO loops.
+-
+-    IF (alphtip.eq.0.) THEN
+-        SPLTIP= 0
+-        RETURN
+-    ELSEIF (alphtip.lt.0.) THEN
+-        !         alphtip = ABS (alphtip) !  (EB_DTU) NOT possible to change inten(in) variable, INSTEAD 
+-        !  ALPTIPP is equal to abs(alphtip) - see next equation 
+-    ENDIF
+-    !! used to be  ALPTIPP = ALPHTIP * ALPRAT2
+-    ALPTIPP = ABS(ALPHTIP) * ALPRAT2
+-    M          = U  / p%SpdSound ! MACH NUMBER
+-    ! Compute directivity function
+-    DBARH = DIRECTH_TE(M,THETA,PHI)
+-    IF (p%ROUND) THEN
+-        L = .008 * ALPTIPP * C                                    ! Eq 63 from BPM Airfoil Self-noise and Prediction paper   
+-    ELSE
+-        IF (ABS(ALPTIPP) .LE. 2.) THEN                            ! not sure where this comes from   
+-            L = (.023 + .0169*ALPTIPP) * C
+-        ELSE
+-            L = (.0378 + .0095*ALPTIPP) * C
+-        ENDIF
+-    ENDIF
+-    MM    = (1. + .036*ALPTIPP) * M                               ! Eq 64 from BPM Airfoil Self-noise and Prediction paper
+-    UM    = MM * p%SpdSound                                       ! Eq 65 from BPM Airfoil Self-noise and Prediction paper   
+-    TERM  = M*M*MM**3*L**2*DBARH/R**2                             ! TERM = M^2 * M_max^5 *l^2 *D / r^2 according to Semi-Empirical Aeroacoustic Noise Prediction Code for Wind Turbines paper
+-                                                                  ! Term is correct according to Eq 61 from BPM Airfoil self-noise and Prediction paper
+-    IF (TERM .NE. 0.0) THEN                                       
+-        SCALE = 10.*LOG10(TERM)
+-    ELSE
+-        SCALE = 0.0
+-    ENDIF
+-    DO I=1,size(p%FreqList)
+-        STPP      = p%FreqList(I) * L / UM                       ! Eq 62 from BPM Airfoil Self-noise and Prediction paper   
+-        SPLTIP(I) = 126.-30.5*(LOG10AA(STPP)+.3)**2 + SCALE        ! Eq 61 from BPM Airfoil Self-noise and Prediction paper
+-    ENDDO
+-END SUBROUTINE TipNois
++    real(c_double) :: args(26), cpp_freq(size(p%FreqList))
++    real(c_double) :: result(3*size(p%FreqList))
++    integer(c_int) :: flags(3), status, nfreq
++    args=0.0_c_double
++    args(17)=real(p%SpdSound,c_double)
++    args(18)=real(p%KinVisc,c_double)
++    args(19)=real(p%AirDens,c_double)
++    args(20)=real(p%LTurb,c_double)
++    flags=[int(p%X_BLMethod,c_int),int(p%ITRIP,c_int),merge(1_c_int,0_c_int,p%ROUND)]
++    args(1)=real(ALPHTIP,c_double)
++    args(2)=real(C,c_double)
++    args(3)=real(U,c_double)
++    args(4)=real(THETA,c_double)
++    args(5)=real(PHI,c_double)
++    args(7)=real(R,c_double)
++    args(21)=real(ALPRAT2,c_double)
++    nfreq=int(size(p%FreqList),c_int)
++    cpp_freq=real(p%FreqList,c_double)
++    status=cpp_acoustic_kernel(3_c_int,nfreq,cpp_freq,args,flags,result)
++    if (status /= 0) error stop "Aeroacoustics_cpp kernel failed: TIPNOIS"
++    SPLTIP=real(result(0*nfreq+1:1*nfreq),ReKi)
++END SUBROUTINE TIPNOIS
+ !==================================================================================================================================!
+ SUBROUTINE InflowNoise(AlphaNoise,Chord,U,THETA,PHI,d,RObs,TINoise,p,SPLti)
+   REAL(ReKi),                                 INTENT(IN   ) :: AlphaNoise     ! AOA, radians
+@@ -1493,233 +1233,31 @@
+   REAL(ReKi),                                 INTENT(IN   ) :: PHI            ! Spanwise directivity angle
+   REAL(ReKi),                                 INTENT(IN   ) :: d              ! element span
+   REAL(ReKi),                                 INTENT(IN   ) :: RObs           ! distance to observer
+-!  REAL(ReKi),                                 INTENT(IN   ) :: MeanVNoise     !
+   REAL(ReKi),                                 INTENT(IN   ) :: TINoise        ! turbulence intensity (NOT in percent)
+-!  REAL(ReKi),                                 INTENT(IN   ) :: LE_Location    !
+-
+-!  REAL(ReKi),                                 INTENT(IN   ) :: dissip         !
+   TYPE(AA_ParameterType),                     INTENT(IN   ) :: p              ! Parameters
+   REAL(ReKi),DIMENSION(size(p%FreqList)),     INTENT(  OUT) :: SPLti          !
+-
+-  ! local variables
+-  REAL(ReKi)                   :: Beta2                                           ! Prandtl-Glauert correction factor
+-  REAL(ReKi)                   :: DBARH                                           ! High-frequency directivity correction factor
+-  REAL(ReKi)                   :: DBARL                                           ! Low-frequency directivity correction factor
+-  REAL(ReKi)                   :: Directivity                                     ! Directivity correction factor
+-  REAL(ReKi)                   :: Frequency_cutoff                                ! Cutoff frequency between
+-  REAL(ReKi)                   :: LFC                                             ! low-frequency correction factor
+-  REAL(ReKi)                   :: Mach                                            ! local mach number
+-  REAL(ReKi)                   :: Sears                                           ! Sears function
+-  REAL(ReKi)                   :: SPLhigh                                         ! predicted high frequency sound pressure level
+-  REAL(ReKi)                   :: WaveNumber                                      ! wave number - non-dimensional frequency
+-  REAL(ReKi)                   :: Kbar                                      ! nafnoise 
+-  REAL(ReKi)                   :: khat                                      ! nafnoise 
+-  REAL(ReKi)                   :: ke                                        ! nafnoise 
+-  REAL(ReKi)                   :: tinooisess                                ! nafnoise 
+-
+-  INTEGER(intKi)           :: I        !I A generic index for DO loops.
+-
+-   !!!--- NAF NOISE IDENTICAL
+-   Mach = U/p%SpdSound
+-   
+-   ! This part is recently added for height and surface roughness dependent estimation of turbulence intensity and turbulence scales
+-   !%Lturb=300*(Z/300)^(0.46+0.074*log(p%z0_aa));              !% Gives larger  length scale
+-   ! Lturb=25.d0*LE_Location**(0.35)*p%z0_aa**(-0.063)               !% Gives smaller length scale        ! Wei Jun Zhu, Modeling of Aerodynamically generated Noise From Wind Turbines
+-   ! L_Gammas=0.24+0.096*log10(p%z0_aa)+0.016*(log10(p%z0_aa))**2;   !% Can be computed or just give it a value.    ! Wei Jun Zhu, Modeling of Aerodynamically generated Noise From Wind Turbines
+-   !tinooisess=L_Gammas*log(30.d0/p%z0_aa)/log(LE_Location/p%z0_aa) !% F.E. 16% is 0.16 which is the correct input for SPLhIgh, no need to divide 100   ! ! Wei Jun Zhu, Modeling of Aerodynamically generated Noise From Wind Turbines
+-   tinooisess=TINoise
+-
+-   !tinooisess=0.1
+-   !Ums = (tinooisess*U)**2
+-   !Ums = (tinooisess*8)**2
+-   DBARL = DIRECTL(Mach,THETA,PHI) ! assume that noise is low-freq in nature because turbulence length scale is large
+-   DBARH = DIRECTH_LE(Mach,THETA,PHI) ! Directivity for the leading edge at high frequencies
+-   
+-   IF (DBARH <= 0) THEN
+-      SPLti = 0.
+-      RETURN
+-   ENDIF
+-   
+-   ! In the following lines, bibliography will be referenced as:  a) Moriarty, Guidati, Migliore, Recent Improvement of a Semi-Empirical Aeroacoustic 
+-   ! Prediction Code for Wind Turbines (https://docs.nrel.gov/docs/fy04osti/34478.pdf)
+-   ! ref b) Lowson, Assessment and Prediction of Wind Turbine Noise ()
+-   
+-   !*********************************************** Model 1:
+-   !!! Nafnoise source code version see below 
+-   Frequency_cutoff = 10*U/PI/Chord
+-   Ke = 3.0/(4.0*p%Lturb) 
+-   Beta2 = 1-Mach*Mach
+-
+-   DO I=1,size(p%FreqList)
+-      IF (p%FreqList(I) <= Frequency_cutoff) THEN
+-         Directivity = DBARL
+-      ELSE
+-         Directivity = DBARH 
+-      ENDIF
+-
+-      WaveNumber = TwoPi*p%FreqList(I)/U
+-      Kbar = WaveNumber*Chord/2.0
+-      Khat = WaveNumber/Ke
+-      ! mu = Mach*WaveNumber*Chord/2.0/Beta2
+-      
+-      !Note: when we set RObs in CalcObserve(), we make sure it is >= AA_EPSILON ! avoid divide-by-zero
+-      ! tinooisess could be 0, especially on the first step, so we need to check (use LOG10AA instead of LOG10)
+-      SPLhigh = 10.*LOG10AA(p%AirDens**2 * p%SpdSound**4 * p%Lturb * (d/2.) / (RObs**2) *(Mach**5) * &
+-                            tinooisess**2 *(Khat**3)* (1+Khat**2)**(-7./3.) * Directivity) + 78.4   ! ref a; [2] )
+-      !bjj 01-13-2026: comparing with Eq 8 in ref [2], 
+-      ! (1) The paper uses "Kbar" instead of Khat (which the code uses).
+-      ! (2) In the paper, "I" is in percent and it adds the constant 58.4. In the code, we have "I" as a fraction and I is squared, so 
+-      ! 10*log10(x*100^2)+58.4 = 10*(log10(x)+log10(100^2)) + 58.4 = 10*log10(x) + 10*log10(100^2) + 58.4 = 10*log10(x) + 40 + 58.4
+-      ! Seems like we should be adding 98.4 instead of 78.4 in this code. However, I also haven't found documentation for the "component due to angles of attack" below,
+-      ! so maybe this isn't wrong.
+-      
+-   !!!   SPLhigh = 10.*LOG10(p%Lturb*(d/2.)/ &
+-   !!!                  (RObs*RObs)*(Mach**5)*tinooisess*tinooisess*(WaveNumber**3) &
+-   !!!                  *(1+WaveNumber**2)**(-7./3.)*Directivity) + 181.3  
+-   
+-      SPLhigh = SPLhigh + 10.*LOG10(1+ 9.0*AlphaNoise**2)  ! Component due to angles of attack, ref a [2])   
+-
+-      Sears = 1./(TwoPi*Kbar/Beta2 + 1./(1.+2.4*Kbar/Beta2))      ! ref a [2])
+-
+-   !!!   Sears = 1/(2.*PI*WaveNumber/Beta2+1/(1+2.4*WaveNumber/Beta2))  ! ref b [3]) 
+-   
+-      LFC = MAX(AA_Epsilon, 10*Sears*Mach*Kbar**2/Beta2)  ! ref a)
+-   !!!   LFC = 10*Sears*Mach*WaveNumber**2/Beta2  ! ref b [3])
+-   
+-   !!!   IF (mu<(PI/4.0)) THEN                     ! ref b [3])
+-   !!!      SPLti(I) = SPLhigh + 10.*ALOG10(LFC)   ! ref b [3])
+-   !!!   ELSE                                      ! ref b [3])
+-   !!!      SPLti(I) = SPLhigh                     ! ref b [3])
+-   !!!ENDIF
+-      SPLti(I) = SPLhigh + 10.*LOG10AA(LFC/(1+LFC))
+-   
+-   ENDDO
+-   
+-   !!!*********************************************** end of Model 1
+-
+-!  ! ********************************* Model 2:     
+-!  !Wei Jun Zhu et al - !Modeling of Aerodynamically Generated Noise From Wind Turbines 2005 paper
+-!        Beta2 = 1.d0-Mach**2; !  corresponding line:  Bsq = 1.d0 - Ma**2;
+-!         DO I=1,size(p%FreqList)
+-!       WaveNumber = PI*p%FreqList(I)*p%SpdSound/U !corresponding line: K = pi*Freq(i)*c/Vrel;  ! CarloS: This is a Mistake, c in this case is the Local Chord
+-!       Sears = (2.d0*PI*WaveNumber/Beta2 + (1.d0+2.4d0*WaveNumber/Beta2)**(-1))**(-1);
+-!     ! corresponding line: Ssq = (2.d0*pi*K/Bsq + (1.d0+2.4d0*K/Bsq)**(-1))**(-1);
+-!        LFC = 10.d0 * Sears*Mach*WaveNumber**2*Beta2**(-1);
+-!      ! corresponding line:  LFC = 10.d0 * Ssq*Ma*K**2*Bsq**(-1);
+-!     SPLti(I)=(p%AirDens*p%AirDens*p%SpdSound*p%SpdSound*p%Lturb*d)/(2*RObs*RObs)
+-!  !   SPLti(I)=SPLti(I)*(Mach**3)*(MeanVnoise**2)*(tinooisess**2)  
+-!     SPLti(I)=SPLti(I)*(Mach**3)*(tinooisess**2)                 
+-!  !   SPLti(I)=SPLti(I)*(Mach**3)*ufluct**2
+-!     SPLti(I)=(SPLti(I)*(WaveNumber**3)) / ((1+WaveNumber**2)**(7/3))
+-!     SPLti(I)=SPLti(I)*DBARH
+-!     SPLti(I)=10*log10(SPLti(I))+58.4
+-!      SPLti(I) = SPLti(I) + 10.*LOG10(LFC/(1+LFC))
+-!  ! SPLti(I)=10.d0*log10(DBARH*p%AirDens**2*p%SpdSound**2*p%Lturb*d/2.0*Mach**3*tinooisess**2* &
+-!  !WaveNumber**3*(1.d0+WaveNumber**2)**(-7.d0/3.d0)/RObs**2)+58.4d0 + 10.d0*log10(LFC/(1+LFC))
+-!  ! corresponding line:    SPLti(i)=10.d0*log10(Di_hi_fr*Density**2*co**2*Tbscale*L/2.0*Ma
+-!  !     & **3*Tbinten**2*K**3*(1.d0+K**2)**(-7.d0/3.d0)/Distance**2)+58.4d0
+-!  !     &    + 10.d0*log10(LFC/(1+LFC));  
+-!  !            !% ver2.!
+-!  !    Kh = 8.d0*pi*p%FreqList(i)*p%Lturb/(3.d0*U);
+-!  !          SPLti(i) = 10*log10(DBARH*p%Lturb*0.5*d*Mach**5*tinooisess**2*Kh**3*(1+Kh**2)**(-7/3)/RObs**2) +&
+-!  !              10*log10(10**18.13) + 10*log10(DBARH*LFC/(1+LFC));   
+-!  
+-!  ENDDO
+-!  ! ********************************* End of Model 2/ CarloSucameli: I think this model is wrong 
+-
+-
+-
+-!!!!  ! ********************************* Model 3:     
+-!!!!  ! ref b) Lowson, Assessment and Prediction of Wind Turbine Noise
+-!!!!     Beta2 = 1.d0-Mach**2; !  corresponding line:  Bsq = 1.d0 - Ma**2;
+-!!!!      DO I=1,size(p%FreqList)
+-!!!!       WaveNumber = PI*p%FreqList(I)*Chord/U !corresponding line: K = pi*Freq(i)*c/Vrel;  
+-!!!!       Sears = (2.d0*PI*WaveNumber/Beta2 + (1.d0+2.4d0*WaveNumber/Beta2)**(-1))**(-1);
+-!!!!     ! corresponding line: Ssq = (2.d0*pi*K/Bsq + (1.d0+2.4d0*K/Bsq)**(-1))**(-1);
+-!!!!        LFC = 10.d0 * Sears*Mach*WaveNumber**2*Beta2**(-1);
+-!!!!      ! corresponding line:  LFC = 10.d0 * Ssq*Ma*K**2*Bsq**(-1);
+-!!!!     SPLti(I)=(p%AirDens*p%AirDens*p%SpdSound*p%SpdSound*p%Lturb*d)/(2*RObs*RObs)
+-!!!!     SPLti(I)=SPLti(I)*(Mach**3)*(MeanVnoise**2)*(tinooisess**2)  
+-!!!!     SPLti(I)=(SPLti(I)*(WaveNumber**3)) / ((1+WaveNumber**2)**(7./3.))
+-!!!!     SPLti(I)=SPLti(I)*DBARH
+-!!!!     SPLti(I)=10*log10(SPLti(I))+58.4
+-!!!!     SPLti(I) = SPLti(I) + 10.*LOG10(LFC/(1+LFC))
+-!!!!  
+-!!!!
+-!!!!     ENDDO
+-!!!!  ! ********************************* End of Model 3 
+-  
+-!!Buck&Oerlamans&Palo - !Experimental validation of a wind turbine turbulent inflow noise prediction code 2016 paper
+-!DO I=1,size(p%FreqList)
+-        ! IF (p%FreqList(I) <= Frequency_cutoff) THEN
+-        !    Directivity = DBARL
+-        ! ELSE
+-        !    Directivity = DBARH 
+-        ! ENDIF
+- ! WaveNumber = 2.0*PI*p%FreqList(I)/U   ! (K)
+-        ! Kbar    = WaveNumber*Chord/2.0
+-        ! Khat    = WaveNumber/Ke
+-        ! SPLhigh = (  (p%AirDens**2) * (p%SpdSound**2) *d ) / (2*RObs*RObs)
+-! SPLhigh = SPLhigh * (Mach**3) * (dissip**(2/3)) * (WaveNumber**(-5/3)) * Directivity
+-        ! SPLhigh = 10.*LOG10(SPLhigh) + 77.6
+-        ! Sears   = 1/(2.*PI*Kbar/Beta2+1/(1+2.4*Kbar/Beta2))
+-        ! LFC = 10*Sears*(1+9.0*ALPSTAR*ALPSTAR)*Mach*Kbar*Kbar/Beta2
+-        ! SPLti(I) = SPLhigh + 10.*LOG10(LFC/(1+LFC))
+-        !ENDDO
+-
+-! double commented lines are from FAST v4.0 aeroacoustics module. But Nafnoise version is used see above
+-!!   Mach = U/p%SpdSound
+-!!
+-!!IF (TINoise > 0) THEN
+-!!    Ums = (TINoise*MeanVNoise/100.)**2 ! mean square turbulence level
+-!!ELSE
+-!!    SPLti = 0.
+-!!    RETURN
+-!!ENDIF
+-!!
+-!! LTurb=60
+-!! LTurb=0.06
+-!!!  temporarily commented 
+-!!!  IF (FASTHH < 30.0) THEN
+-!!!      LTurb = 3.5*0.7*FASTHH ! Prediction sensitive to this parameter!
+-!!!  ELSE
+-!!!      LTurb = 3.5*21.
+-!!! ENDIF
+-!!
+-!!!LTurb = LTurb/100
+-!!
+-!!! Calculate directivity...?
+-!!!!!     ----------------------------
+-!!      DBARL = DIRECTL(Mach,THETA,PHI) !yes, assume that noise is low-freq in nature because turbulence length scale is large
+-!!      DBARH = DIRECTH_LE(Mach,THETA,PHI)
+-!!      IF (DBARH <= 0) THEN
+-!!    SPLti = 0.
+-!!          RETURN
+-!!      ENDIF
+-!!
+-!! Frequency_cutoff = 10*U/PI/Chord
+-!!
+-!!    IF (DBARL <= 0.) THEN
+-!!        SPLti = 0.
+-!!        RETURN
+-!!    ENDIF
+-!!
+-!!DO I=1,size(p%FreqList)
+-!!   IF (p%FreqList(I) <= Frequency_cutoff) THEN
+-!!       Directivity = DBARL
+-!!   ELSE
+-!!       Directivity = DBARH
+-!!   ENDIF
+-!!   WaveNumber = PI*p%FreqList(I)*Chord/U
+-!!  Beta2 = 1-Mach*Mach
+-!!   SPLhigh = 10.*LOG10(p%AirDens*p%AirDens*p%SpdSound*p%SpdSound*p%Lturb*(d/2.)/(RObs*RObs)*(Mach**3)*Ums* &
+-!!             (WaveNumber**3)*(1+WaveNumber**2)**(-7./3.)*Directivity) + 58.4
+-!!   Sears = 1/(2*PI*WaveNumber/Beta2+1/(1+2.4*WaveNumber/Beta2))
+-!!   LFC = 10*Sears*Mach*WaveNumber*WaveNumber/Beta2
+-!!   SPLti(I) = SPLhigh + 10.*LOG10(LFC/(1+LFC))
+-!!
+-!!ENDDO
+-
++    real(c_double) :: args(26), cpp_freq(size(p%FreqList))
++    real(c_double) :: result(3*size(p%FreqList))
++    integer(c_int) :: flags(3), status, nfreq
++    args=0.0_c_double
++    args(17)=real(p%SpdSound,c_double)
++    args(18)=real(p%KinVisc,c_double)
++    args(19)=real(p%AirDens,c_double)
++    args(20)=real(p%LTurb,c_double)
++    flags=[int(p%X_BLMethod,c_int),int(p%ITRIP,c_int),merge(1_c_int,0_c_int,p%ROUND)]
++    args(1)=real(AlphaNoise,c_double)
++    args(2)=real(Chord,c_double)
++    args(3)=real(U,c_double)
++    args(4)=real(THETA,c_double)
++    args(5)=real(PHI,c_double)
++    args(6)=real(d,c_double)
++    args(7)=real(RObs,c_double)
++    args(12)=real(TINoise,c_double)
++    nfreq=int(size(p%FreqList),c_int)
++    cpp_freq=real(p%FreqList,c_double)
++    status=cpp_acoustic_kernel(4_c_int,nfreq,cpp_freq,args,flags,result)
++    if (status /= 0) error stop "Aeroacoustics_cpp kernel failed: InflowNoise"
++    SPLti=real(result(0*nfreq+1:1*nfreq),ReKi)
+ END SUBROUTINE InflowNoise
+ !====================================================================================================
+ SUBROUTINE BLUNT(ALPSTAR,C,U ,THETA,PHI,L,R,H,PSI,p,d99Var2,dstarVar1,dstarVar2,SPLBLUNT,StallVal)
+@@ -1738,92 +1276,34 @@
+   REAL(ReKi),                             INTENT(IN   )  :: StallVal       !< Stall angle at station i
+   TYPE(AA_ParameterType),                 INTENT(IN   )  :: p              ! Parameters
+   REAL(ReKi),DIMENSION(size(p%FreqList)), INTENT(  OUT)  :: SPLBLUNT       !
+-   ! Local variables
+-  real(ReKi)                             :: STPPP    ! STROUHAL NUMBER                       ---
+-  real(ReKi)                             :: M        ! MACH NUMBER                           ---
+-  real(ReKi)                             :: RC       ! REYNOLDS NUMBER BASED ON CHORD        ---
+-  integer(intKi)                         :: I        ! I A generic index for DO loops.
+-  real(ReKi)                             :: DELTAP   ! PRESSURE SIDE BOUNDARY LAYER THICKNESS METERS
+-  real(ReKi)                             :: DSTRS    ! SUCTION SIDE DISPLACEMENT THICKNESS  METERS
+-  real(ReKi)                             :: DSTRP    ! PRESSURE SIDE DISPLACEMENT THICKNESS METERS
+-  real(ReKi)                             :: DBARH    ! HIGH FREQUENCY DIRECTIVITY           ---
+-  real(ReKi)                             :: DSTRAVG  ! AVERAGE DISPLACEMENT THICKNESS       METERS
+-  real(ReKi)                             :: HDSTAR   ! BLUNTNESS OVER AVERAGE DISPLACEMENT THICKNESS   ---
+-  real(ReKi)                             :: DSTARH   ! AVERAGE DISPLACEMENT THICKNESS OVER TRAILING EDGE BLUNTNESS       ---
+-  real(ReKi)                             :: ATERM    ! USED TO COMPUTE PEAK STROUHAL NO.    ---
+-  real(ReKi)                             :: STPEAK   ! PEAK STROUHAL NUMBER                  ---
+-  real(ReKi)                             :: ETA      ! RATIO OF STROUHAL NUMBERS             ---
+-  real(ReKi)                             :: G514     ! G5 EVALUATED AT PSI=14.0              DB
+-  real(ReKi)                             :: HDSTARP  ! MODIFIED VALUE OF HDSTAR              ---
+-  real(ReKi)                             :: G50      ! G5 EVALUATED AT PSI=0.0               DB
+-  real(ReKi)                             :: G4       ! SCALED SPECTRUM LEVEL                 DB
+-  !   real(ReKi)                         :: G5       ! SPECTRUM SHAPE FUNCTION               DB
+-  REAL(ReKi),DIMENSION(size(p%FreqList)) :: G5       ! SPECTRUM SHAPE FUNCTION               DB ! corrected (EB_DTU)
+-  real(ReKi)                             :: G5Sum       ! SPECTRUM SHAPE FUNCTION               DB
+-  real(ReKi)                             :: SCALE    ! SCALING FACTOR                        ---
+-  real(ReKi)                             :: LogVal   ! temp variable to help us not take log10(0)    ---
+-
+-    ! Reynolds number and mach number
+-        M          = U  / p%SpdSound
+-        RC         = U  * C/p%KinVisc
+-    ! Compute boundary layer thicknesses
+-    IF (p%X_BLMethod .eq. X_BLMethod_Tables) THEN
+-        DELTAP = d99Var2
+-        DSTRS  = dstarVar1
+-        DSTRP  = dstarVar2
+-    ELSE
+-        CALL THICK(C,RC,ALPSTAR,p,DELTAP,DSTRS,DSTRP,StallVal)
+-    ENDIF
+-    
+-    ! Compute average displacement thickness
+-    DSTRAVG = (DSTRS + DSTRP) / 2.
+-    HDSTAR  = H / DSTRAVG
+-    DSTARH = 1. /HDSTAR
+-    ! Compute directivity function
+-    DBARH = DIRECTH_TE(M,THETA,PHI)
+-    IF (DBARH <= 0) THEN
+-        SPLBLUNT = 0.
+-        RETURN
+-    ENDIF
+-    
+-    ! Compute peak strouhal number                                               eq 72 in BPM Airfoil Self-noise and Prediction paper
+-    ATERM  = .212 - .0045 * PSI
+-    IF (HDSTAR .GE. .2) then
+-       STPEAK    = ATERM / (1.+.235*DSTARH-.0132*DSTARH**2)                    ! this is what it used to be in nafnoise and fast noise module
+-    !!  STPEAK    = ATERM / (1+0.235*(DSTARH)**(-1)-0.0132*DSTARH**(-2)) ! check if this one is correct (EB_DTU) 
+-    else
+-       STPEAK    = .1 * HDSTAR + .095 - .00243 * PSI
+-    end if
+-    
+-    ! Compute scaled spectrum level                                              eq 74 of BPM Airfoil Self-noise and Prediction paper
+-    if (HDSTAR .LE. 5.) then
+-       G4=17.5*LOG10AA(HDSTAR)+157.5-1.114*PSI
+-    else
+-       G4=169.7 - 1.114 * PSI
+-    end if
+-    
+-    ! For each frequency, compute spectrum shape referenced to 0 db
+-    SCALE = 10. * LOG10AA(M**5.5 * H * DBARH * L / R**2)
+-    G5Sum=0.0_Reki
+-    DO I=1,SIZE(p%FreqList)
+-        STPPP    = p%FreqList(I) * H / U
+-        ETA      = LOG10AA(STPPP/STPEAK)
+-        G514 = G5COMP(HDSTAR,ETA)                          ! compute G5 for Phi=14deg
+-        
+-        HDSTARP = 6.724 * HDSTAR **2-4.019*HDSTAR+1.107                         ! eq 82 from BPM Airfoil Self-noise and Prediction paper
+-        G50 = G5COMP(HDSTARP,ETA)                           ! recompute G5 for Phi=0deg
+-        
+-        G5(I) = G50 + .0714 * PSI * (G514-G50)                                   ! interpolate G5 from G50 and G514
+-        IF (G5(I) .GT. 0.) G5(I) = 0.
+-        G5Sum = 10**(G5(I)/10)+G5Sum     ! to be subtracted
+-        if ( G5Sum .ne. 0) then
+-            LogVal = MAX(AA_EPSILON,1/G5Sum)
+-        else
+-           LogVal = 1
+-        end if
+-        SPLBLUNT(I) = G4 + G5(I) + SCALE - 10*log10(LogVal)  ! equation mentioned there is plus but it is stated subtract, thus ''- 10*log10(1/G5Sum)'' 
+-    end do
+-END SUBROUTINE Blunt
++    real(c_double) :: args(26), cpp_freq(size(p%FreqList))
++    real(c_double) :: result(3*size(p%FreqList))
++    integer(c_int) :: flags(3), status, nfreq
++    args=0.0_c_double
++    args(17)=real(p%SpdSound,c_double)
++    args(18)=real(p%KinVisc,c_double)
++    args(19)=real(p%AirDens,c_double)
++    args(20)=real(p%LTurb,c_double)
++    flags=[int(p%X_BLMethod,c_int),int(p%ITRIP,c_int),merge(1_c_int,0_c_int,p%ROUND)]
++    args(1)=real(ALPSTAR,c_double)
++    args(2)=real(C,c_double)
++    args(3)=real(U,c_double)
++    args(4)=real(THETA,c_double)
++    args(5)=real(PHI,c_double)
++    args(6)=real(L,c_double)
++    args(7)=real(R,c_double)
++    args(8)=real(StallVal,c_double)
++    args(9)=real(d99Var2,c_double)
++    args(10)=real(dstarVar1,c_double)
++    args(11)=real(dstarVar2,c_double)
++    args(13)=real(H,c_double)
++    args(14)=real(PSI,c_double)
++    nfreq=int(size(p%FreqList),c_int)
++    cpp_freq=real(p%FreqList,c_double)
++    status=cpp_acoustic_kernel(5_c_int,nfreq,cpp_freq,args,flags,result)
++    if (status /= 0) error stop "Aeroacoustics_cpp kernel failed: BLUNT"
++    SPLBLUNT=real(result(0*nfreq+1:1*nfreq),ReKi)
++END SUBROUTINE BLUNT
+ !====================================================================================================
+ REAL(ReKi) FUNCTION G5COMP(HDSTAR,ETA) result(G5)
+     REAL(ReKi),          INTENT(IN   )  :: HDSTAR        !<
+@@ -2106,30 +1586,29 @@
+     REAL(ReKi),                             INTENT(IN   )  :: thick_1p       ! 
+     TYPE(AA_ParameterType),                 INTENT(IN   )  :: p              ! Parameters
+     REAL(ReKi),DIMENSION(size(p%FreqList)), INTENT(  OUT)  :: SPLti          !
+-    ! local variables
+-    character(*), parameter :: RoutineName = 'Simple_Guidati'
+-    INTEGER(intKi)          :: loop1       ! temporary
+-    REAL(ReKi)              :: TI_Param    ! Temporary variable thickness ratio dependent
+-    REAL(ReKi)              :: slope       ! Temporary variable thickness ratio dependent
+-    REAL(ReKi)              :: const1      ! Temporary variable
+-    REAL(ReKi)              :: const2      ! Temporary variable
+-    
+-    TI_Param = thick_1p + thick_10p                                     ! Eq 2 
+-    slope = 1.123*TI_Param + 5.317*TI_Param*TI_Param                    ! Eq 3 
+-    const1 = -slope*TwoPi*chord/U
+-    const2 = -slope*5.0d0
+-    
+-    do loop1 =1,size(p%FreqList)
+-!       SPLti(loop1) = -slope*(TwoPi * chord/U * p%FreqList(loop1) + 5.0d0)  ! Eq 4 
+-        SPLti(loop1) = const1 * p%FreqList(loop1) + const2  ! Eq 4 
+-    enddo   ! Outputs Delta_SPL, the difference in SPL between the airfoil and a flat plate.
+-    
++    real(c_double) :: args(26), cpp_freq(size(p%FreqList))
++    real(c_double) :: result(3*size(p%FreqList))
++    integer(c_int) :: flags(3), status, nfreq
++    args=0.0_c_double
++    args(17)=real(p%SpdSound,c_double)
++    args(18)=real(p%KinVisc,c_double)
++    args(19)=real(p%AirDens,c_double)
++    args(20)=real(p%LTurb,c_double)
++    flags=[int(p%X_BLMethod,c_int),int(p%ITRIP,c_int),merge(1_c_int,0_c_int,p%ROUND)]
++    args(2)=real(Chord,c_double)
++    args(3)=real(U,c_double)
++    args(15)=real(thick_1p,c_double)
++    args(16)=real(thick_10p,c_double)
++    nfreq=int(size(p%FreqList),c_int)
++    cpp_freq=real(p%FreqList,c_double)
++    status=cpp_acoustic_kernel(6_c_int,nfreq,cpp_freq,args,flags,result)
++    if (status /= 0) error stop "Aeroacoustics_cpp kernel failed: Simple_Guidati"
++    SPLti=real(result(0*nfreq+1:1*nfreq),ReKi)
+ END SUBROUTINE Simple_Guidati
+ !==================================================================================================================================!
+ !================================ Turbulent Boundary Layer Trailing Edge Noise ====================================================!
+ !=================================================== TNO START ====================================================================!
+ SUBROUTINE TBLTE_TNO(U,THETA,PHI,D,R,Cfall,d99all,EdgeVelAll,p,SPLP,SPLS)
+-   USE TNO, only: SPL_integrate
+     REAL(ReKi),                               INTENT(IN   ) :: U          !< Unoise                 (m/s)
+     REAL(ReKi),                               INTENT(IN   ) :: THETA      !< DIRECTIVITY ANGLE      (deg)
+     REAL(ReKi),                               INTENT(IN   ) :: PHI        !< DIRECTIVITY ANGLE      (deg)
+@@ -2139,78 +1618,34 @@
+     REAL(ReKi),DIMENSION(2),                  INTENT(IN   ) :: d99all     !< 
+     REAL(ReKi),DIMENSION(2),                  INTENT(IN   ) :: EdgeVelAll !< 
+     TYPE(AA_ParameterType),                   INTENT(IN   ) :: p          !< Noise Module Parameters
+-!   REAL(ReKi),DIMENSION(size(p%FreqList)),   INTENT(IN   ) :: SPLALPH    !< SOUND PRESSURE LEVEL DUE TO ANGLE OF ATTACK CONTRIBUTION (db)
+     REAL(ReKi),DIMENSION(size(p%FreqList)),   INTENT(  OUT) :: SPLP       !< SOUND PRESSURE LEVEL DUE TO PRESSURE SIDE OF AIRFOIL (db)
+     REAL(ReKi),DIMENSION(size(p%FreqList)),   INTENT(  OUT) :: SPLS       !< SOUND PRESSURE LEVEL DUE TO SUCTION SIDE OF AIRFOIL  (db)
+-
+-    ! Local variables
+-    REAL(ReKi) :: answer
+-    REAL(ReKi) :: Spectrum
+-    REAL(ReKi) :: freq(size(p%FreqList))
+-    REAL(ReKi) :: SPL_press,SPL_suction
+-    REAL(ReKi) :: band_width,band_ratio
+-    REAL(ReKi) :: DBARH
+-    !REAL(ReKi) :: P1,P2,P4
+-    INTEGER (4)  :: n_freq
+-    INTEGER (4)  :: i_omega
+-
+-      ! Variables passed to integration routine
+-   real(ReKi)  :: int_limits(2)  !< Lower and upper integration limits
+-   real(ReKi)  :: Mach        !< Mach number
+-   real(ReKi)  :: omega
+-
+-    ! Init
+-    n_freq  = size(p%FreqList)
+-    freq    = p%FreqList
+-    
+-    SPLS = 0.0_ReKi ! initialize in case Cfall(1) <= 0
+-    SPLP = 0.0_ReKi ! initialize in case Cfall(2) <= 0
+-    
+-    ! Body of TNO 
+-    band_ratio = 2.**(1./3.)
+-
+-    ! Mach number
+-    Mach = U  / p%SpdSound
+-
+-    ! Directivity function
+-    DBARH = DIRECTH_TE(REAL(Mach,ReKi),THETA,PHI)
+- 
+-    do i_omega = 1,n_freq
+-        omega = TwoPi*p%FreqList(i_omega)
+-        !integration limits
+-        int_limits(1) = 0.0e0
+-        int_limits(2) = 10*omega/(Mach*p%SpdSound)
+-        ! Convert to third octave
+-        band_width = 2. * omega * (sqrt(band_ratio)-1./sqrt(band_ratio))
+-        
+-        IF (Cfall(1) .GT. 0.) THEN
+-            answer = SPL_integrate(omega=omega,limits=int_limits,ISSUCTION=.true.,        &
+-                     Mach=Mach,SpdSound=p%SpdSound,AirDens=p%AirDens,KinVisc=p%KinVisc,   &
+-                     Cfall=Cfall,d99all=d99all,EdgeVelAll=EdgeVelAll)
+-            Spectrum = D/(4.*pi*R**2)*answer
+-            SPL_suction = 10.*log10(Spectrum*DBARH/2.e-5/2.e-5)
+-            SPLS(i_omega) = SPL_suction + 10.*log10(band_width)
+-        ENDIF
+-
+-        IF (Cfall(2) .GT. 0.) THEN
+-            answer = SPL_integrate(omega=omega,limits=int_limits,ISSUCTION=.FALSE.,       &
+-                     Mach=Mach,SpdSound=p%SpdSound,AirDens=p%AirDens,KinVisc=p%KinVisc,   &
+-                     Cfall=Cfall,d99all=d99all,EdgeVelAll=EdgeVelAll)
+-            Spectrum = D/(4.*pi*R**2)*answer
+-            SPL_press = 10.*log10(Spectrum*DBARH/2.e-5/2.e-5)
+-            SPLP(i_omega) = SPL_press + 10.*log10(band_width)
+-        ENDIF
+-
+-        ! Sum the noise sources SPLALPH is BPM value
+-        IF (SPLP(i_omega)    .LT. -100.) SPLP(i_omega)    = -100.
+-        IF (SPLS(i_omega)    .LT. -100.) SPLS(i_omega)    = -100.
+-
+-        !P1  = 10.**(SPLP(i_omega) / 10.)
+-        !P2  = 10.**(SPLS(i_omega) / 10.)
+-        !P4  = 10.**(SPLALPH(i_omega) / 10.)
+-        !
+-        !SPLTBL(i_omega) = 10. * LOG10(P1 + P2 + P4)
+-    enddo
++    real(c_double) :: args(26), cpp_freq(size(p%FreqList))
++    real(c_double) :: result(3*size(p%FreqList))
++    integer(c_int) :: flags(3), status, nfreq
++    args=0.0_c_double
++    args(17)=real(p%SpdSound,c_double)
++    args(18)=real(p%KinVisc,c_double)
++    args(19)=real(p%AirDens,c_double)
++    args(20)=real(p%LTurb,c_double)
++    flags=[int(p%X_BLMethod,c_int),int(p%ITRIP,c_int),merge(1_c_int,0_c_int,p%ROUND)]
++    args(3)=real(U,c_double)
++    args(4)=real(THETA,c_double)
++    args(5)=real(PHI,c_double)
++    args(6)=real(D,c_double)
++    args(7)=real(R,c_double)
++    args(22)=real(Cfall(1),c_double)
++    args(23)=real(Cfall(2),c_double)
++    args(24)=real(d99all(1),c_double)
++    args(9)=real(d99all(2),c_double)
++    args(25)=real(EdgeVelAll(1),c_double)
++    args(26)=real(EdgeVelAll(2),c_double)
++    nfreq=int(size(p%FreqList),c_int)
++    cpp_freq=real(p%FreqList,c_double)
++    status=cpp_acoustic_kernel(7_c_int,nfreq,cpp_freq,args,flags,result)
++    if (status /= 0) error stop "Aeroacoustics_cpp kernel failed: TBLTE_TNO"
++    SPLP=real(result(0*nfreq+1:1*nfreq),ReKi)
++    SPLS=real(result(1*nfreq+1:2*nfreq),ReKi)
+ END SUBROUTINE TBLTE_TNO
+ 
+ 
+--- a/modules/aerodyn/CMakeLists.txt
++++ b/modules/aerodyn/CMakeLists.txt
+@@ -46,7 +46,13 @@
+   src/AeroAcoustics_IO.f90
+   src/AeroAcoustics_Types.f90
+ )
+-target_link_libraries(aeroacousticslib basicaerolib nwtclibs)
++if(NOT AEROACOUSTICS_CPP_SOURCE)
++  message(FATAL_ERROR "Set AEROACOUSTICS_CPP_SOURCE to the Aeroacoustics_cpp checkout")
++endif()
++add_subdirectory("${AEROACOUSTICS_CPP_SOURCE}" "${CMAKE_BINARY_DIR}/acoustics-cpp")
++install(TARGETS aeroacoustics EXPORT OpenFASTLibraries ARCHIVE DESTINATION lib)
++install(DIRECTORY "${AEROACOUSTICS_CPP_SOURCE}/include/" DESTINATION include/aeroacoustics)
++target_link_libraries(aeroacousticslib basicaerolib nwtclibs aeroacoustics)
+ 
+ # AeroDyn Library
+ add_library(aerodynlib STATIC

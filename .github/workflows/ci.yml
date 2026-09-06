@@ -1,0 +1,19 @@
+name: C++ numerical validation
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  portable:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y gfortran
+      - run: python -m pip install 'numpy>=1.26,<3'
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DAEROACOUSTICS_BUILD_TESTS=ON
+      - run: cmake --build build -j 2
+      - run: ./build/aeroacoustics_example build/spectrum.csv
+      - run: python tests/compare_python.py build/libaeroacoustics_shared.so --fortran-compiler gfortran --report build/validation.json
+      - run: python tests/compare_auxiliary.py build/auxiliary_probe --report build/auxiliary.json

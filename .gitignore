@@ -1,0 +1,12 @@
+build*/
+_work/
+__pycache__/
+*.pyc
+*.dll
+*.exe
+*.mod
+*.o
+*.a
+*.lib
+*.zip
+WORK_PLAN.md

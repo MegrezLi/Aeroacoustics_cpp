@@ -1,0 +1,26 @@
+{
+  "backend": "Intel oneMKL: Intel(R) oneAPI Math Kernel Library Version 2025.2-Product Build 20250620 for Intel(R) 64 architecture applications",
+  "cases": 204,
+  "TNO_cases": 16,
+  "evaluated_values": 56576,
+  "values_by_operation": {
+    "1": 6936,
+    "2": 20808,
+    "3": 6936,
+    "4": 6936,
+    "5": 6936,
+    "6": 6936,
+    "7": 1088
+  },
+  "max_abs_error_dB": {
+    "1": 1.1368683772161603e-13,
+    "2": 4.547473508864641e-13,
+    "3": 8.526512829121202e-14,
+    "4": 4.263256414560601e-14,
+    "5": 1.0686562745831907e-11,
+    "6": 0.0,
+    "7": 2.842170943040401e-14
+  },
+  "tolerance_dB": 2e-08,
+  "kernel_calls": 1240
+}

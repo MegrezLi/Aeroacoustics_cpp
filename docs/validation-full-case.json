@@ -1,0 +1,40 @@
+{
+  "case": "IEA_LB_RWT-AeroAcoustics",
+  "input_files": 101,
+  "identical_inputs": true,
+  "cpp_kernel_calls": 106128,
+  "files": {
+    "IEA_LB_RWT-AeroAcoustics_1.out": {
+      "rows": 201,
+      "channels": 2,
+      "compared_values": 402,
+      "max_abs_error_dB": 0.0
+    },
+    "IEA_LB_RWT-AeroAcoustics_2.out": {
+      "rows": 201,
+      "channels": 68,
+      "compared_values": 13668,
+      "max_abs_error_dB": 0.0
+    },
+    "IEA_LB_RWT-AeroAcoustics_3.out": {
+      "rows": 201,
+      "channels": 476,
+      "compared_values": 95676,
+      "max_abs_error_dB": 0.0
+    },
+    "IEA_LB_RWT-AeroAcoustics_4.out": {
+      "rows": 201,
+      "channels": 180,
+      "compared_values": 36180,
+      "max_abs_error_dB": 0.0
+    }
+  },
+  "dynamics_output": {
+    "byte_identical_except_generation_timestamp": true,
+    "bytes": 122547,
+    "normalized_sha256": "dd2baff81d682aeaa21c6e8c798f14dae8540acaa78f9123ab60f1e2b2a0b973",
+    "baseline_sha256": "bbc74185468183317eca42ec1724947dc0a618ceca4f5feaab144567b19b9129",
+    "candidate_sha256": "361c2ef249463dfcd479ba2f17e99774530a91af279bd7ea7a1944adb737803c"
+  },
+  "acoustic_tolerance_dB": 2e-05
+}
