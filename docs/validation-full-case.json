@@ -1,40 +1,58 @@
 {
   "case": "IEA_LB_RWT-AeroAcoustics",
-  "input_files": 101,
-  "identical_inputs": true,
-  "cpp_kernel_calls": 106128,
+  "comparison": "original Fortran versus standalone C++",
   "files": {
     "IEA_LB_RWT-AeroAcoustics_1.out": {
       "rows": 201,
       "channels": 2,
       "compared_values": 402,
-      "max_abs_error_dB": 0.0
+      "max_abs_error_dB": 7.817849999725013e-05,
+      "mean_abs_error_dB": 4.05659005013196e-06,
+      "worst_time_s": 16.6,
+      "worst_channel": 2,
+      "tolerance_dB": 0.001
     },
     "IEA_LB_RWT-AeroAcoustics_2.out": {
       "rows": 201,
       "channels": 68,
       "compared_values": 13668,
-      "max_abs_error_dB": 0.0
+      "max_abs_error_dB": 0.00020574810000084653,
+      "mean_abs_error_dB": 5.3096017537528444e-06,
+      "worst_time_s": 16.6,
+      "worst_channel": 53,
+      "tolerance_dB": 0.01
     },
     "IEA_LB_RWT-AeroAcoustics_3.out": {
       "rows": 201,
       "channels": 476,
       "compared_values": 95676,
-      "max_abs_error_dB": 0.0
+      "max_abs_error_dB": 0.0008517038999968918,
+      "mean_abs_error_dB": 6.7941629877470794e-06,
+      "worst_time_s": 17.0,
+      "worst_channel": 243,
+      "tolerance_dB": 0.01
     },
     "IEA_LB_RWT-AeroAcoustics_4.out": {
       "rows": 201,
       "channels": 180,
       "compared_values": 36180,
-      "max_abs_error_dB": 0.0
+      "max_abs_error_dB": 0.0007665902999995922,
+      "mean_abs_error_dB": 5.640247710449697e-06,
+      "worst_time_s": 18.5,
+      "worst_channel": 170,
+      "tolerance_dB": 0.05
     }
   },
-  "dynamics_output": {
-    "byte_identical_except_generation_timestamp": true,
-    "bytes": 122547,
-    "normalized_sha256": "dd2baff81d682aeaa21c6e8c798f14dae8540acaa78f9123ab60f1e2b2a0b973",
-    "baseline_sha256": "bbc74185468183317eca42ec1724947dc0a618ceca4f5feaab144567b19b9129",
-    "candidate_sha256": "361c2ef249463dfcd479ba2f17e99774530a91af279bd7ea7a1944adb737803c"
+  "compared_values": 145926,
+  "identical_input_files": 101,
+  "runtime": {
+    "solver": "standalone C++",
+    "dt": 0.00625,
+    "duration": 20,
+    "steps": 3200,
+    "acoustic_samples": 201,
+    "elapsed_seconds": 3.802201
   },
-  "acoustic_tolerance_dB": 2e-05
+  "cpp_executable_sha256": "7e4c229e039f5fec46ec5aada42e0b769cba345d6cca9a7ec1d1f08e4a007a6a",
+  "reference_openfast_commit": "2895884d2be01862173c88d70f86b358d2f1a50a"
 }

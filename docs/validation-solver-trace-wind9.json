@@ -1,0 +1,169 @@
+{
+  "reference": "Original Fortran solver with read-only trace",
+  "rows": 288000,
+  "compared_values": 6624000,
+  "duration_s": 20,
+  "channels": {
+    "q1": {
+      "max_absolute_error": 8.192726483891022e-06,
+      "tolerance": 2e-05,
+      "worst_time_s": 0.875,
+      "blade": 2,
+      "node": 1
+    },
+    "q2": {
+      "max_absolute_error": 7.565185247845885e-06,
+      "tolerance": 2e-05,
+      "worst_time_s": 0.14375000000000002,
+      "blade": 2,
+      "node": 1
+    },
+    "q3": {
+      "max_absolute_error": 2.0430836580945244e-06,
+      "tolerance": 1e-05,
+      "worst_time_s": 19.56875,
+      "blade": 3,
+      "node": 1
+    },
+    "qd1": {
+      "max_absolute_error": 6.0016500773585335e-05,
+      "tolerance": 0.0002,
+      "worst_time_s": 0.23125,
+      "blade": 2,
+      "node": 1
+    },
+    "qd2": {
+      "max_absolute_error": 0.00010456605787978468,
+      "tolerance": 0.0002,
+      "worst_time_s": 0.23750000000000002,
+      "blade": 2,
+      "node": 1
+    },
+    "qd3": {
+      "max_absolute_error": 2.3821758308922858e-05,
+      "tolerance": 0.0001,
+      "worst_time_s": 20.0,
+      "blade": 3,
+      "node": 1
+    },
+    "phi": {
+      "max_absolute_error": 1.0842802852378819e-06,
+      "tolerance": 5e-06,
+      "worst_time_s": 0.55625,
+      "blade": 2,
+      "node": 29
+    },
+    "alpha": {
+      "max_absolute_error": 1.0856320612484538e-06,
+      "tolerance": 5e-06,
+      "worst_time_s": 0.55625,
+      "blade": 2,
+      "node": 29
+    },
+    "speed": {
+      "max_absolute_error": 4.480237380732888e-05,
+      "tolerance": 0.0002,
+      "worst_time_s": 20.0,
+      "blade": 3,
+      "node": 23
+    },
+    "a": {
+      "max_absolute_error": 1.637662946674112e-05,
+      "tolerance": 3e-05,
+      "worst_time_s": 0.09375,
+      "blade": 1,
+      "node": 29
+    },
+    "ap": {
+      "max_absolute_error": 1.3961395278760946e-07,
+      "tolerance": 1e-05,
+      "worst_time_s": 0.35625,
+      "blade": 3,
+      "node": 10
+    },
+    "cl": {
+      "max_absolute_error": 2.1921351062603733e-05,
+      "tolerance": 0.002,
+      "worst_time_s": 2.8625000000000003,
+      "blade": 1,
+      "node": 24
+    },
+    "cd": {
+      "max_absolute_error": 2.439124514586055e-06,
+      "tolerance": 0.001,
+      "worst_time_s": 2.8625000000000003,
+      "blade": 1,
+      "node": 24
+    },
+    "cm": {
+      "max_absolute_error": 5.8269634838625795e-06,
+      "tolerance": 0.001,
+      "worst_time_s": 17.118750000000002,
+      "blade": 1,
+      "node": 29
+    },
+    "x": {
+      "max_absolute_error": 6.632624581115465e-06,
+      "tolerance": 3e-05,
+      "worst_time_s": 0.9875,
+      "blade": 2,
+      "node": 30
+    },
+    "y": {
+      "max_absolute_error": 3.905418895833179e-06,
+      "tolerance": 3e-05,
+      "worst_time_s": 19.856250000000003,
+      "blade": 3,
+      "node": 22
+    },
+    "z": {
+      "max_absolute_error": 3.645491304382631e-06,
+      "tolerance": 3e-05,
+      "worst_time_s": 18.45,
+      "blade": 3,
+      "node": 22
+    },
+    "fx": {
+      "max_absolute_error": 0.07786407975618204,
+      "tolerance": 5,
+      "worst_time_s": 2.8625000000000003,
+      "blade": 1,
+      "node": 24
+    },
+    "fy": {
+      "max_absolute_error": 0.005463715950668302,
+      "tolerance": 5,
+      "worst_time_s": 17.118750000000002,
+      "blade": 1,
+      "node": 29
+    },
+    "fz": {
+      "max_absolute_error": 0.008310579735677948,
+      "tolerance": 5,
+      "worst_time_s": 17.118750000000002,
+      "blade": 1,
+      "node": 29
+    },
+    "mx": {
+      "max_absolute_error": 0.002982759614525321,
+      "tolerance": 5,
+      "worst_time_s": 17.118750000000002,
+      "blade": 1,
+      "node": 29
+    },
+    "my": {
+      "max_absolute_error": 0.008533713396872145,
+      "tolerance": 5,
+      "worst_time_s": 17.118750000000002,
+      "blade": 1,
+      "node": 29
+    },
+    "mz": {
+      "max_absolute_error": 0.010480412033302855,
+      "tolerance": 5,
+      "worst_time_s": 2.9375,
+      "blade": 1,
+      "node": 24
+    }
+  }
+}

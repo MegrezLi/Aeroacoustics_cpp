@@ -1,4 +1,4 @@
-// C++ translation of the supplied Python driver and OpenFAST auxiliary algorithms.
+// C++ implementation of OpenFAST acoustic driver and auxiliary algorithms.
 #include "aeroacoustics.hpp"
 #include <algorithm>
 #include <cmath>

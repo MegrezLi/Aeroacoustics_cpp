@@ -1,0 +1,52 @@
+{
+  "case": "IEA_LB_RWT-AeroAcoustics",
+  "comparison": "original Fortran versus standalone C++",
+  "files": {
+    "IEA_LB_RWT-AeroAcoustics_1.out": {
+      "rows": 201,
+      "channels": 2,
+      "compared_values": 402,
+      "max_abs_error_dB": 1.5829100000530616e-05,
+      "mean_abs_error_dB": 3.0547644278445306e-06,
+      "worst_time_s": 18.5,
+      "worst_channel": 2,
+      "tolerance_dB": 0.001
+    },
+    "IEA_LB_RWT-AeroAcoustics_2.out": {
+      "rows": 201,
+      "channels": 68,
+      "compared_values": 13668,
+      "max_abs_error_dB": 8.222400000335028e-05,
+      "mean_abs_error_dB": 3.694354420776131e-06,
+      "worst_time_s": 0.6,
+      "worst_channel": 46,
+      "tolerance_dB": 0.01
+    },
+    "IEA_LB_RWT-AeroAcoustics_3.out": {
+      "rows": 201,
+      "channels": 476,
+      "compared_values": 95676,
+      "max_abs_error_dB": 0.00017699829999884287,
+      "mean_abs_error_dB": 3.490456752766962e-06,
+      "worst_time_s": 0.2,
+      "worst_channel": 243,
+      "tolerance_dB": 0.01
+    },
+    "IEA_LB_RWT-AeroAcoustics_4.out": {
+      "rows": 201,
+      "channels": 180,
+      "compared_values": 36180,
+      "max_abs_error_dB": 0.005636691599999466,
+      "mean_abs_error_dB": 3.7928332384903334e-06,
+      "worst_time_s": 1.0,
+      "worst_channel": 116,
+      "tolerance_dB": 0.05
+    }
+  },
+  "compared_values": 145926,
+  "wind_speed_m_s": 9,
+  "changed_input": "HWindSpeed: 8 -> 9",
+  "max_oaspl_change_from_8m_s_dB": 1.5264021744999994,
+  "identical_input_files": 101,
+  "cpp_executable_sha256": "7e4c229e039f5fec46ec5aada42e0b769cba345d6cca9a7ec1d1f08e4a007a6a"
+}

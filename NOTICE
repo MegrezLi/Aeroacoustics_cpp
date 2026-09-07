@@ -1,23 +1,33 @@
 Aeroacoustics_cpp
-C++ implementation and integration work: 2026, MegrezLi.
+C++ implementation: 2026, MegrezLi.
 
-Derived from OpenFAST AeroAcoustics and AeroAcoustics_TNO, Apache License 2.0.
-Copyright (C) 2012-2016 National Renewable Energy Laboratory.
-Copyright (C) 2015-2016 National Renewable Energy Laboratory.
-Copyright (C) 2016-2017 Envision Energy USA, LTD.
-Original notices are preserved in reference/fortran.
+Derived from OpenFAST, Apache License 2.0:
+AeroAcoustics, AeroAcoustics_TNO, ElastoDyn, BEMT, BEMTUncoupled,
+AirfoilInfo, UnsteadyAero, InflowWind, NWTC mesh/rotation routines,
+and the FAST_Solver time-integration formulation.
+Copyright (C) 2012-2018 National Renewable Energy Laboratory.
+Copyright (C) 2016-2018 Envision Energy USA, LTD.
+Original acoustic source notices are preserved in reference/fortran.
+The other modules are available at the pinned upstream source commit.
 
 OpenFAST source commit: 2895884d2be01862173c88d70f86b358d2f1a50a
 https://github.com/OpenFAST/openfast
-Official regression case commit: dd5feaaaa500ba7283140107806300d551cff0a7
+Official regression inputs: dd5feaaaa500ba7283140107806300d551cff0a7
 https://github.com/OpenFAST/r-test
 
-The C++ BPM kernels were translated from the accompanying Python port of
-the original Fortran expressions. Driver auxiliaries and the TNO integration
-were implemented in C++. The original empirical expressions, switches and
-fixed 61-point quadrature are retained; this work does not add a new noise model.
+The initial C++ BPM formulas were translated through an earlier Python
+translation of the Fortran expressions. That Python implementation and its
+numerical baselines have been removed. Current numerical comparisons use
+original Fortran only. The standalone C++ turbine implements the active
+nine blade modes, aerodynamics, mesh transfers and acoustic driver of the
+bundled case. It uses its own reduced Newton solve and Brent-Dekker root
+implementation; it does not include the upstream mod_root1dim.f90 helper.
+The empirical noise models are unchanged; this work does not introduce a
+new noise model.
 
 reference/fortran/dqk61.f contains SLATEC/QUADPACK's 61-point Gauss-Kronrod
-routine, used as a developer validation reference; its original provenance
-comments are preserved. Intel oneMKL and the compiler are external dependencies
-and are not redistributed in this repository.
+routine for developer validation; its provenance comments are preserved.
+The saved reference outputs were produced by original double-precision
+Fortran runs. Python scripts only prepare inputs, run comparisons, export
+plots, or manage toolchains. Intel oneMKL and the compilers are external
+dependencies and are not redistributed in this repository.

@@ -1,98 +1,104 @@
 # Aeroacoustics_cpp
 
-OpenFAST 气动声学的 C++17 实现，支持 Intel oneMKL，并通过 C ABI 接入 OpenFAST 官方整机算例。
+用 C++17 独立运行 OpenFAST 官方 `IEA_LB_RWT-AeroAcoustics` 整机声学算例。从 `.fst`、叶片、翼型和声学输入文件计算风场、叶片变形、气动力及噪声，完成 0–20 秒仿真。
 
-## 已实现的算法
+默认编译和运行只需要 CMake 与 C++ 编译器。可执行程序不调用 OpenFAST、Fortran 或 Python，也不读取预先计算的节点时序。仓库内的 Fortran 源码和结果用于验证；Python 仅保留下载、测试、绘图及工具链安装脚本。
 
-- BPM：层流边界层涡脱落、湍流边界层尾缘噪声（压力面／吸力面／分离）、尾缘钝度、叶尖噪声。
-- Lowson 入流湍流噪声和 Simplified Guidati 厚度修正。
-- TNO 尾缘噪声、61 点 Gauss–Kronrod 积分及误差诊断。
-- A 计权、声能叠加、观察点坐标变换、叶片声学节点选择、边界层表读取与插值、两种湍流强度状态更新、声学时间循环。
-- MKL 后端实际调用 `vdExp`、`cblas_dgemv` 和 `cblas_ddot` 计算 TNO 积分；整机验证的 BLAS/LAPACK 也使用 MKL。
+## 编译与运行
 
-这是既有经验模型的代码移植，不是 CFD 声源求解器。边界层表厚度乘弦长转换为米，雷诺数使用绝对值而非百万单位；角度除入流噪声迎角为弧度外均为度。声级参考声压为 20 μPa。
-
-## 快速开始
-
-需要 CMake ≥3.20 和支持 C++17 的编译器。
+需要 CMake ≥3.20、支持 C++17 的编译器。官方算例的 101 个输入文件已经包含在仓库中。
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release -j 4
+./build/aeroacoustics_turbine examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst build/results
+```
+
+Windows / MinGW：
+
+```powershell
+. ./tools/use_gcc.ps1
+cmake -S . -B build -G 'MinGW Makefiles' -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j 4
+./build/aeroacoustics_turbine.exe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst build/results
+```
+
+`use_gcc.ps1` 默认使用本机 GCC 16.2.0；其他位置可加 `-GccBin '你的 mingw64/bin 路径'`。使用 Visual Studio 多配置生成器时，可执行文件位于 `build/Release/`。已有不同生成器的构建目录应另取名称。
+
+输出到指定目录：
+
+| 文件 | 内容 |
+| --- | --- |
+| `IEA_LB_RWT-AeroAcoustics_1.out` | 两个观察点的总声压级 |
+| `IEA_LB_RWT-AeroAcoustics_2.out` | 各观察点的 34 个频带 |
+| `IEA_LB_RWT-AeroAcoustics_3.out` | 各频带的 7 类声源分量 |
+| `IEA_LB_RWT-AeroAcoustics_4.out` | 各叶片、节点对观察点的声级贡献 |
+| `dynamics.csv` | 每个时间步的 9 个模态位移和速度 |
+| `run.json` | 步长、运行时长、步数和声学输出次数 |
+
+默认计算 3,200 个时间步，步长 0.00625 s；声学输出间隔 0.1 s，共 201 个时刻。声级参考声压为 20 μPa。程序另可接受第三个参数设置运行时长，例如末尾加 `2` 运行 2 秒。
+
+## 模型范围
+
+移植范围是该算例实际启用的物理模块：
+
+- **InflowWind**：恒定风、幂律风切变及风向变换。
+- **ElastoDyn**：三叶片，每片两个挥舞模态和一个摆振模态；包括结构扭转、质量、刚度、阻尼、重力、离心力、科里奥利项及轴向缩短。
+- **AeroDyn / BEM**：叶素动量法、Prandtl 根尖损失、切向诱导、Buhl 高诱导修正、Pitt/Peters 偏斜尾流修正。
+- **AirfoilInfo / UnsteadyAero**：翼型表线性插值、`UA_Mod=3` 的 Minnema/Pierce 非定常气动状态。
+- **网格传递与耦合**：结构到气动节点的运动插值、气动到结构的载荷映射、广义 α 时间积分。
+- **AeroAcoustics**：BPM 尾缘噪声、钝度、层流、叶尖、Lowson 入流噪声、Simplified Guidati 厚度修正，以及 TNO 模型和 61 点积分。
+
+官方工况使用 8 m/s 风速、10.04 rpm 固定转速和 1.17° 固定桨距。塔架、传动链、平台及控制器在此算例中关闭；这些自由度和模块不属于本项目的移植范围。程序会拒绝未支持的主要模型开关，不能直接替代 OpenFAST 运行任意风机。
+
+数值求根与结构 Newton 迭代采用 C++ 实现，收敛处理与原求解器有差别，不承诺逐位一致。具体支持项、求解顺序及输入限制见 [模块说明](docs/standalone-port.md)。默认整机算例未启用 TNO，TNO 由单独的 Fortran 对照测试覆盖。
+
+## Fortran 与 C++ 对比
+
+参考源码固定为 OpenFAST [`2895884`](https://github.com/OpenFAST/openfast/tree/2895884d2be01862173c88d70f86b358d2f1a50a)，输入固定为 r-test [`dd5feaa`](https://github.com/OpenFAST/r-test/tree/dd5feaaaa500ba7283140107806300d551cff0a7/glue-codes/openfast/IEA_LB_RWT-AeroAcoustics)。原 Fortran 以双精度编译。
+
+| 20 秒整机输出：最大绝对差异 | 官方 8 m/s | 9 m/s 扰动工况 |
+| --- | ---: | ---: |
+| 总声压级 | 0.000078 dB | 0.000016 dB |
+| 频带声压级 | 0.000206 dB | 0.000082 dB |
+| 分声源频谱 | 0.000852 dB | 0.000177 dB |
+| 分节点声级 | 0.000767 dB | 0.005637 dB |
+
+每个工况比较全部 145,926 个声学值，并核对 101 个输入文件的 SHA256。改变风速后，总声压级相对原工况最多改变约 1.526 dB。
+
+模块对照另覆盖 56,576 个声学数值、36,000 组非定常翼型状态、5,700 行结构状态、4,700 行网格映射和 7,200 组 BEM 诱导系数。详细误差见 [验证与复现](docs/full-case.md) 和 `docs/validation-*.json`。Windows 运行依赖检查只装入 C++ 运行库，在 PATH 仅含系统目录时完成了整机算例，见 [运行检查报告](docs/validation-runtime.json)。
+
+![Fortran 与独立 C++ 整机对比](docs/full-case-validation.png)
+
+以下测试需要 Python、NumPy；声学源码直接对比还需要 GFortran。它们不参与风机求解。
+
+```sh
+cmake -S . -B build -DAEROACOUSTICS_BUILD_TESTS=ON
+cmake --build build --config Release -j 4
+python tests/compare_fortran.py build/libaeroacoustics_shared.so --fortran-compiler gfortran --report build/kernels.json
+python tests/run_standalone.py build/aeroacoustics_turbine build/official-check --report build/full-case.json
+python tests/run_perturbation.py build/aeroacoustics_turbine build/wind9-check --report build/wind9.json
+```
+
+Windows 将 `.so` 换成 `libaeroacoustics_shared.dll`，并给可执行文件加 `.exe`。GitHub Actions 执行 Linux 编译和这三项对比。已有 Fortran 源码与结果保存在 `reference/`，旧 Python 算法及 Python 数值基线已移除。
+
+## 截面示例与 MKL
+
+`aeroacoustics_example` 保留单截面频谱示例：
+
+```sh
 ./build/aeroacoustics_example spectrum.csv
 ```
 
-Windows PowerShell，使用已经安装的 GCC 16.2.0：
+Intel oneMKL 是可选后端，用于 TNO 积分的向量指数和 BLAS 求和。启用时配置 `-DAEROACOUSTICS_USE_MKL=ON` 和 `MKL_DIR`，运行时提供 MKL 动态库。MinGW 使用 `mkl_rt` 单一动态接口。安装及命令见 [工具链说明](docs/toolchain.md)。
 
-```powershell
-. ./tools/use_gcc.ps1
-cmake -S . -B build-gcc16 -G 'MinGW Makefiles' -DCMAKE_BUILD_TYPE=Release
-cmake --build build-gcc16 -j 4
-./build-gcc16/aeroacoustics_example.exe spectrum.csv
-```
+## 源码
 
-其他安装位置使用 `. ./tools/use_gcc.ps1 -GccBin '你的 mingw64/bin 路径'`。新工具链安装在 `D:/Code_Configuration/gcc-16.2.0`。
+- `src/turbine/`、`include/turbine/`：输入、结构、BEM、非定常气动、网格映射及整机求解器。
+- `src/kernels.cpp`、`src/aeroacoustics.cpp`、`src/driver.cpp`：声学公式、积分和时间状态。
+- `include/aeroacoustics.hpp`、`include/aeroacoustics_c.h`：声学库 C++ 接口与 C ABI。
+- `examples/IEA_LB_RWT-AeroAcoustics/`：可直接运行的官方输入。
+- `tests/`、`reference/`：Fortran 对照、回归测试与参考结果。
+- `tools/`：下载、绘图及工具链辅助脚本。
 
-默认截面来自 OpenFAST `Aero_Tests` 的数值设置，输出 34 个频带和 7 类声源，OASPL 约为 **83.30258655488 dB**。
-
-## 使用 Intel oneMKL
-
-```powershell
-. ./tools/use_gcc.ps1
-$mklRoot = 'C:/Program Files (x86)/Intel/oneAPI/mkl/2025.2'
-$env:PATH += ";$mklRoot/bin"
-$env:MKL_THREADING_LAYER = 'SEQUENTIAL'
-cmake -S . -B build-gcc16-mkl -G 'MinGW Makefiles' -DCMAKE_BUILD_TYPE=Release -DAEROACOUSTICS_USE_MKL=ON "-DMKL_DIR=$mklRoot/lib/cmake/mkl"
-cmake --build build-gcc16-mkl -j 4
-./build-gcc16-mkl/aeroacoustics_example.exe spectrum-mkl.csv
-```
-
-MinGW 使用 MKL 单一动态接口 `mkl_rt`，避免直接链接包含 MSVC 专用对象的组件库。运行时需 MKL DLL 位于 PATH。MKL 是可选外部依赖，不随代码分发；不能据此保证每个小规模计算都更快。
-
-## 官方完整算例
-
-目标为 [IEA_LB_RWT-AeroAcoustics](https://github.com/OpenFAST/r-test/tree/dd5feaaaa500ba7283140107806300d551cff0a7/glue-codes/openfast/IEA_LB_RWT-AeroAcoustics)：20 秒、0.00625 秒耦合步长、3 个叶片、每片 30 个气动节点、2 个观察点、34 个声学频带，声学输出间隔 0.1 秒。
-
-下载脚本固定 OpenFAST 和 r-test 提交，不依赖变化中的 main 分支。整机接入只替换 7 个频谱计算入口，Fortran 外层继续提供真实气动状态。源代码补丁位于 [integration/openfast-cpp.patch](integration/openfast-cpp.patch)，流程见 [docs/full-case.md](docs/full-case.md)。
-
-## 验证
-
-开发验证需要 Python 3.11+、NumPy；直接 Fortran 对比还需 GFortran。
-
-```powershell
-. ./tools/use_gcc.ps1
-cmake -S . -B build-gcc16 -DAEROACOUSTICS_BUILD_TESTS=ON
-cmake --build build-gcc16 -j 4
-python tests/compare_python.py build-gcc16/libaeroacoustics_shared.dll --fortran-compiler $env:FC --report docs/validation-gcc16-portable.json
-python tests/compare_auxiliary.py build-gcc16/auxiliary_probe.exe --report docs/validation-auxiliary.json
-```
-
-验证 MKL DLL 前，追加 `$env:AEROACOUSTICS_RUNTIME_DIRS += ";$mklRoot/bin"`。
-
-| 验证 | 实测范围 | 最大绝对差异 |
-| --- | --- | --- |
-| C++ / Python，普通版及 MKL 版 | 各 204 工况、56,576 个频谱值，含 16 个 TNO 工况 | 2.84e-14 dB |
-| C++ / 原 Fortran 数值体，双精度 | 同上 | 4.55e-13 dB |
-| 辅助算法 / Python | 34,512 个数值，含两种湍流状态与多节点时间循环 | 5.68e-14 |
-| 官方 20 秒整机 / 原版 Fortran | 145,926 个声学输出值；106,128 次 C++ 内核调用 | 文本输出数值完全一致 |
-
-整机的全部动力学输出字节也一致，仅文件说明中的运行生成时间戳不同。完整报告见 [validation-full-case.json](docs/validation-full-case.json)，导出的时间序列与平均频谱见 [examples/results](examples/results)。
-
-![官方完整算例对比](docs/full-case-validation.png)
-
-直接 Fortran 数值验证对原例程的实数字面量使用双精度编译，与本次 OpenFAST `DOUBLE_PRECISION=ON` 一致。单精度运行可能在很低的声级处出现下溢；本项目的数值实现使用 double。
-
-模型保留上游特殊约定：启用例程的某些早退返回 0 dB，TNO 使用固定积分面板，上游叶片节点起始索引和湍流缓冲区索引也予以保留。C++ 独立装配中的关闭声源使用 `-inf` 表示零能量。源代码测试不等于实验声学验证。
-
-## 文件导航
-
-- `include/aeroacoustics.hpp`：C++ 参数、截面、观察点、边界层与时间驱动接口。
-- `include/aeroacoustics_c.h`：Fortran 和其他语言可调用的 C ABI，包含参数顺序与单位。
-- `src/kernels.cpp`：可直接阅读、编译的经验声学公式。
-- `src/aeroacoustics.cpp`：TNO、积分、声源装配和几何。
-- `src/driver.cpp`：表格插值与时间状态。
-- `reference/`：原 Python 和 Fortran 对照源码；仅开发验证使用。
-- `tools/`：可重现下载、接口补丁和完整算例运行脚本。
-- `docs/validation-*.json`：实际测试记录。
-
-Apache-2.0，来源和修改说明见 [NOTICE](NOTICE) 与 [LICENSE](LICENSE)。
+Apache-2.0；来源及修改说明见 [NOTICE](NOTICE) 和 [LICENSE](LICENSE)。这些测试验证代码移植，不构成风机实测噪声验证。

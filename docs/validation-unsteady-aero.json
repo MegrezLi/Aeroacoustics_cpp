@@ -1,0 +1,41 @@
+{
+  "cases": 36000,
+  "reference": "original pinned OpenFAST AirfoilInfo and UnsteadyAero modules",
+  "max_absolute_error": {
+    "foil": {
+      "value": 0.0,
+      "foil": 0,
+      "step": 0
+    },
+    "step": {
+      "value": 0.0,
+      "foil": 0,
+      "step": 0
+    },
+    "alpha_rad": {
+      "value": 0.0,
+      "foil": 0,
+      "step": 0
+    },
+    "speed": {
+      "value": 0.0,
+      "foil": 0,
+      "step": 0
+    },
+    "cl": {
+      "value": 4.75175454539567e-14,
+      "foil": 2,
+      "step": 746
+    },
+    "cd": {
+      "value": 1.176836406102666e-14,
+      "foil": 2,
+      "step": 746
+    },
+    "cm": {
+      "value": 5.551115123125783e-16,
+      "foil": 2,
+      "step": 269
+    }
+  }
+}

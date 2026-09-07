@@ -1,5 +1,5 @@
 // Numerical expressions ported from OpenFAST (Apache-2.0), see NOTICE.
-// Materialized by tools/generate_kernels.py; no interpreter at runtime.
+// Direct C++ formulas; validated against the original Fortran numerical body.
 #include "kernels.hpp"
 #include <algorithm>
 #include <cmath>

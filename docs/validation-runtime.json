@@ -1,0 +1,106 @@
+{
+  "platform": "Windows x86_64",
+  "executable_sha256": "7e4c229e039f5fec46ec5aada42e0b769cba345d6cca9a7ec1d1f08e4a007a6a",
+  "imports": {
+    "aeroacoustics_turbine.exe": [
+      "libgcc_s_seh-1.dll",
+      "libstdc++-6.dll",
+      "KERNEL32.dll",
+      "api-ms-win-crt-convert-l1-1-0.dll",
+      "api-ms-win-crt-environment-l1-1-0.dll",
+      "api-ms-win-crt-heap-l1-1-0.dll",
+      "api-ms-win-crt-locale-l1-1-0.dll",
+      "api-ms-win-crt-math-l1-1-0.dll",
+      "api-ms-win-crt-private-l1-1-0.dll",
+      "api-ms-win-crt-runtime-l1-1-0.dll",
+      "api-ms-win-crt-stdio-l1-1-0.dll",
+      "api-ms-win-crt-string-l1-1-0.dll"
+    ],
+    "libstdc++-6.dll": [
+      "libgcc_s_seh-1.dll",
+      "KERNEL32.dll",
+      "api-ms-win-crt-convert-l1-1-0.dll",
+      "api-ms-win-crt-environment-l1-1-0.dll",
+      "api-ms-win-crt-filesystem-l1-1-0.dll",
+      "api-ms-win-crt-heap-l1-1-0.dll",
+      "api-ms-win-crt-locale-l1-1-0.dll",
+      "api-ms-win-crt-math-l1-1-0.dll",
+      "api-ms-win-crt-private-l1-1-0.dll",
+      "api-ms-win-crt-runtime-l1-1-0.dll",
+      "api-ms-win-crt-stdio-l1-1-0.dll",
+      "api-ms-win-crt-string-l1-1-0.dll",
+      "api-ms-win-crt-time-l1-1-0.dll",
+      "api-ms-win-crt-utility-l1-1-0.dll",
+      "libwinpthread-1.dll"
+    ],
+    "libwinpthread-1.dll": [
+      "KERNEL32.dll",
+      "api-ms-win-crt-convert-l1-1-0.dll",
+      "api-ms-win-crt-heap-l1-1-0.dll",
+      "api-ms-win-crt-private-l1-1-0.dll",
+      "api-ms-win-crt-runtime-l1-1-0.dll",
+      "api-ms-win-crt-stdio-l1-1-0.dll",
+      "api-ms-win-crt-string-l1-1-0.dll"
+    ],
+    "libgcc_s_seh-1.dll": [
+      "KERNEL32.dll",
+      "api-ms-win-crt-heap-l1-1-0.dll",
+      "api-ms-win-crt-private-l1-1-0.dll",
+      "api-ms-win-crt-runtime-l1-1-0.dll",
+      "api-ms-win-crt-stdio-l1-1-0.dll",
+      "api-ms-win-crt-string-l1-1-0.dll",
+      "libwinpthread-1.dll"
+    ]
+  },
+  "child_path": "C:\\WINDOWS\\System32",
+  "duration_s": 20,
+  "steps": 3200,
+  "acoustic_comparison": {
+    "case": "IEA_LB_RWT-AeroAcoustics",
+    "comparison": "original Fortran versus standalone C++",
+    "files": {
+      "IEA_LB_RWT-AeroAcoustics_1.out": {
+        "rows": 201,
+        "channels": 2,
+        "compared_values": 402,
+        "max_abs_error_dB": 7.817849999725013e-05,
+        "mean_abs_error_dB": 4.05659005013196e-06,
+        "worst_time_s": 16.6,
+        "worst_channel": 2,
+        "tolerance_dB": 0.001
+      },
+      "IEA_LB_RWT-AeroAcoustics_2.out": {
+        "rows": 201,
+        "channels": 68,
+        "compared_values": 13668,
+        "max_abs_error_dB": 0.00020574810000084653,
+        "mean_abs_error_dB": 5.3096017537528444e-06,
+        "worst_time_s": 16.6,
+        "worst_channel": 53,
+        "tolerance_dB": 0.01
+      },
+      "IEA_LB_RWT-AeroAcoustics_3.out": {
+        "rows": 201,
+        "channels": 476,
+        "compared_values": 95676,
+        "max_abs_error_dB": 0.0008517038999968918,
+        "mean_abs_error_dB": 6.7941629877470794e-06,
+        "worst_time_s": 17.0,
+        "worst_channel": 243,
+        "tolerance_dB": 0.01
+      },
+      "IEA_LB_RWT-AeroAcoustics_4.out": {
+        "rows": 201,
+        "channels": 180,
+        "compared_values": 36180,
+        "max_abs_error_dB": 0.0007665902999995922,
+        "mean_abs_error_dB": 5.640247710449697e-06,
+        "worst_time_s": 18.5,
+        "worst_channel": 170,
+        "tolerance_dB": 0.05
+      }
+    },
+    "compared_values": 145926
+  },
+  "description": "Only executable, C++ runtime DLLs and input files staged; reference outputs used after execution."
+}

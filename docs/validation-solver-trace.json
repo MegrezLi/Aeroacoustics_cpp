@@ -1,0 +1,169 @@
+{
+  "reference": "Original Fortran solver with read-only trace",
+  "rows": 288000,
+  "compared_values": 6624000,
+  "duration_s": 20,
+  "channels": {
+    "q1": {
+      "max_absolute_error": 1.0219632660124489e-05,
+      "tolerance": 2e-05,
+      "worst_time_s": 16.8625,
+      "blade": 3,
+      "node": 1
+    },
+    "q2": {
+      "max_absolute_error": 1.1036979878358e-05,
+      "tolerance": 2e-05,
+      "worst_time_s": 17.09375,
+      "blade": 3,
+      "node": 1
+    },
+    "q3": {
+      "max_absolute_error": 5.008689636279429e-06,
+      "tolerance": 1e-05,
+      "worst_time_s": 19.875,
+      "blade": 3,
+      "node": 1
+    },
+    "qd1": {
+      "max_absolute_error": 0.00012126245183552431,
+      "tolerance": 0.0002,
+      "worst_time_s": 16.993750000000002,
+      "blade": 3,
+      "node": 1
+    },
+    "qd2": {
+      "max_absolute_error": 0.0002246503548067047,
+      "tolerance": 0.0003,
+      "worst_time_s": 16.5125,
+      "blade": 3,
+      "node": 1
+    },
+    "qd3": {
+      "max_absolute_error": 5.5945483357133785e-05,
+      "tolerance": 0.0001,
+      "worst_time_s": 19.743750000000002,
+      "blade": 3,
+      "node": 1
+    },
+    "phi": {
+      "max_absolute_error": 2.4262380712014586e-06,
+      "tolerance": 5e-06,
+      "worst_time_s": 16.51875,
+      "blade": 3,
+      "node": 29
+    },
+    "alpha": {
+      "max_absolute_error": 2.441606968300869e-06,
+      "tolerance": 5e-06,
+      "worst_time_s": 16.51875,
+      "blade": 3,
+      "node": 29
+    },
+    "speed": {
+      "max_absolute_error": 0.0001076885141060302,
+      "tolerance": 0.0002,
+      "worst_time_s": 19.75,
+      "blade": 3,
+      "node": 22
+    },
+    "a": {
+      "max_absolute_error": 1.366116440548737e-05,
+      "tolerance": 3e-05,
+      "worst_time_s": 0.08125,
+      "blade": 1,
+      "node": 29
+    },
+    "ap": {
+      "max_absolute_error": 2.7893104697501725e-07,
+      "tolerance": 1e-05,
+      "worst_time_s": 15.26875,
+      "blade": 3,
+      "node": 8
+    },
+    "cl": {
+      "max_absolute_error": 0.000989268544384414,
+      "tolerance": 0.002,
+      "worst_time_s": 16.51875,
+      "blade": 3,
+      "node": 28
+    },
+    "cd": {
+      "max_absolute_error": 0.00024138354715787236,
+      "tolerance": 0.001,
+      "worst_time_s": 16.5125,
+      "blade": 3,
+      "node": 28
+    },
+    "cm": {
+      "max_absolute_error": 0.00027719318898616896,
+      "tolerance": 0.001,
+      "worst_time_s": 16.5125,
+      "blade": 3,
+      "node": 28
+    },
+    "x": {
+      "max_absolute_error": 7.156531609098238e-06,
+      "tolerance": 3e-05,
+      "worst_time_s": 17.2875,
+      "blade": 3,
+      "node": 30
+    },
+    "y": {
+      "max_absolute_error": 9.799818800892979e-06,
+      "tolerance": 3e-05,
+      "worst_time_s": 19.875,
+      "blade": 3,
+      "node": 22
+    },
+    "z": {
+      "max_absolute_error": 8.635598661044241e-06,
+      "tolerance": 3e-05,
+      "worst_time_s": 18.475,
+      "blade": 3,
+      "node": 22
+    },
+    "fx": {
+      "max_absolute_error": 3.052981024035944,
+      "tolerance": 5,
+      "worst_time_s": 16.51875,
+      "blade": 3,
+      "node": 28
+    },
+    "fy": {
+      "max_absolute_error": 0.3043872883711174,
+      "tolerance": 5,
+      "worst_time_s": 16.5125,
+      "blade": 3,
+      "node": 28
+    },
+    "fz": {
+      "max_absolute_error": 0.4206401282131651,
+      "tolerance": 5,
+      "worst_time_s": 16.5125,
+      "blade": 3,
+      "node": 28
+    },
+    "mx": {
+      "max_absolute_error": 0.12224130857927662,
+      "tolerance": 5,
+      "worst_time_s": 16.5125,
+      "blade": 3,
+      "node": 28
+    },
+    "my": {
+      "max_absolute_error": 0.4727475581247802,
+      "tolerance": 5,
+      "worst_time_s": 16.5125,
+      "blade": 3,
+      "node": 28
+    },
+    "mz": {
+      "max_absolute_error": 1.0787402650705644,
+      "tolerance": 5,
+      "worst_time_s": 16.65625,
+      "blade": 3,
+      "node": 28
+    }
+  }
+}

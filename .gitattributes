@@ -1,0 +1,4 @@
+* text=auto eol=lf
+examples/IEA_LB_RWT-AeroAcoustics/** -text
+reference/results/**/*.out -text
+*.png binary

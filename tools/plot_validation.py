@@ -34,7 +34,7 @@ def main():
     axes[0].legend(fontsize=8,ncols=2)
     axes[1].set(xlabel='Frequency (Hz)',ylabel='Band SPL (dB re 20 uPa)',title='Energy-averaged spectrum, 0–20 s',xlim=(10,20000))
     for ax in axes:ax.grid(True,alpha=.2)
-    fig.suptitle('IEA_LB_RWT-AeroAcoustics | GCC 16.2 + Intel oneMKL',fontsize=13)
+    fig.suptitle('IEA_LB_RWT-AeroAcoustics | Fortran and standalone C++',fontsize=13)
     fig.savefig(ROOT/'docs/full-case-validation.png',dpi=160)
     print('Exported actual case comparison plot and CSVs')
 

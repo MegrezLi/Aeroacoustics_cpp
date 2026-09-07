@@ -15,5 +15,6 @@ jobs:
       - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DAEROACOUSTICS_BUILD_TESTS=ON
       - run: cmake --build build -j 2
       - run: ./build/aeroacoustics_example build/spectrum.csv
-      - run: python tests/compare_python.py build/libaeroacoustics_shared.so --fortran-compiler gfortran --report build/validation.json
-      - run: python tests/compare_auxiliary.py build/auxiliary_probe --report build/auxiliary.json
+      - run: python tests/compare_fortran.py build/libaeroacoustics_shared.so --fortran-compiler gfortran --report build/validation.json
+      - run: python tests/run_standalone.py build/aeroacoustics_turbine build/official-case --report build/full-case.json
+      - run: python tests/run_perturbation.py build/aeroacoustics_turbine build/wind9 --report build/wind9.json
