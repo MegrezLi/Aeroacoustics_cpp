@@ -1,0 +1,13 @@
+set(turbine_sources
+  io/case_input.cpp
+  aerodynamics/bem.cpp
+  aerodynamics/unsteady.cpp
+  structure/blade_dynamics.cpp
+  coupling/mesh.cpp
+  coupling/rotor.cpp
+  coupling/solver.cpp
+)
+add_library(turbine_modules STATIC ${turbine_sources})
+target_include_directories(turbine_modules PUBLIC "${PROJECT_SOURCE_DIR}/include")
+target_link_libraries(turbine_modules PUBLIC aeroacoustics)
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${turbine_sources})

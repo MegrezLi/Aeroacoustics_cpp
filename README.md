@@ -94,8 +94,21 @@ Intel oneMKL 是可选后端，用于 TNO 积分的向量指数和 BLAS 求和�
 
 ## 源码
 
-- `src/turbine/`、`include/turbine/`：输入、结构、BEM、非定常气动、网格映射及整机求解器。
-- `src/kernels.cpp`、`src/aeroacoustics.cpp`、`src/driver.cpp`：声学公式、积分和时间状态。
+```text
+src/
+├── acoustics/       # 经验声学模型、TNO、频谱装配、观察点几何和时间驱动
+├── numerics/        # Gauss–Kronrod 积分、普通/MKL 数值后端
+├── turbine/
+│   ├── aerodynamics/ # BEM 与非定常气动
+│   ├── structure/    # 叶片模态动力学
+│   ├── coupling/     # 网格映射、转子装配和时间积分
+│   └── io/           # 风机算例、翼型及风场输入
+├── interfaces/      # C ABI
+└── apps/            # 截面示例与整机程序入口
+```
+
+目录职责及源文件索引见 [src/README.md](src/README.md)。公开头文件仍位于 `include/`。
+
 - `include/aeroacoustics.hpp`、`include/aeroacoustics_c.h`：声学库 C++ 接口与 C ABI。
 - `examples/IEA_LB_RWT-AeroAcoustics/`：可直接运行的官方输入。
 - `tests/`、`reference/`：Fortran 对照、回归测试与参考结果。

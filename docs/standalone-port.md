@@ -1,17 +1,19 @@
 # 整机模块与支持范围
 
-`aeroacoustics_turbine` 的运行入口是 `src/turbine/main.cpp`。CMake 仅启用 CXX，默认构建不链接 OpenFAST、Fortran、BLAS 或 MKL。输入来自官方算例文件，风机状态从初始条件逐步计算。
+`aeroacoustics_turbine` 的运行入口是 `src/apps/turbine_main.cpp`。CMake 仅启用 CXX，默认构建不链接 OpenFAST、Fortran、BLAS 或 MKL。输入来自官方算例文件，风机状态从初始条件逐步计算。
+
+表内 `.cpp` 路径相对于 `src/`。
 
 | C++ 文件 | 对应模块与计算内容 |
 | --- | --- |
-| `input.cpp` | 输入字段、翼型与坐标文件、AirfoilInfo 线性插值、InflowWind 恒定风 |
-| `structure.cpp` | ElastoDyn 叶片三模态方程、运动学、广义质量与载荷 |
-| `bem.cpp` | BEMTUncoupled 诱导公式、工作区间及入流角求根、偏斜修正 |
-| `unsteady.cpp` | UA_Mod=3 的附着流、分离、涡升力、滤波及离散状态 |
-| `mesh.cpp`、`math.hpp` | NWTC 运动与载荷映射、旋转插值及坐标变换 |
-| `rotor.cpp` | 转子盘与叶素坐标、风速、气动力、UA/BEM 状态传递 |
-| `solver.cpp` | 广义 α 结构积分和气动／结构调用顺序 |
-| `main.cpp` | 声学节点装配、时间循环、声能叠加及输出 |
+| `turbine/io/case_input.cpp` | 输入字段、翼型与坐标文件、AirfoilInfo 线性插值、InflowWind 恒定风 |
+| `turbine/structure/blade_dynamics.cpp` | ElastoDyn 叶片三模态方程、运动学、广义质量与载荷 |
+| `turbine/aerodynamics/bem.cpp` | BEMTUncoupled 诱导公式、工作区间及入流角求根、偏斜修正 |
+| `turbine/aerodynamics/unsteady.cpp` | UA_Mod=3 的附着流、分离、涡升力、滤波及离散状态 |
+| `turbine/coupling/mesh.cpp`、`include/turbine/math.hpp` | NWTC 运动与载荷映射、旋转插值及坐标变换 |
+| `turbine/coupling/rotor.cpp` | 转子盘与叶素坐标、风速、气动力、UA/BEM 状态传递 |
+| `turbine/coupling/solver.cpp` | 广义 α 结构积分和气动／结构调用顺序 |
+| `apps/turbine_main.cpp` | 声学节点装配、时间循环、声能叠加及输出 |
 
 ## 官方配置
 

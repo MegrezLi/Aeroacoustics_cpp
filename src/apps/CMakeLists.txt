@@ -1,0 +1,8 @@
+if(AEROACOUSTICS_BUILD_EXAMPLES)
+  add_executable(aeroacoustics_example section_main.cpp)
+  target_link_libraries(aeroacoustics_example PRIVATE aeroacoustics)
+endif()
+if(AEROACOUSTICS_BUILD_TURBINE)
+  add_executable(aeroacoustics_turbine turbine_main.cpp)
+  target_link_libraries(aeroacoustics_turbine PRIVATE turbine_modules)
+endif()
