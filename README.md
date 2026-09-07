@@ -49,7 +49,7 @@ cmake --build build -j 4
 - **网格传递与耦合**：结构到气动节点的运动插值、气动到结构的载荷映射、广义 α 时间积分。
 - **AeroAcoustics**：BPM 尾缘噪声、钝度、层流、叶尖、Lowson 入流噪声、Simplified Guidati 厚度修正，以及 TNO 模型和 61 点积分。
 
-官方工况使用 8 m/s 风速、10.04 rpm 固定转速和 1.17° 固定桨距。塔架、传动链、平台及控制器在此算例中关闭；这些自由度和模块不属于本项目的移植范围。程序会拒绝未支持的主要模型开关，不能直接替代 OpenFAST 运行任意风机。
+官方工况使用 8 m/s 风速、10.04 rpm 固定转速和 1.17° 固定桨距。塔架、传动链、平台及控制器在此算例中关闭；这些自由度和模块暂时不属于本项目的移植范围。
 
 数值求根与结构 Newton 迭代采用 C++ 实现，收敛处理与原求解器有差别，不承诺逐位一致。具体支持项、求解顺序及输入限制见 [模块说明](docs/standalone-port.md)。默认整机算例未启用 TNO，TNO 由单独的 Fortran 对照测试覆盖。
 
@@ -70,7 +70,7 @@ cmake --build build -j 4
 
 ![Fortran 与独立 C++ 整机对比](docs/full-case-validation.png)
 
-以下测试需要 Python、NumPy；声学源码直接对比还需要 GFortran。它们不参与风机求解。
+以下测试需要 Python、NumPy；声学源码直接对比还需要 GFortran，它们不参与风机求解。
 
 ```sh
 cmake -S . -B build -DAEROACOUSTICS_BUILD_TESTS=ON
@@ -80,7 +80,7 @@ python tests/run_standalone.py build/aeroacoustics_turbine build/official-check 
 python tests/run_perturbation.py build/aeroacoustics_turbine build/wind9-check --report build/wind9.json
 ```
 
-Windows 将 `.so` 换成 `libaeroacoustics_shared.dll`，并给可执行文件加 `.exe`。GitHub Actions 执行 Linux 编译和这三项对比。已有 Fortran 源码与结果保存在 `reference/`，旧 Python 算法及 Python 数值基线已移除。
+Windows 将 `.so` 换成 `libaeroacoustics_shared.dll`，并给可执行文件加 `.exe`。GitHub Actions 执行 Linux 编译和这三项对比。已有 Fortran 源码与结果保存在 `reference/`。
 
 ## 截面示例与 MKL
 
@@ -101,4 +101,4 @@ Intel oneMKL 是可选后端，用于 TNO 积分的向量指数和 BLAS 求和�
 - `tests/`、`reference/`：Fortran 对照、回归测试与参考结果。
 - `tools/`：下载、绘图及工具链辅助脚本。
 
-Apache-2.0；来源及修改说明见 [NOTICE](NOTICE) 和 [LICENSE](LICENSE)。这些测试验证代码移植，不构成风机实测噪声验证。
+Apache-2.0；来源及修改说明见 [NOTICE](NOTICE) 和 [LICENSE](LICENSE)。
