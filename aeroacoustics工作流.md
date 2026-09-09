@@ -1,6 +1,6 @@
 # IEA_LB_RWT-AeroAcoustics 工作流
 
-本文沿着 `aeroacoustics_turbine` 的实际 C++ 调用链，说明官方算例从输入文件到结构、气动和声学结果的计算过程。源码依据：`364a128`（源码模块化后的版本）。文中的函数名均可在链接的源码中查到；调用树省略了标准库函数和通用向量运算。
+本文沿着 `aeroacoustics_turbine` 的实际 C++ 调用链，说明官方算例从输入文件到结构、气动和声学结果的计算过程。对应 2026 年 9 月完成五类源码优化后的实现，修改与计时见 [优化记录](docs/optimization.md)。文中的函数名均可在链接的源码中查到；调用树省略了标准库函数和通用向量运算。
 
 程序入口是 [src/apps/turbine_main.cpp](src/apps/turbine_main.cpp) 中的 `main()`。整机运行直接调用 C++ 模块，读取 OpenFAST 格式的输入文件；不启动 OpenFAST 可执行程序，也不调用 Fortran 或 Python。Fortran 参考程序属于验证流程，不进入下面的运行链。
 
@@ -12,7 +12,7 @@ flowchart TD
     B --> C[初始化声学参数、观察点和叶片声学节点]
     C --> D[Solver：初始化结构、气动状态和网格映射]
     D --> E[当前时刻：保存结构状态，向声学节点填入气动状态]
-    E --> F[AcousticDriver.step：到达声学采样时刻则计算频谱]
+    E --> F[AcousticDriver.step_view：到达声学采样时刻则计算频谱]
     F --> G[更新声学湍流强度状态；有频谱则汇总输出]
     G --> H{达到结束时间？}
     H -->|是| I[写入 run.json，结束]
@@ -137,6 +137,7 @@ main()
 │  └─ InputFile::files_after() → Airfoil()：读取 30 份极曲线及翼型坐标
 ├─ 2. read_aa_input()、read_observers()：建立声学 Parameters 和观察点数组
 ├─ 3. blade_elements()、AcousticDriver()
+│  ├─ AcousticWorkspace()：校验并保存参数，准备 A 计权和可复用缓冲区
 │  ├─ TurbulenceState()：建立每个叶素的湍流强度状态，初值为 0
 │  └─ blade_elements()：保存声学节点范围和每段展向长度
 ├─ 4. 建立每片叶片的 Node 数组
@@ -166,10 +167,10 @@ main()
 
 1. 将 `solver.state` 中三片叶片的 `q` 和 `qd` 写入 `dynamics.csv`。
 2. 从 `solver.aerodynamic` 向 90 个声学 `Node` 填入位置、方向、风速、截面相对速度和攻角。
-3. 调用 `AcousticDriver::step(time, nodes)`；若到达声学采样时刻，则返回频谱快照并写入结果。
+3. 调用 `AcousticDriver::step_view(time, nodes)`；若到达声学采样时刻，则返回工作区内频谱快照的只读指针，主程序随即汇总并写入结果。
 4. 达到结束时间则退出；否则调用 `Solver::step()`。
 
-默认 `DT_AA / DT = 16`。因此 `AcousticDriver::step()` 每个整机时间步都调用，但完整频谱每 16 步计算一次。0–20 s 共推进 3200 步，保存 3201 行结构数据和 201 个声学时刻，均包含 `t=0`。
+默认 `DT_AA / DT = 16`。因此 `AcousticDriver::step_view()` 每个整机时间步都调用，但完整频谱每 16 步计算一次；其他时刻返回空指针。0–20 s 共推进 3200 步，保存 3201 行结构数据和 201 个声学时刻，均包含 `t=0`。
 
 ### 4.2 `Solver::step()` 的真实调用顺序
 
@@ -184,11 +185,14 @@ Solver::step()
 ├─ Rotor::evaluate(t_next, predicted)：用预测运动计算一次新气动状态和载荷
 └─ 结构 Newton 迭代，最多 12 次
    ├─ Rotor::structural_loads(t_next, 当前迭代状态, 已算气动力)
-   │  ├─ BladeStructure::motion()：计算当前结构节点位置
-   │  └─ LoadMap::transfer()：把气动分布载荷映射为结构节点载荷
+   │  └─ 对三片叶片调用 structural_loads_for_blade()
+   │     ├─ BladeStructure::motion()：计算当前结构节点位置
+   │     └─ LoadMap::transfer()：把气动分布载荷映射为结构节点载荷
    ├─ 对每片叶片调用 BladeStructure::acceleration()
    │  └─ solve3()：解模态质量方程，得到三分量结构加速度
-   ├─ 扰动各模态，重复载荷映射和加速度计算，构造数值 Jacobian
+   ├─ 扰动各模态，构造数值 Jacobian
+   │  ├─ structural_loads_for_blade()：只更新被扰动叶片的载荷映射
+   │  └─ BladeStructure::acceleration()：求被扰动叶片的加速度
    ├─ solve3()：解 Newton 修正方程，修正加速度、q、qd
    └─ 检查修正量；收敛后保存状态并更新时间
 ```
@@ -210,6 +214,8 @@ qd = qd_pred + gamma_prime * a
 `beta_prime`、`gamma_prime` 来自 `DT`、`RhoInf` 对应的广义 α 系数。数值 Jacobian 的扰动量为 `h=1e-4`；每次迭代通过一个 3×3 系统求修正量。三片叶片的最大修正量范数小于 `1e-9` 时结束，12 次内不收敛则报错。
 
 这里的 `1e-9` 和 12 次来自 C++ 求解器实现；输入文件里的 `ConvTol`、`MaxConvIter`、`DT_UJac` 等字段并未用于设置这段 Newton 循环。
+
+固定塔架条件下，扰动一片叶片的模态不会改变另外两片的映射。因此每轮迭代先执行三次基础映射，再执行九次扰动映射，共 12 次；旧实现每次扰动都映射三片叶片，共 30 次。此处减少了重复计算，数值 Jacobian 的定义不变。
 
 ## 5. 气动求解内部调用哪些函数
 
@@ -234,6 +240,8 @@ Rotor::evaluate(time, state)
 ```
 
 `SteadyWind::at()` 给出环境风速，减去节点运动速度后形成叶素相对入流。BEM 再计算诱导效应，得到用于最终气动力和声学的截面相对速度。因叶片旋转和变形，声学的 `Section::speed` 通常不等于输入文件中的 8 m/s。
+
+`SkewOptions` 在 `Rotor` 构造时保存偏斜修正开关和系数，节点循环直接读取这些数值，不再重复从输入字符串转换。
 
 气动力使用 `q_dyn = 0.5 × ρ × U²`，再乘弦长及升阻力系数组合；力矩使用 `q_dyn × chord² × Cm`。结果转换到全局坐标，存入 `AeroStation::load`。
 
@@ -304,7 +312,7 @@ BEM 求根的未知量是入流角 `phi`；攻角为入流角减局部扭角。�
    │ LoadMap::transfer()：线载荷积分、分配及力臂修正
    ▼
 每片 17 个结构积分节点上的集中力 N、力矩 N·m
-   │ Rotor::structural_loads()：补齐根、尖零载荷节点
+   │ Rotor::structural_loads_for_blade()：补齐根、尖零载荷节点
    ▼
 BladeStructure::acceleration() → 模态加速度 → Solver 修正 q、qd
 ```
@@ -334,15 +342,16 @@ BladeStructure::acceleration() → 模态加速度 → Solver 修正 q、qd
 源码：[src/acoustics/driver.cpp](src/acoustics/driver.cpp)。
 
 ```text
-AcousticDriver::step(time, nodes)
+AcousticDriver::step_view(time, nodes)
 ├─ 遍历所有叶片节点，整理速度、入流和前缘位置
-├─ 选取 BldPrcnt 对应的节点
-│  └─ 写入展向长度、叶尖标记、已保存的截面湍流强度
 ├─ 若 time ≥ AAStart 且位于 DT_AA 采样网格
-│  └─ snapshot_spectrum(parameters, selected_nodes, observers)
+│  ├─ 将 BldPrcnt 对应的节点写入预分配数组
+│  │  └─ 写入展向长度、叶尖标记、已保存的截面湍流强度
+│  └─ AcousticWorkspace::evaluate(selected_nodes, observers)
+│     ├─ 对每个选中节点调用 prepare_section()，准备边界层与声源谱形
 │     └─ 对每个观察点、每个选中节点
 │        ├─ observe()：求前缘和尾缘相对观察点的距离、theta、phi
-│        └─ section_spectrum()：求 7 类机制 × 34 个频带
+│        └─ emit_section()：施加距离和指向性，装配 7 类机制 × 34 个频带
 └─ TurbulenceState::update()：更新状态，供下一次调用使用
 ```
 
@@ -350,43 +359,51 @@ AcousticDriver::step(time, nodes)
 
 `TICalcMeth=1` 时，更新公式为 `TI_section = TI × avgV / U_relative`。本次频谱先使用已保存的 `TI_section`，再用当前速度更新它；初始保存值为 0，所以 `t=0` 具有专门的初始状态含义。虽然两个声学输出相隔 0.1 s，湍流状态仍每 0.00625 s 更新一次。
 
+`AcousticWorkspace` 位于 [workspace.cpp](src/acoustics/workspace.cpp)。其构造函数校验并保存固定声学参数，预计算 A 计权；工作区复用声源、频谱和 TNO 积分数组。返回的快照由工作区持有，调用者应在下一次驱动调用前使用完毕。原 `step()` 仍返回独立快照，`snapshot_spectrum()` 和 `section_spectrum()` 仍提供一次性计算接口，整机主循环使用 `step_view()` 避免快照复制。
+
 ### 7.3 默认实际执行的噪声函数
 
-声源调度在 [src/acoustics/spectrum.cpp](src/acoustics/spectrum.cpp)，经验公式在 [src/acoustics/empirical_models.cpp](src/acoustics/empirical_models.cpp)，几何变换在 [src/acoustics/geometry.cpp](src/acoustics/geometry.cpp)。
+声源调度在 [spectrum.cpp](src/acoustics/spectrum.cpp)，模型文件见 [源码索引](src/README.md)，几何变换在 [geometry.cpp](src/acoustics/geometry.cpp)。计算分为节点声源准备和观察点频谱装配两个阶段：
 
 ```text
-section_spectrum(parameters, section)
-├─ validate()：参数与物理量检查
-├─ tblte()：BPM 湍流边界层尾缘噪声
-│  ├─ thick() → log10aa()：经验边界层厚度
-│  ├─ directh_te()/directl()：高频、低频指向性
-│  └─ a0comp()/amin()/amax()/bmin()/bmax()、log10aa()：频谱经验关系
-├─ blunt()：尾缘钝度涡脱落噪声
-│  └─ thick()、directh_te()、g5comp()、log10aa()
-├─ inflownoise()：湍流入流噪声
-│  └─ directh_le()/directl()、log10aa()
-└─ simple_guidati()：对入流频谱施加翼型厚度修正
+prepare_section(parameters, section, integration_workspace, prepared)
+├─ 检查截面物理量，处理最低速度和攻角周期
+├─ boundary_layer() → thick() → log10aa()：边界层只准备一次
+├─ prepare_trailing_edge()：BPM 压力面、吸力面和分离噪声谱形
+│  └─ a0comp()/amin()/amax()/bmin()/bmax()、log10aa()
+├─ prepare_blunt() → g5comp()、log10aa()：钝度噪声谱形
+├─ prepare_inflow()：Lowson 入流声源及高低频修正
+└─ prepare_guidati()：翼型厚度修正
+
+emit_section(parameters, prepared, leading, trailing, weighting, output)
+├─ 检查观察点几何，初始化七类机制输出
+├─ emit_trailing_edge() → directh_te()/directl()：三个 BPM 尾缘分量
+├─ emit_blunt() → directh_te()：钝度分量
+├─ emit_inflow() → directh_le()/directl()：入流分量
+└─ TIMod=2 时，对入流分量加 Guidati 修正及 10 dB 项
 ```
 
-`tblte()` 返回压力面尾缘噪声、吸力面尾缘噪声和分离噪声三个分量。`TIMod=2` 时，程序在 `inflownoise()` 的结果上加上 `simple_guidati()` 返回的修正及源码中的 `10 dB` 项。各模型直接计算指定频带的统计声压级，不生成时域声压波形。
+两个观察点共用每个节点的一份 `PreparedSection`，但分别计算距离和指向性。节点速度、攻角等变化后，会在下一个采样时刻重新准备声源。各模型直接计算指定频带的统计声压级，不生成时域声压波形。
+
+原有 `tblte()`、`blunt()`、`inflownoise()`、`simple_guidati()` 等标量接口保留在 [kernel_compat.cpp](src/acoustics/kernel_compat.cpp)，内部转接到上述同一组模型函数，用于兼容外部调用及 Fortran 公式对照。
 
 ### 7.4 源码中存在、但官方默认工况未走的分支
 
 | 分支条件 | 调用链 | 当前默认状态 |
 | --- | --- | --- |
-| `LamMod=1` 且 `TripMod=0` | `lblvs()` → `thick()`、`directh_te()`、`log10aa()` | 关闭 |
-| `TipMod=1` 且节点为叶尖 | `tipnois()` → `directh_te()`、`log10aa()` | 关闭 |
+| `LamMod=1` 且 `TripMod=0` | `prepare_laminar()` → `emit_laminar()`，使用共享边界层及 `directh_te()` | 关闭 |
+| `TipMod=1` 且节点为叶尖 | `prepare_tip()` → `emit_tip()` → `directh_te()` | 关闭 |
 | `BLMod=2` 或 `TBLTEMod=2` | 初始化 `BLTable::read()`；每步 `BLTable::interpolate(alpha, Re, chord)` | 关闭；默认使用经验边界层 |
-| `TBLTEMod=2` | `tblte_tno()` → `spl_integrate()` → `exponential()`、`dot()` | 关闭；TNO 替换压力面/吸力面分量，分离分量仍由 `tblte()` 提供 |
-| `AWeighting=True` | `a_weighting()`，给各频谱加 A 计权修正 | 关闭 |
+| `TBLTEMod=2` | `prepare_tno()` → `integrate_tno()` → `exponential()`、`dot()`；再由 `emit_tno()` 计算观察点频谱 | 关闭；TNO 替换压力面/吸力面分量，分离分量仍来自 BPM |
+| `AWeighting=True` | 初始化时调用 `a_weighting()`，`emit_section()` 给各频谱加修正 | 关闭 |
 
-TNO 位于 [src/acoustics/tno.cpp](src/acoustics/tno.cpp)，其 `spl_integrate()` 使用 61 点节点和权重装配积分；它没有调用通用的 `qk61()` 包装函数。`qk61()` 位于 [src/numerics/quadrature.cpp](src/numerics/quadrature.cpp)，用于独立积分功能及验证。默认整机 BPM 路径不经过 TNO 积分。
+TNO 位于 [src/acoustics/tno.cpp](src/acoustics/tno.cpp)，其 `integrate_tno()` 使用 61 点节点和权重装配积分，跨频率复用 `TnoWorkspace` 数组，积分结果跨观察点共用。原 `spl_integrate()` 保留为一次性计算包装。这里没有调用通用的 `qk61()` 包装函数；`qk61()` 位于 [src/numerics/quadrature.cpp](src/numerics/quadrature.cpp)，用于独立积分功能及验证。默认整机 BPM 路径不经过 TNO 积分。
 
 `TurbulenceState` 还实现了 `TICalcMeth=2` 的统计分支，但当前整机入口的 `Case::validate_scope()` 要求该值为 1。声学 C ABI 位于 `src/interfaces/c_api.cpp`；整机程序直接使用 C++ 接口，不经过这一层。
 
 ## 8. 频谱如何汇总、最终输出什么
 
-`snapshot_spectrum()` 返回的数据维度为：
+`AcousticWorkspace::evaluate()` 提供的快照数据维度为：
 
 ```text
 Snapshot[观察点][选中的节点，按叶片依次排列][声源机制][频率]
@@ -403,6 +420,8 @@ L_sum = 10 × log10(Σ E_k)
 ```
 
 这个求和发生在 `main()` 内，未调用库里的 `db_sum()`。不能直接对不同节点或机制的 dB 数值作算术求和或平均。声级参考声压为 20 μPa。
+
+四类输出各有一份预分配的聚合数组，每次采样清零后重新累加；输出文件数量 `NrOutFile` 在时间循环外解析。
 
 | 文件 | 聚合方式/内容 | 默认数据规模，不计表头 |
 | --- | --- | --- |
@@ -428,8 +447,9 @@ L_sum = 10 × log10(Σ E_k)
 | 哪个模块先算、什么时候迭代 | [solver.cpp](src/turbine/coupling/solver.cpp)、[rotor.cpp](src/turbine/coupling/rotor.cpp) | 时间推进和耦合次序 |
 | 声源范围、采样间隔、TI 状态 | AA 输入；[driver.cpp](src/acoustics/driver.cpp) | 声学选点、时间状态和输出时刻 |
 | 观察点怎么影响结果 | Observer 输入；[geometry.cpp](src/acoustics/geometry.cpp)：`observe()` | 距离和指向性，再进入各噪声模型 |
-| 噪声机制开关、模型公式 | [spectrum.cpp](src/acoustics/spectrum.cpp)、[empirical_models.cpp](src/acoustics/empirical_models.cpp) | 七类机制频谱 |
+| 噪声机制开关、模型公式 | [spectrum.cpp](src/acoustics/spectrum.cpp)、[模型文件索引](src/README.md) | 七类机制频谱 |
+| 频谱和积分缓冲区、跨观察点共享计算 | [workspace.cpp](src/acoustics/workspace.cpp)、[source_models.hpp](src/acoustics/source_models.hpp) | 声学运行效率与返回数据的生命周期 |
 | 频率列表 | [aeroacoustics.hpp](include/aeroacoustics.hpp)：`Parameters::freqlist` | 频谱维度和输出列数，修改后需重新编译 |
 | 输出列、声级聚合、文件命名 | [turbine_main.cpp](src/apps/turbine_main.cpp) | 四个声学文件、结构 CSV 和运行记录 |
 
-完整阅读顺序可沿 `main()` → `Case` → `Solver` → `Rotor` 展开；查气动算法进入 `bem.cpp` 和 `unsteady.cpp`，查结构进入 `blade_dynamics.cpp` 和 `mesh.cpp`，查声学进入 `driver.cpp` → `spectrum.cpp` → 各模型函数。
+完整阅读顺序可沿 `main()` → `Case` → `Solver` → `Rotor` 展开；查气动算法进入 `bem.cpp` 和 `unsteady.cpp`，查结构进入 `blade_dynamics.cpp` 和 `mesh.cpp`，查声学进入 `driver.cpp` → `workspace.cpp` → `spectrum.cpp` → 各模型的 `prepare_*()` 与 `emit_*()`。

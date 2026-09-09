@@ -1,4 +1,5 @@
 #include "turbine/solver.hpp"
+#include <algorithm>
 #include <chrono>
 #include <fstream>
 #include <iomanip>
@@ -30,6 +31,7 @@ int main(int argc, char **argv) {
             span.push_back(s.span);
         const auto elements = aeroacoustics::blade_elements(span, c.acoustic.number("BldPrcnt"));
         const auto first = elements.first;
+        const int output_count = c.acoustic.integer("NrOutFile");
         aeroacoustics::AcousticDriver acoustic(
             parameters, span, 3, observers, c.acoustic.number("DT_AA", c.dt), c.acoustic.number("AAStart"),
             c.acoustic.number("BldPrcnt"), c.structure.number("TowerHt") + c.structure.number("Twr2Shft"),
@@ -79,7 +81,7 @@ int main(int argc, char **argv) {
                 for (std::size_t o = 0; o < observers.size(); ++o)
                     labels[3].push_back("Blade" + std::to_string(b) + "_Node" + std::to_string(j + 1) +
                                         "_Obs" + std::to_string(o + 1));
-        for (int k = 0; k < c.acoustic.integer("NrOutFile"); ++k) {
+        for (int k = 0; k < output_count; ++k) {
             outputs[k].open(directory / (prefix + std::to_string(k + 1) + ".out"));
             if (!outputs[k])
                 throw std::runtime_error("Cannot create acoustic output");
@@ -99,6 +101,11 @@ int main(int argc, char **argv) {
         dynamics << '\n';
         turbine::Solver solver(c);
         std::size_t snapshots = 0;
+        const std::size_t nf = parameters.freqlist.size(), no = observers.size();
+        std::array<std::vector<double>, 4> values{{std::vector<double>(no), std::vector<double>(no * nf),
+                                                   std::vector<double>(no * nf * 7),
+                                                   std::vector<double>(3 * c.stations.size() * no)}};
+        auto &total = values[0], &spectra = values[1], &mechanisms = values[2], &nodal = values[3];
         for (;;) {
             dynamics << solver.time;
             for (const auto &s : solver.state)
@@ -121,12 +128,11 @@ int main(int argc, char **argv) {
                         node.section.bl = tables[j]->interpolate(
                             node.section.alpha_deg, a.speed * node.section.chord / c.nu, node.section.chord);
                 }
-            auto snapshot = acoustic.step(solver.time, nodes);
+            const auto *snapshot = acoustic.step_view(solver.time, nodes);
             if (snapshot) {
                 ++snapshots;
-                const std::size_t nf = parameters.freqlist.size(), no = observers.size();
-                std::vector<double> total(no), spectra(no * nf), mechanisms(no * nf * 7),
-                    nodal(3 * c.stations.size() * no);
+                for (auto &v : values)
+                    std::fill(v.begin(), v.end(), 0.);
                 for (std::size_t o = 0; o < no; ++o)
                     for (std::size_t n = 0; n < (*snapshot)[o].size(); ++n) {
                         double node_power = 0;
@@ -143,8 +149,7 @@ int main(int argc, char **argv) {
                                    j = n % (c.stations.size() - first) + first;
                         nodal[(b * c.stations.size() + j) * no + o] = node_power;
                     }
-                const std::array<std::vector<double>, 4> values{{total, spectra, mechanisms, nodal}};
-                for (int k = 0; k < c.acoustic.integer("NrOutFile"); ++k) {
+                for (int k = 0; k < output_count; ++k) {
                     outputs[k] << solver.time;
                     for (double p : values[k])
                         outputs[k] << '\t' << decibels(p);

@@ -8,6 +8,8 @@ Rotor::Rotor(const Case &c) : structure(c), case_(&c) {
     options_.tangential_drag = c.aero.flag("TIDrag");
     options_.tolerance = c.aero.number("IndToler", 5e-10);
     options_.max_iterations = c.aero.integer("MaxIter");
+    skew_ = {c.aero.integer("Skew_Mod") == 1 && c.aero.number("SkewRedistr_Mod", 1) == 1,
+             c.aero.number("SkewRedistrFactor", 15 * pi / 32)};
     BladeStructure reference = structure;
     reference.pitch = {0, 0, 0};
     reference.initial_azimuth -= c.structure.number("Azimuth") * deg;
@@ -118,9 +120,8 @@ RotorOutput Rotor::evaluate(double time, const RotorState &state) const {
             a.tangential = std::clamp(induction.tangential, -1., 1.);
             const bool fixed =
                 (options_.tip_loss && tip_constant_[j] == 0) || (options_.hub_loss && hub_constant_[j] == 0);
-            if (!fixed && c.aero.integer("Skew_Mod") == 1 && c.aero.number("SkewRedistr_Mod", 1) == 1)
-                a.axial = skew_axial(a.axial, y.skew, a.bem.radius / radius, azimuth,
-                                     c.aero.number("SkewRedistrFactor", 15 * pi / 32));
+            if (!fixed && skew_.redistribute)
+                a.axial = skew_axial(a.axial, y.skew, a.bem.radius / radius, azimuth, skew_.factor);
             a.axial *= weight;
             a.tangential *= weight;
             const double vx = a.bem.vx * (1 - a.axial), vy = a.bem.vy * (1 + a.tangential);
@@ -149,19 +150,26 @@ void Rotor::advance_airfoils(const RotorOutput &y, std::size_t step) {
 std::array<std::vector<PointLoad>, 3> Rotor::structural_loads(double time, const RotorState &state,
                                                               const RotorOutput &y) const {
     std::array<std::vector<PointLoad>, 3> result;
-    for (int b = 0; b < 3; ++b) {
-        std::vector<Vec3> source, destination;
-        std::vector<PointLoad> loads;
-        for (const auto &a : y.blades[b]) {
-            source.push_back(a.motion.position);
-            loads.push_back(a.load);
-        }
-        for (std::size_t j = 1; j + 1 < structure.nodes.size(); ++j)
-            destination.push_back(structure.motion(time, b, state[b], structure.nodes[j]).position);
-        auto points = load_maps_[b].transfer(loads, source, destination);
-        result[b].resize(structure.nodes.size());
-        std::copy(points.begin(), points.end(), result[b].begin() + 1);
+    for (std::size_t b = 0; b < result.size(); ++b)
+        result[b] = structural_loads_for_blade(b, time, state[b], y);
+    return result;
+}
+std::vector<PointLoad> Rotor::structural_loads_for_blade(std::size_t b, double time, const ModalState &state,
+                                                         const RotorOutput &y) const {
+    std::vector<Vec3> source, destination;
+    std::vector<PointLoad> loads;
+    source.reserve(y.blades.at(b).size());
+    loads.reserve(y.blades[b].size());
+    destination.reserve(structure.nodes.size() - 2);
+    for (const auto &a : y.blades[b]) {
+        source.push_back(a.motion.position);
+        loads.push_back(a.load);
     }
+    for (std::size_t j = 1; j + 1 < structure.nodes.size(); ++j)
+        destination.push_back(structure.motion(time, b, state, structure.nodes[j]).position);
+    auto points = load_maps_[b].transfer(loads, source, destination);
+    std::vector<PointLoad> result(structure.nodes.size());
+    std::copy(points.begin(), points.end(), result.begin() + 1);
     return result;
 }
 } // namespace turbine

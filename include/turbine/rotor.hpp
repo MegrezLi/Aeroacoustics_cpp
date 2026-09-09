@@ -26,10 +26,16 @@ class Rotor {
     void advance_airfoils(const RotorOutput &, std::size_t step);
     std::array<std::vector<PointLoad>, 3> structural_loads(double time, const RotorState &,
                                                            const RotorOutput &) const;
+    std::vector<PointLoad> structural_loads_for_blade(std::size_t blade, double time, const ModalState &,
+                                                      const RotorOutput &) const;
 
   private:
     const Case *case_;
     BEMOptions options_;
+    struct SkewOptions {
+        bool redistribute;
+        double factor;
+    } skew_;
     std::vector<double> tip_constant_, hub_constant_;
     std::vector<MotionMap> motion_maps_;
     std::vector<LoadMap> load_maps_;

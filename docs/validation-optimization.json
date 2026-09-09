@@ -1,0 +1,265 @@
+{
+  "baseline_commit": "ad44bfd",
+  "platform": "Windows-11-10.0.22621-SP0",
+  "processor": "Intel64 Family 6 Model 141 Stepping 1, GenuineIntel",
+  "paired_repeats": 5,
+  "method": "Alternating paired runs, medians after warm-up; portable Release build",
+  "executable_sha256": {
+    "before": "92fdfcd75527bdf31b6c682b6bab2f52ddf5792e5f4a5c7e39d59af421ab2f53",
+    "after": "80bbc1aca6ceb9bc006560e5e3f0035a9fc9d53a7664f93fccc1594d09db0ead"
+  },
+  "full_case": {
+    "official8": {
+      "seconds": {
+        "before": [
+          3.4764122,
+          3.5011862,
+          3.5361119,
+          3.582016,
+          3.6312894
+        ],
+        "after": [
+          1.8146299,
+          1.7691116,
+          1.8889679,
+          1.9493939,
+          1.8237267
+        ]
+      },
+      "median_before_s": 3.5361119,
+      "median_after_s": 1.8237267,
+      "speedup": 1.9389483632607891,
+      "time_reduction_percent": 48.42565078327979,
+      "outputs": {
+        "dynamics.csv": {
+          "values": 60819,
+          "finite_values": 60819,
+          "max_abs_error": 0.0,
+          "byte_identical": true
+        },
+        "IEA_LB_RWT-AeroAcoustics_1.out": {
+          "values": 603,
+          "finite_values": 603,
+          "max_abs_error": 0.0,
+          "byte_identical": true
+        },
+        "IEA_LB_RWT-AeroAcoustics_2.out": {
+          "values": 13869,
+          "finite_values": 13869,
+          "max_abs_error": 1.000017846308765e-10,
+          "byte_identical": false
+        },
+        "IEA_LB_RWT-AeroAcoustics_3.out": {
+          "values": 95877,
+          "finite_values": 95877,
+          "max_abs_error": 0.0,
+          "byte_identical": true
+        },
+        "IEA_LB_RWT-AeroAcoustics_4.out": {
+          "values": 36381,
+          "finite_values": 36381,
+          "max_abs_error": 0.0,
+          "byte_identical": true
+        }
+      }
+    },
+    "wind9": {
+      "seconds": {
+        "before": [
+          3.6056256,
+          3.4531284,
+          3.4972505,
+          3.518085,
+          3.4726657
+        ],
+        "after": [
+          1.7798157,
+          1.8057602,
+          1.7942529,
+          1.7938647,
+          1.8470245
+        ]
+      },
+      "median_before_s": 3.4972505,
+      "median_after_s": 1.7942529,
+      "speedup": 1.9491402243240068,
+      "time_reduction_percent": 48.695327944052046,
+      "outputs": {
+        "dynamics.csv": {
+          "values": 60819,
+          "finite_values": 60819,
+          "max_abs_error": 0.0,
+          "byte_identical": true
+        },
+        "IEA_LB_RWT-AeroAcoustics_1.out": {
+          "values": 603,
+          "finite_values": 603,
+          "max_abs_error": 0.0,
+          "byte_identical": true
+        },
+        "IEA_LB_RWT-AeroAcoustics_2.out": {
+          "values": 13869,
+          "finite_values": 13869,
+          "max_abs_error": 0.0,
+          "byte_identical": true
+        },
+        "IEA_LB_RWT-AeroAcoustics_3.out": {
+          "values": 95877,
+          "finite_values": 95877,
+          "max_abs_error": 0.0,
+          "byte_identical": true
+        },
+        "IEA_LB_RWT-AeroAcoustics_4.out": {
+          "values": 36381,
+          "finite_values": 36381,
+          "max_abs_error": 0.0,
+          "byte_identical": true
+        }
+      }
+    }
+  },
+  "acoustics": {
+    "bpm-2": {
+      "seconds": {
+        "before": [
+          0.00206656,
+          0.002013905,
+          0.00196262,
+          0.002013415,
+          0.00200357
+        ],
+        "after": [
+          0.000672485,
+          0.000648025,
+          0.00065902,
+          0.00067102,
+          0.000635625
+        ]
+      },
+      "median_before_s": 0.002013415,
+      "median_after_s": 0.00065902,
+      "speedup": 3.0551652453643294,
+      "time_reduction_percent": 67.26854622618785,
+      "nodes": 30,
+      "observers": 2,
+      "frequencies": 34,
+      "seconds_basis": "one snapshot",
+      "checksum_difference": 0.0
+    },
+    "bpm-16": {
+      "seconds": {
+        "before": [
+          0.01624085,
+          0.016507555,
+          0.017725175000000003,
+          0.01712518,
+          0.01600356
+        ],
+        "after": [
+          0.0011772549999999999,
+          0.00116753,
+          0.00116865,
+          0.001166125,
+          0.001180375
+        ]
+      },
+      "median_before_s": 0.016507555,
+      "median_after_s": 0.00116865,
+      "speedup": 14.125319813459974,
+      "time_reduction_percent": 92.92051427361592,
+      "nodes": 30,
+      "observers": 16,
+      "frequencies": 34,
+      "seconds_basis": "one snapshot",
+      "checksum_difference": 0.0
+    },
+    "tno-2": {
+      "seconds": {
+        "before": [
+          0.73928875,
+          0.738754,
+          0.73857335,
+          0.75369195,
+          0.7532659
+        ],
+        "after": [
+          0.36188135,
+          0.36616165,
+          0.36189385,
+          0.3617528,
+          0.379677
+        ]
+      },
+      "median_before_s": 0.73928875,
+      "median_after_s": 0.36189385,
+      "speedup": 2.042833140159746,
+      "time_reduction_percent": 51.04837588831157,
+      "nodes": 30,
+      "observers": 2,
+      "frequencies": 34,
+      "seconds_basis": "one snapshot",
+      "checksum_difference": 0.0
+    },
+    "tno-16": {
+      "seconds": {
+        "before": [
+          6.2021079,
+          6.0929723,
+          6.07529175,
+          5.9489146,
+          6.07834215
+        ],
+        "after": [
+          0.36461035,
+          0.3645194,
+          0.36464315,
+          0.36339805,
+          0.3680029
+        ]
+      },
+      "median_before_s": 6.07834215,
+      "median_after_s": 0.36461035,
+      "speedup": 16.67078882977403,
+      "time_reduction_percent": 94.00148361177727,
+      "nodes": 30,
+      "observers": 16,
+      "frequencies": 34,
+      "seconds_basis": "one snapshot",
+      "checksum_difference": 0.0
+    }
+  },
+  "workspace_comparison": {
+    "values": 21420,
+    "finite_values": 15840,
+    "max_abs_error": 5.684341886080802e-14,
+    "byte_identical": false
+  },
+  "compiler": "GCC 16.2.0, Release (-O3 -DNDEBUG), portable backend",
+  "processor_name": "Intel Core i7-11800H @ 2.30GHz",
+  "auxiliary_comparison": {
+    "bl": {
+      "values": 96,
+      "max_abs_error": 0.0
+    },
+    "elements": {
+      "values": 18,
+      "max_abs_error": 0.0
+    },
+    "quadrature": {
+      "values": 16,
+      "max_abs_error": 0.0
+    },
+    "thickness": {
+      "values": 2,
+      "max_abs_error": 0.0
+    },
+    "driver1": {
+      "values": 17190,
+      "max_abs_error": 1.1368683772161603e-13
+    },
+    "driver2": {
+      "values": 17190,
+      "max_abs_error": 2.842170943040401e-14
+    }
+  }
+}

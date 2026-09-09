@@ -17,7 +17,7 @@
       "channels": 68,
       "compared_values": 13668,
       "max_abs_error_dB": 0.00020574810000084653,
-      "mean_abs_error_dB": 5.3096017537528444e-06,
+      "mean_abs_error_dB": 5.309601761069335e-06,
       "worst_time_s": 16.6,
       "worst_channel": 53,
       "tolerance_dB": 0.01
@@ -51,8 +51,8 @@
     "duration": 20,
     "steps": 3200,
     "acoustic_samples": 201,
-    "elapsed_seconds": 3.802201
+    "elapsed_seconds": 1.8746222
   },
-  "cpp_executable_sha256": "7e4c229e039f5fec46ec5aada42e0b769cba345d6cca9a7ec1d1f08e4a007a6a",
+  "cpp_executable_sha256": "80bbc1aca6ceb9bc006560e5e3f0035a9fc9d53a7664f93fccc1594d09db0ead",
   "reference_openfast_commit": "2895884d2be01862173c88d70f86b358d2f1a50a"
 }

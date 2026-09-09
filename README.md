@@ -80,7 +80,20 @@ python tests/run_standalone.py build/aeroacoustics_turbine build/official-check 
 python tests/run_perturbation.py build/aeroacoustics_turbine build/wind9-check --report build/wind9.json
 ```
 
-Windows 将 `.so` 换成 `libaeroacoustics_shared.dll`，并给可执行文件加 `.exe`。GitHub Actions 执行 Linux 编译和这三项对比。已有 Fortran 源码与结果保存在 `reference/`。
+Windows 将 `.so` 换成 `libaeroacoustics_shared.dll`，并给可执行文件加 `.exe`。GitHub Actions 执行 Linux 编译、这三项对比及声学缓冲区复用检查。已有 Fortran 源码与结果保存在 `reference/`。
+
+## 性能
+
+结构 Jacobian 只重算被扰动叶片的载荷映射；声学谱形和 TNO 积分按节点计算一次，供各观察点共用。时间循环复用频谱、积分及输出缓冲区，固定配置在初始化时解析。
+
+Windows / GCC 16.2.0、Release、未启用 MKL，同机交替运行五轮后的中位数：
+
+| 20 秒整机工况 | 优化前 | 优化后 | 耗时减少 |
+| --- | ---: | ---: | ---: |
+| 官方 8 m/s | 3.536 s | 1.824 s | 48.4% |
+| 9 m/s 扰动 | 3.497 s | 1.794 s | 48.7% |
+
+两个工况的结构输出与优化前逐字节一致，声学输出最大变化约 `1×10⁻¹⁰ dB`。这是本机实测结果；测试条件、声学局部计时和复现方法见 [优化记录](docs/optimization.md)。
 
 ## 截面示例与 MKL
 
@@ -107,7 +120,7 @@ src/
 └── apps/            # 截面示例与整机程序入口
 ```
 
-目录职责及源文件索引见 [src/README.md](src/README.md)。公开头文件仍位于 `include/`。
+输入参数与模块调用顺序见 [aeroacoustics 工作流](aeroacoustics工作流.md)，目录职责及源文件索引见 [src/README.md](src/README.md)。公开头文件仍位于 `include/`。
 
 - `include/aeroacoustics.hpp`、`include/aeroacoustics_c.h`：声学库 C++ 接口与 C ABI。
 - `examples/IEA_LB_RWT-AeroAcoustics/`：可直接运行的官方输入。

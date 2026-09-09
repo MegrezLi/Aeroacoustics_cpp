@@ -35,6 +35,10 @@
 
 C++ 将固定塔架条件下的结构方程分解为三个 3×3 系统，每次 Newton 迭代重新计算数值 Jacobian，修正量阈值为 1e−9，最多 12 次。原 FAST_Solver 使用包含模块输入的整体 Jacobian、缓存更新及不同的停止准则。因此 `ConvTol`、`MaxConvIter`、`DT_UJac`、`UJacSclFact` 不控制本实现的内部 Newton 迭代。`RhoInf`、`DT` 参与广义 α 系数计算；要求 `ModCoupling=3`、`NumCrctn=0`。
 
+每次 Jacobian 扰动只改变一片叶片，使用 `Rotor::structural_loads_for_blade()` 更新该叶片的载荷映射。每轮 Newton 迭代的单叶片映射次数从 30 次降为 12 次，积分公式、扰动步长和停止准则不变。偏斜模型开关及系数在 `Rotor` 初始化时缓存。
+
+声学驱动通过 `step_view()` 返回当前快照的只读指针，由 `AcousticWorkspace` 持有数据。工作区先准备各节点的边界层和声源谱形，再分别计算观察点的距离与指向性；主程序汇总输出后才进入下一步。频谱、TNO 积分和输出数组反复使用，湍流强度仍按原来的每步更新顺序推进。详见 [工作流](../aeroacoustics工作流.md) 和 [优化记录](optimization.md)。
+
 BEM 使用 `IndToler` 和 `MaxIter`，默认双精度残差阈值 5e−10，并使用 1e−6 rad 的括区停止阈值。其插值和停止路径与原 Fortran Brent 例程不同，未复制原 `mod_root1dim.f90`。这些数值实现差异在整机误差报告中保留。
 
 ## 输入限制

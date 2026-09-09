@@ -1,5 +1,7 @@
 add_executable(auxiliary_probe auxiliary_probe.cpp)
 target_link_libraries(auxiliary_probe PRIVATE aeroacoustics)
+add_executable(acoustic_workspace_probe acoustic_workspace_probe.cpp)
+target_link_libraries(acoustic_workspace_probe PRIVATE aeroacoustics)
 if(AEROACOUSTICS_BUILD_TURBINE)
   foreach(probe module structure mesh solver bem)
     add_executable(turbine_${probe}_probe turbine_${probe}_probe.cpp)

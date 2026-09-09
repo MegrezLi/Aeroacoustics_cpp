@@ -4,9 +4,15 @@
 
 | 目录 | 文件 | 职责 |
 | --- | --- | --- |
-| `acoustics/` | [empirical_models.cpp](acoustics/empirical_models.cpp) | BPM、Lowson、Guidati 等经验模型及其公式 |
+| `acoustics/` | [boundary_layer.cpp](acoustics/boundary_layer.cpp) | BPM 经验边界层、表格边界层参数转换 |
+| | [bpm_trailing_edge.cpp](acoustics/bpm_trailing_edge.cpp) | 压力面、吸力面及分离尾缘噪声 |
+| | [bpm_other_sources.cpp](acoustics/bpm_other_sources.cpp) | 层流、尾缘钝度和叶尖噪声 |
+| | [bpm_spectral_shapes.cpp](acoustics/bpm_spectral_shapes.cpp)、[directivity.cpp](acoustics/directivity.cpp) | BPM 分段谱形函数与声源指向性 |
+| | [inflow_noise.cpp](acoustics/inflow_noise.cpp) | Lowson 入流噪声和 Simplified Guidati 修正 |
 | | [tno.cpp](acoustics/tno.cpp) | TNO 尾缘噪声与模型积分装配 |
-| | [spectrum.cpp](acoustics/spectrum.cpp) | 参数检查、声源选择、A 计权和声能叠加 |
+| | [spectrum.cpp](acoustics/spectrum.cpp) | 参数检查、声源准备与观察点频谱装配、A 计权和声能叠加工具 |
+| | [workspace.cpp](acoustics/workspace.cpp)、[source_models.hpp](acoustics/source_models.hpp) | 跨观察点共享声源计算，复用频谱与 TNO 积分缓冲区；内部模型数据类型 |
+| | [kernel_compat.cpp](acoustics/kernel_compat.cpp) | 原标量函数接口的适配，用于直接调用及 Fortran 公式对照 |
 | | [geometry.cpp](acoustics/geometry.cpp) | 观察点与叶片前后缘坐标变换 |
 | | [driver.cpp](acoustics/driver.cpp) | 声学时间状态、边界层表、湍流强度和声学输入读取 |
 | `numerics/` | [quadrature.cpp](numerics/quadrature.cpp) | 61 点 Gauss–Kronrod 积分及误差估计 |
@@ -23,6 +29,8 @@
 
 `apps/turbine_main.cpp` 调用整机求解器，并将求得的节点状态交给声学驱动。整机求解器负责协调气动、结构与网格传递；声学模型调用数值积分和后端计算。
 
+声学主路径为 `AcousticDriver::step_view()` → `AcousticWorkspace::evaluate()`。每个采样时刻先对各节点调用 `prepare_section()`，再按观察点调用 `emit_section()`。各模型的 `prepare_*()` 计算与观察点无关的谱形，`emit_*()` 施加距离和指向性。源码调用链见 [工作流](../aeroacoustics工作流.md)，性能和数值检查见 [优化记录](../docs/optimization.md)。
+
 ## 构建文件
 
 - 根目录 `CMakeLists.txt`：构建开关、编译标准、MKL 查找和输出位置。
@@ -31,4 +39,4 @@
 - [apps/CMakeLists.txt](apps/CMakeLists.txt)：两个可执行程序。
 - 根目录 `tests/CMakeLists.txt`：数值对照探针。
 
-重排不改变命名空间、公开头文件路径、目标名称或可执行文件位置。构建及运行命令见根目录 README。
+公开头文件路径、构建目标名称及可执行文件位置保持兼容。原有 `section_spectrum()`、`snapshot_spectrum()` 和返回独立快照的 `AcousticDriver::step()` 仍可使用；连续计算可使用复用缓冲区的接口。构建及运行命令见根目录 README。

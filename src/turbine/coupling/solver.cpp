@@ -39,11 +39,11 @@ void Solver::step() {
             Matrix3 jac{};
             for (int j = 0; j < 3; ++j) {
                 const double h = 1e-4;
-                auto perturbed = state;
-                perturbed[b].q[j] += beta_prime_ * h;
-                perturbed[b].qd[j] += gamma_prime_ * h;
-                const auto lp = rotor.structural_loads(next_time, perturbed, aerodynamic);
-                const auto fp = rotor.structure.acceleration(next_time, b, perturbed[b], lp[b]);
+                auto perturbed = state[b];
+                perturbed.q[j] += beta_prime_ * h;
+                perturbed.qd[j] += gamma_prime_ * h;
+                const auto lp = rotor.structural_loads_for_blade(b, next_time, perturbed, aerodynamic);
+                const auto fp = rotor.structure.acceleration(next_time, b, perturbed, lp);
                 for (int i = 0; i < 3; ++i)
                     jac[i][j] = (i == j ? 1. : 0.) - (fp[i] - f[i]) / h;
             }

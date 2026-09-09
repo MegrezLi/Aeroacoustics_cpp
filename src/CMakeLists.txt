@@ -1,8 +1,15 @@
 # Shared source list keeps static and shared acoustic libraries in sync.
 set(acoustic_sources
-  acoustics/empirical_models.cpp
+  acoustics/boundary_layer.cpp
+  acoustics/directivity.cpp
+  acoustics/bpm_spectral_shapes.cpp
+  acoustics/bpm_trailing_edge.cpp
+  acoustics/bpm_other_sources.cpp
+  acoustics/inflow_noise.cpp
+  acoustics/kernel_compat.cpp
   acoustics/tno.cpp
   acoustics/spectrum.cpp
+  acoustics/workspace.cpp
   acoustics/geometry.cpp
   acoustics/driver.cpp
   numerics/quadrature.cpp
