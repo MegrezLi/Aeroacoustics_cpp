@@ -31,6 +31,8 @@
 
 声学主路径为 `AcousticDriver::step_view()` → `AcousticWorkspace::evaluate()`。每个采样时刻先对各节点调用 `prepare_section()`，再按观察点调用 `emit_section()`。各模型的 `prepare_*()` 计算与观察点无关的谱形，`emit_*()` 施加距离和指向性。源码调用链见 [工作流](../aeroacoustics工作流.md)，性能和数值检查见 [优化记录](../docs/optimization.md)。
 
+可靠性辅助接口位于 `include/`：[acoustic_levels.hpp](../include/acoustic_levels.hpp) 区分静音与非法声级；[checked_output.hpp](../include/checked_output.hpp) 检查输出生命周期；[lookup_diagnostics.hpp](../include/lookup_diagnostics.hpp) 提供显式、线程局部的查表诊断会话。掩码、报告和严格模式见 [R1–R3 说明](../docs/reliability.md)。
+
 ## 构建文件
 
 - 根目录 `CMakeLists.txt`：构建开关、编译标准、MKL 查找和输出位置。

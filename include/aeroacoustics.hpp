@@ -39,6 +39,7 @@ struct Section {
 struct BLTable {
     Spectrum aoa, reynolds;
     std::vector<std::array<double, 8>> values; // Re-major, then AoA
+    std::string source_name = "in-memory BL table";
     static BLTable read(const std::string &path);
     BoundaryLayer interpolate(double alpha_deg, double re, double chord) const;
 };
@@ -47,6 +48,7 @@ struct Node {
     Vec3 aero_center{}, inflow{};
     Mat3 global_to_local{{1, 0, 0, 0, 1, 0, 0, 0, 1}};
     std::array<double, 2> airfoil_reference{{.25, 0}};
+    std::size_t blade_number = 0, node_number = 0; // optional diagnostic IDs, one-based
 };
 using Snapshot = std::vector<std::vector<Mechanisms>>; // observer, node,
                                                        // mechanism, frequency

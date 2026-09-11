@@ -1,4 +1,5 @@
 #include "turbine/input.hpp"
+#include "lookup_diagnostics.hpp"
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -182,7 +183,12 @@ Airfoil::Airfoil(const std::filesystem::path &filename) : input(filename) {
         require(coord == "0", "Inline airfoil coordinates are not implemented yet");
 }
 Coefficients Airfoil::at(double a) const {
+    if (!std::isfinite(a))
+        throw std::invalid_argument("Non-finite airfoil angle: " + input.path.string());
     a = std::remainder(a, 2 * pi);
+    // Convert only exceptional queries to degrees; valid hot-path queries do not allocate.
+    if (a < alpha.front() || a > alpha.back())
+        diagnostics::check_lookup(input.path.string(), "alpha_deg", a / deg, alpha.front() / deg, alpha.back() / deg);
     if (a <= alpha.front())
         return coefficients.front();
     if (a >= alpha.back())

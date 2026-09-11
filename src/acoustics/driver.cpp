@@ -1,5 +1,6 @@
 // C++ implementation of OpenFAST acoustic driver and auxiliary algorithms.
 #include "aeroacoustics.hpp"
+#include "lookup_diagnostics.hpp"
 #include <algorithm>
 #include <cmath>
 #include <fstream>
@@ -47,6 +48,7 @@ BLTable BLTable::read(const std::string &path) {
     int nr = std::stoi(text[2]), na = std::stoi(text[3]);
     require(nr > 0 && na > 0, "Invalid BL table dimensions");
     BLTable result;
+    result.source_name = path;
     std::size_t pos = 4;
     Spectrum raw_aoa;
     for (int r = 0; r < nr; ++r) {
@@ -80,7 +82,9 @@ BoundaryLayer BLTable::interpolate(double alpha, double re, double chord) const 
     increasing(aoa);
     increasing(reynolds);
     require(values.size() == aoa.size() * reynolds.size(), "Invalid BL shape");
-    require(std::isfinite(alpha) && std::isfinite(re) && chord > 0, "Invalid BL interpolation input");
+    require(std::isfinite(alpha) && std::isfinite(re) && std::isfinite(chord) && chord > 0, "Invalid BL interpolation input");
+    diagnostics::check_lookup(source_name, "alpha_deg", alpha, aoa.front(), aoa.back());
+    diagnostics::check_lookup(source_name, "Re", re, reynolds.front(), reynolds.back());
     auto [a, b, t] = bounds(aoa, alpha);
     auto [c, d, s] = bounds(reynolds, re);
     std::array<double, 8> v{};
@@ -217,13 +221,21 @@ const Snapshot *AcousticDriver::step_view(double time, const std::vector<std::ve
             if (sampling && j >= first_) {
                 auto &copy = selected_[selected++];
                 copy = node;
+                copy.blade_number = b + 1;
+                copy.node_number = j + 1;
                 copy.section.span = lengths_[j];
                 copy.section.is_tip = j == span_.size() - 1;
                 copy.section.ti_section = state.values[k];
             }
         }
     }
-    const Snapshot *result = sampling ? &workspace_.evaluate(selected_, observers_) : nullptr;
+    const Snapshot *result = nullptr;
+    try {
+        if (sampling)
+            result = &workspace_.evaluate(selected_, observers_);
+    } catch (const std::exception &e) {
+        throw std::runtime_error("Acoustic time=" + std::to_string(time) + ": " + e.what());
+    }
     // Sampling uses the previous TI state; every solver step then updates it.
     state.update(speeds_, inflow_, leading_);
     last_time_ = time;

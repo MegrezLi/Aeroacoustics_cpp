@@ -1,5 +1,6 @@
 #include "source_models.hpp"
 #include <utility>
+#include <stdexcept>
 
 namespace aeroacoustics {
 struct AcousticWorkspace::Impl {
@@ -45,8 +46,14 @@ const Snapshot &AcousticWorkspace::evaluate(const std::vector<Node> &nodes,
             const auto &node = nodes[n];
             const auto geometry = observe(observers[o], node.aero_center, node.global_to_local,
                                           node.section.chord, node.airfoil_reference);
-            detail::emit_section(work.parameters, work.sources[n], geometry.first, geometry.second,
-                                 work.weighting, output[n]);
+            try {
+                detail::emit_section(work.parameters, work.sources[n], geometry.first, geometry.second,
+                                     work.weighting, output[n]);
+            } catch (const std::exception &e) {
+                throw std::runtime_error("observer=" + std::to_string(o + 1) + " blade=" +
+                    std::to_string(node.blade_number) + " node=" + std::to_string(node.node_number) +
+                    " selected_node=" + std::to_string(n + 1) + ": " + e.what());
+            }
         }
     }
     return work.output;

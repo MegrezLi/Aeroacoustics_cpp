@@ -1,4 +1,5 @@
 #include "turbine/rotor.hpp"
+#include "lookup_diagnostics.hpp"
 namespace turbine {
 Rotor::Rotor(const Case &c) : structure(c), case_(&c) {
     options_.tip_loss = c.aero.flag("TipLoss");
@@ -114,7 +115,10 @@ RotorOutput Rotor::evaluate(double time, const RotorState &state) const {
         for (std::size_t j = 0; j < count; ++j) {
             auto &a = y.blades[b][j];
             const auto &s = c.stations[j];
-            const auto induction = solve_bem(options_, a.bem, c.airfoils[s.airfoil], previous_phi_[b][j]);
+            const auto induction = [&] {
+                diagnostics::LookupLocation location({time, std::size_t(b + 1), j + 1, "BEM_trial"});
+                return solve_bem(options_, a.bem, c.airfoils[s.airfoil], previous_phi_[b][j]);
+            }();
             a.root_phi = induction.phi;
             a.axial = std::clamp(induction.axial, -1., 1.5);
             a.tangential = std::clamp(induction.tangential, -1., 1.);
@@ -128,7 +132,10 @@ RotorOutput Rotor::evaluate(double time, const RotorState &state) const {
             a.phi = std::atan2(vx, vy);
             a.alpha = std::remainder(a.phi - a.bem.twist, 2 * pi);
             a.speed = std::hypot(vx, vy);
-            a.coefficients = airfoils_[b][j].evaluate(a.alpha, a.speed);
+            {
+                diagnostics::LookupLocation location({time, std::size_t(b + 1), j + 1, "UA_evaluate"});
+                a.coefficients = airfoils_[b][j].evaluate(a.alpha, a.speed);
+            }
             const auto cf = a.coefficients;
             const double q = .5 * c.rho * a.speed * a.speed;
             a.load.force =
@@ -143,6 +150,7 @@ RotorOutput Rotor::evaluate(double time, const RotorState &state) const {
 void Rotor::advance_airfoils(const RotorOutput &y, std::size_t step) {
     for (int b = 0; b < 3; ++b)
         for (std::size_t j = 0; j < y.blades[b].size(); ++j) {
+            diagnostics::LookupLocation location({step * case_->dt, std::size_t(b + 1), j + 1, "UA_advance"});
             airfoils_[b][j].advance(y.blades[b][j].alpha, y.blades[b][j].speed, step);
             previous_phi_[b][j] = y.blades[b][j].root_phi;
         }

@@ -51,8 +51,12 @@
     "duration": 20,
     "steps": 3200,
     "acoustic_samples": 201,
-    "elapsed_seconds": 1.8746222
+    "elapsed_seconds": 2.3519282,
+    "zero_energy_encoding": "0 dB placeholder; see matching .mask (0=zero, 1=positive energy)",
+    "lookup_policy": "clamp",
+    "lookup_out_of_range_calls": 0,
+    "lookup_report": "lookup_diagnostics.csv"
   },
-  "cpp_executable_sha256": "80bbc1aca6ceb9bc006560e5e3f0035a9fc9d53a7664f93fccc1594d09db0ead",
+  "cpp_executable_sha256": "26c4802ff8773e4b156b8e747aa8943c044c67f150c5302f1db1755fcea6f48b",
   "reference_openfast_commit": "2895884d2be01862173c88d70f86b358d2f1a50a"
 }

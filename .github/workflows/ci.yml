@@ -16,6 +16,8 @@ jobs:
       - run: cmake --build build -j 2
       - run: ./build/aeroacoustics_example build/spectrum.csv
       - run: ./build/acoustic_workspace_probe verify build/workspace.csv
+      - run: ./build/reliability_probe examples/IEA_LB_RWT-AeroAcoustics/Airfoils/RotorSE_FAST_IEA_landBased_RWT_AeroDyn_Polar_10.dat build/reliability-unit
+      - run: python tests/check_reliability.py build/aeroacoustics_turbine build/reliability-cli
       - run: python tests/compare_fortran.py build/libaeroacoustics_shared.so --fortran-compiler gfortran --report build/validation.json
       - run: python tests/run_standalone.py build/aeroacoustics_turbine build/official-case --report build/full-case.json
       - run: python tests/run_perturbation.py build/aeroacoustics_turbine build/wind9 --report build/wind9.json

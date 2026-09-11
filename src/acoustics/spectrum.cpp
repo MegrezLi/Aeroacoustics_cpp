@@ -2,6 +2,7 @@
 // C++ derivative of OpenFAST, Apache-2.0; see LICENSE and NOTICE.
 #include "aeroacoustics.hpp"
 #include "source_models.hpp"
+#include "acoustic_levels.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -134,6 +135,12 @@ void emit_section(const Parameters &p, const PreparedSection &s, const Geometry 
         for (auto &v : out)
             for (std::size_t i = 0; i < v.size(); ++i)
                 v[i] += weighting[i];
+    for (std::size_t m = 0; m < out.size(); ++m)
+        for (std::size_t f = 0; f < out[m].size(); ++f)
+            try { validate_level(out[m][f]); }
+            catch (const std::exception &e) {
+                throw std::runtime_error(std::string(e.what()) + spectrum_context(p, m, f));
+            }
 }
 } // namespace detail
 
