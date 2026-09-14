@@ -206,7 +206,9 @@ SteadyWind::SteadyWind(const InputFile &f)
     require(reference_height > 0 && speed >= 0, "Invalid steady wind input");
 }
 Vec3 SteadyWind::at(const Vec3 &p) const {
-    require(p[2] > 0 || exponent == 0, "Power law wind requested below ground");
+    // Avoid constructing require()'s std::string on every valid node query.
+    if (!(p[2] > 0 || exponent == 0))
+        throw std::runtime_error("Power law wind requested below ground");
     double v = exponent == 0 ? speed : speed * std::pow(p[2] / reference_height, exponent);
     return {v * std::cos(upflow) * std::cos(propagation), -v * std::cos(upflow) * std::sin(propagation),
             v * std::sin(upflow)};

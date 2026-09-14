@@ -44,7 +44,18 @@ int main(int argc, char **argv) {
         for (int i = 0; i < 50; ++i)
             solver.step();
         counting = false;
+        if (allocations)
+            std::cerr << "Warmed solver allocations: " << allocations << '\n';
         check(allocations == 0, "Solver step allocated after warm-up");
+        bool below_ground_rejected = false;
+        auto power_law_wind = c.wind;
+        power_law_wind.exponent = .2;
+        try {
+            power_law_wind.at({0, 0, -1});
+        } catch (const std::runtime_error &) {
+            below_ground_rejected = true;
+        }
+        check(below_ground_rejected, "Power law wind must reject below-ground input");
 
         // Known rigid translation and constant line load, with dirty output buffers.
         const turbine::Matrix3 identity{{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
