@@ -154,10 +154,10 @@ main()
    │  ├─ UnsteadyAirfoil()：为每片叶片的每个气动站位建立独立历史状态
    │  └─ MotionMap()、LoadMap()：预先建立运动和载荷映射关系
    ├─ 计算广义 α 时间积分系数
-   └─ Rotor::evaluate(0, state)：计算 t=0 的气动状态
+   └─ Rotor::evaluate_into(0, state, aerodynamic, workspace)：计算 t=0 的气动状态
 ```
 
-`Case` 的首个任务是解析文件；真正首次执行气动求解发生在 `Solver` 构造末尾的 `Rotor::evaluate(0, state)`。默认初始模态位移、速度和积分器加速度数组为零，此处不会额外求解一次初始结构加速度。
+`Case` 的首个任务是解析文件；真正首次执行气动求解发生在 `Solver` 构造末尾的 `Rotor::evaluate_into(0, state, aerodynamic, workspace)`。默认初始模态位移、速度和积分器加速度数组为零，此处不会额外求解一次初始结构加速度。
 
 默认 `BLMod=1`、`TBLTEMod=1`，第 4 步只从 `BL_file` 取得尾缘几何，不执行 `BLTable::read()` 的完整边界层表读取。后者用于表格边界层或 TNO 分支。
 
@@ -168,7 +168,7 @@ main()
 主循环从 `t=0` 开始。每次先保存当前时刻的结果，再推进到下一个时刻：
 
 1. 将 `solver.state` 中三片叶片的 `q` 和 `qd` 写入 `dynamics.csv`。
-2. 从 `solver.aerodynamic` 向 90 个声学 `Node` 填入位置、方向、风速、截面相对速度和攻角。
+2. 从 `solver.aerodynamic` 向 90 个声学 `Node` 填入位置、方向、风速、截面相对速度和攻角。`AcousticDriver::is_sample_time()` 统一判断采样时刻；只有采样时选中的发声节点才进行表格边界层插值。
 3. 调用 `AcousticDriver::step_view(time, nodes)`；若到达声学采样时刻，则返回工作区内频谱快照的只读指针，主程序随即汇总并写入结果。
 4. 达到结束时间则退出；否则调用 `Solver::step()`。
 
@@ -184,22 +184,20 @@ Solver::step()
 ├─ Rotor::advance_airfoils(上一时刻气动结果, step_number)
 │  ├─ UnsteadyAirfoil::advance()：推进翼型历史状态
 │  └─ 保存上一时刻未经偏斜修正的 BEM 根 root_phi
-├─ Rotor::evaluate(t_next, predicted)：用预测运动计算一次新气动状态和载荷
+├─ Rotor::evaluate_into(t_next, predicted, aerodynamic, workspace)：复用输出，计算一次新气动状态和载荷
+├─ blade_basis(t_next, blade)：为结构迭代准备三片叶片的基底
 └─ 结构 Newton 迭代，最多 12 次
-   ├─ Rotor::structural_loads(t_next, 当前迭代状态, 已算气动力)
-   │  └─ 对三片叶片调用 structural_loads_for_blade()
-   │     ├─ BladeStructure::motion()：计算当前结构节点位置
-   │     └─ LoadMap::transfer()：把气动分布载荷映射为结构节点载荷
-   ├─ 对每片叶片调用 BladeStructure::acceleration()
-   │  └─ solve3()：解模态质量方程，得到三分量结构加速度
-   ├─ 扰动各模态，构造数值 Jacobian
-   │  ├─ structural_loads_for_blade()：只更新被扰动叶片的载荷映射
-   │  └─ BladeStructure::acceleration()：求被扰动叶片的加速度
+   ├─ 对每片叶片调用 Rotor::structural_acceleration()
+   │  ├─ BladeStructure::motions_into()：用该叶片基底重建当前状态的全部节点运动
+   │  ├─ structural_loads_into() → LoadMap::transfer_into()：用这些运动更新载荷力臂
+   │  └─ BladeStructure::acceleration() → solve3()：复用同一组运动，解模态质量方程
+   ├─ 扰动该叶片各模态，构造数值 Jacobian
+   │  └─ structural_acceleration()：对每个扰动状态重新执行上述运动、映射和加速度计算
    ├─ solve3()：解 Newton 修正方程，修正加速度、q、qd
    └─ 检查修正量；收敛后保存状态并更新时间
 ```
 
-**气动计算发生在结构 Newton 迭代之前。** 在这个迭代内，气动分布载荷保持为预测运动算出的值；结构节点位置和载荷力臂随结构修正而更新。不会在每次 Newton 迭代中重算 BEM，也不会在收敛后再调用一次 `Rotor::evaluate()`。
+**气动计算发生在结构 Newton 迭代之前。** 在这个迭代内，气动分布载荷保持为预测运动算出的值；结构节点位置和载荷力臂随结构修正而更新。不会在每次 Newton 迭代中重算 BEM，也不会在收敛后再调用一次 `Rotor::evaluate_into()`。
 
 因此，同一时刻 `dynamics.csv` 保存的是修正后的结构状态，声学读取的是该步缓存的气动状态及其预测运动几何。下一步预测继续使用修正后的结构状态。这个先后顺序决定了气动、结构和声学之间的数据对应关系。
 
@@ -217,19 +215,20 @@ qd = qd_pred + gamma_prime * a
 
 这里的 `1e-9` 和 12 次来自 C++ 求解器实现；输入文件里的 `ConvTol`、`MaxConvIter`、`DT_UJac` 等字段并未用于设置这段 Newton 循环。
 
-固定塔架条件下，扰动一片叶片的模态不会改变另外两片的映射。因此每轮迭代先执行三次基础映射，再执行九次扰动映射，共 12 次；旧实现每次扰动都映射三片叶片，共 30 次。此处减少了重复计算，数值 Jacobian 的定义不变。
+固定塔架条件下，扰动一片叶片的模态不会改变另外两片的映射。因此每轮迭代逐片执行一次基础映射和三次扰动映射，三片合计 12 次。此处减少了重复计算，数值 Jacobian 的定义不变。
 
 ## 5. 气动求解内部调用哪些函数
 
 ### 5.1 从叶片运动得到叶素气动力
 
-协调入口：[src/turbine/coupling/rotor.cpp](src/turbine/coupling/rotor.cpp) 的 `Rotor::evaluate()`。
+协调入口：[src/turbine/coupling/rotor.cpp](src/turbine/coupling/rotor.cpp) 的 `Rotor::evaluate_into()`。
 
 ```text
-Rotor::evaluate(time, state)
+Rotor::evaluate_into(time, state, output, workspace)
 ├─ 对三片叶片建立节点运动
-│  ├─ BladeStructure::motion() → blade_basis()、small_rotation()
-│  ├─ MotionMap::transfer() → interpolate_rotation() → rotation_log()/rotation_exp()
+│  ├─ blade_basis()：每片叶片准备一次基底
+│  ├─ BladeStructure::motions_into() → motion(basis, state, node)、small_rotation()
+│  ├─ MotionMap::transfer_into() → interpolate_rotation() → rotation_log()/rotation_exp()
 │  ├─ SteadyWind::at(position)：求节点处的环境风速
 │  └─ euler_angles()/euler_matrix()：建立叶素局部和环带坐标系
 ├─ 计算转子平均相对入流、偏斜角和低叶尖速比过渡权重
@@ -294,7 +293,7 @@ BEM 求根的未知量是入流角 `phi`；攻角为入流角减局部扭角。�
 | `motion()` | 时间、`ModalState`、结构节点 → `Motion` | 计算位置、姿态、速度、角速度、广义速度偏导和惯性加速度项，包含旋转与轴向缩短 |
 | `acceleration()` | `ModalState` 和节点载荷 → 三个模态加速度 | 组装广义气动力、重力、惯性、弹性和阻尼项，再调用 `solve3()` 解质量方程 |
 
-`motion()` 同时服务于气动运动输入、载荷映射和结构动力学。因此它在一个时间步中会被多处调用；这些调用是在查询给定状态下的运动，不是分别推进时间。
+`motions_into()` 批量计算节点运动并复用目标数组。结构残差或 Jacobian 扰动的一次求值中，载荷映射和加速度装配共用这组运动；状态变化后立即重建。Newton 迭代使用的叶片基底在进入迭代前准备，同一时间步内各节点共用。
 
 ### 6.2 两种网格的传递方向
 
@@ -302,19 +301,19 @@ BEM 求根的未知量是入流角 `phi`；攻角为入流角减局部扭角。�
 
 ```text
 结构模态 q、qd
-   │ BladeStructure::motion()
+   │ BladeStructure::motions_into()
    ▼
 每片 19 个结构运动节点
-   │ MotionMap::transfer()：位置、姿态、速度和角速度插值
+   │ MotionMap::transfer_into()：位置、姿态、速度和角速度插值
    ▼
 每片 30 个气动站位
-   │ Rotor::evaluate()：BEM + 非定常气动
+   │ Rotor::evaluate_into()：BEM + 非定常气动
    ▼
 单位展长气动力 N/m、单位展长力矩 N·m/m
-   │ LoadMap::transfer()：线载荷积分、分配及力臂修正
+   │ LoadMap::transfer_into()：线载荷积分、分配及力臂修正
    ▼
 每片 17 个结构积分节点上的集中力 N、力矩 N·m
-   │ Rotor::structural_loads_for_blade()：补齐根、尖零载荷节点
+   │ Rotor::structural_loads_into()：补齐根、尖零载荷节点
    ▼
 BladeStructure::acceleration() → 模态加速度 → Solver 修正 q、qd
 ```
@@ -395,7 +394,7 @@ emit_section(parameters, prepared, leading, trailing, weighting, output)
 | --- | --- | --- |
 | `LamMod=1` 且 `TripMod=0` | `prepare_laminar()` → `emit_laminar()`，使用共享边界层及 `directh_te()` | 关闭 |
 | `TipMod=1` 且节点为叶尖 | `prepare_tip()` → `emit_tip()` → `directh_te()` | 关闭 |
-| `BLMod=2` 或 `TBLTEMod=2` | 初始化 `BLTable::read()`；每步 `BLTable::interpolate(alpha, Re, chord)` | 关闭；默认使用经验边界层 |
+| `BLMod=2` 或 `TBLTEMod=2` | 初始化读取并构造 `PreparedBLTable`；仅在声学采样时对选中节点调用 `interpolate(alpha, Re, chord)` | 关闭；默认使用经验边界层 |
 | `TBLTEMod=2` | `prepare_tno()` → `integrate_tno()` → `exponential()`、`dot()`；再由 `emit_tno()` 计算观察点频谱 | 关闭；TNO 替换压力面/吸力面分量，分离分量仍来自 BPM |
 | `AWeighting=True` | 初始化时调用 `a_weighting()`，`emit_section()` 给各频谱加修正 | 关闭 |
 
@@ -455,3 +454,5 @@ L_sum = 10 × log10(Σ E_k)
 | 输出列、声级聚合、文件命名 | [turbine_main.cpp](src/apps/turbine_main.cpp) | 四个声学文件、结构 CSV 和运行记录 |
 
 完整阅读顺序可沿 `main()` → `Case` → `Solver` → `Rotor` 展开；查气动算法进入 `bem.cpp` 和 `unsteady.cpp`，查结构进入 `blade_dynamics.cpp` 和 `mesh.cpp`，查声学进入 `driver.cpp` → `workspace.cpp` → `spectrum.cpp` → 各模型的 `prepare_*()` 与 `emit_*()`。
+
+P1–P3 的缓冲区所有权、接口使用约定和配对计时见 [耦合与采样优化](docs/coupling-optimization.md)。

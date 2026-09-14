@@ -78,11 +78,20 @@ BLTable BLTable::read(const std::string &path) {
     increasing(result.reynolds);
     return result;
 }
-BoundaryLayer BLTable::interpolate(double alpha, double re, double chord) const {
+namespace {
+void validate_table(const BLTable &table) {
+    const auto &aoa = table.aoa, &reynolds = table.reynolds;
+    const auto &values = table.values;
     increasing(aoa);
     increasing(reynolds);
     require(values.size() == aoa.size() * reynolds.size(), "Invalid BL shape");
-    require(std::isfinite(alpha) && std::isfinite(re) && std::isfinite(chord) && chord > 0, "Invalid BL interpolation input");
+}
+BoundaryLayer interpolate_table(const BLTable &table, double alpha, double re, double chord) {
+    const auto &aoa = table.aoa, &reynolds = table.reynolds;
+    const auto &values = table.values;
+    const auto &source_name = table.source_name;
+    require(std::isfinite(alpha) && std::isfinite(re) && std::isfinite(chord) && chord > 0,
+            "Invalid BL interpolation input");
     diagnostics::check_lookup(source_name, "alpha_deg", alpha, aoa.front(), aoa.back());
     diagnostics::check_lookup(source_name, "Re", re, reynolds.front(), reynolds.back());
     auto [a, b, t] = bounds(aoa, alpha);
@@ -93,6 +102,21 @@ BoundaryLayer BLTable::interpolate(double alpha, double re, double chord) const 
         v[k] = (1 - s) * ((1 - t) * values[c * n + a][k] + t * values[c * n + b][k]) +
                s * ((1 - t) * values[d * n + a][k] + t * values[d * n + b][k]);
     return {{{v[2] * chord, v[3] * chord}}, {{v[4] * chord, v[5] * chord}}, {{v[6], v[7]}}, {{v[0], v[1]}}};
+}
+} // namespace
+BoundaryLayer BLTable::interpolate(double alpha, double re, double chord) const {
+    validate_table(*this);
+    return interpolate_table(*this, alpha, re, chord);
+}
+PreparedBLTable BLTable::prepare() const { return PreparedBLTable(*this); }
+PreparedBLTable::PreparedBLTable(BLTable table) : table_(std::move(table)) {
+    validate_table(table_);
+    for (const auto &row : table_.values)
+        for (double value : row)
+            require(std::isfinite(value), "Invalid BL value");
+}
+BoundaryLayer PreparedBLTable::interpolate(double alpha, double re, double chord) const {
+    return interpolate_table(table_, alpha, re, chord);
 }
 std::pair<std::size_t, Spectrum> blade_elements(const Spectrum &span, double percent) {
     increasing(span);
@@ -199,11 +223,15 @@ AcousticDriver::AcousticDriver(Parameters p, Spectrum span, std::size_t blades, 
     leading_.resize(count);
     selected_.resize(blades_ * (span_.size() - first_));
 }
+bool AcousticDriver::is_sample_time(double time) const {
+    require(std::isfinite(time), "Time must be finite");
+    const double phase = time + 1e-10 - dt_ * std::floor((time + 1e-10) / dt_);
+    return time >= start_ && phase < 1e-6;
+}
 const Snapshot *AcousticDriver::step_view(double time, const std::vector<std::vector<Node>> &blades) {
     require(std::isfinite(time) && time > last_time_, "Times must be finite and increasing");
     require(blades.size() == blades_, "Blade count mismatch");
-    const double phase = time + 1e-10 - dt_ * std::floor((time + 1e-10) / dt_);
-    const bool sampling = time >= start_ && phase < 1e-6;
+    const bool sampling = is_sample_time(time);
     std::size_t selected = 0;
     for (std::size_t b = 0; b < blades_; ++b) {
         require(blades[b].size() == span_.size(), "Node count mismatch");

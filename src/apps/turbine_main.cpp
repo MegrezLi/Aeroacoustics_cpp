@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
             c.acoustic.number("BldPrcnt"), c.structure.number("TowerHt") + c.structure.number("Twr2Shft"),
             c.acoustic.integer("TICalcMeth"));
         std::vector<std::vector<aeroacoustics::Node>> nodes(3);
-        std::vector<std::optional<aeroacoustics::BLTable>> tables(c.stations.size());
+        std::vector<std::optional<aeroacoustics::PreparedBLTable>> tables(c.stations.size());
         for (int b = 0; b < 3; ++b)
             for (std::size_t j = 0; j < c.stations.size(); ++j) {
                 const auto &s = c.stations[j];
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
                     n.section.te_thickness = bl.number("TEThick");
                 }
                 if ((parameters.x_blmethod == 2 || parameters.tbltemod == 2) && b == 0)
-                    tables[j] = aeroacoustics::BLTable::read(af.input.file("BL_file").string());
+                    tables[j].emplace(aeroacoustics::BLTable::read(af.input.file("BL_file").string()));
                 nodes[b].push_back(n);
             }
         std::array<diagnostics::CheckedOutput, 4> outputs, masks;
@@ -155,6 +155,7 @@ int main(int argc, char **argv) {
                     for (double x : v)
                         dynamics << ',' << x;
             dynamics << '\n';
+            const bool sampling = acoustic.is_sample_time(solver.time);
             for (int b = 0; b < 3; ++b)
                 for (std::size_t j = 0; j < c.stations.size(); ++j) {
                     const auto &a = solver.aerodynamic.blades[b][j];
@@ -166,7 +167,7 @@ int main(int argc, char **argv) {
                     for (int i = 0; i < 3; ++i)
                         for (int k = 0; k < 3; ++k)
                             node.global_to_local[3 * i + k] = a.motion.orientation[i][k];
-                    if (tables[j]) {
+                    if (sampling && j >= acoustic.first_node() && tables[j]) {
                         diagnostics::LookupLocation location(
                             {solver.time, std::size_t(b + 1), j + 1, "BL_interpolate"});
                         node.section.bl = tables[j]->interpolate(

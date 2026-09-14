@@ -84,20 +84,21 @@ python tests/run_standalone.py build/aeroacoustics_turbine build/official-check 
 python tests/run_perturbation.py build/aeroacoustics_turbine build/wind9-check --report build/wind9.json
 ```
 
-Windows 将 `.so` 换成 `libaeroacoustics_shared.dll`，并给可执行文件加 `.exe`。GitHub Actions 执行 Linux 编译、这三项对比及声学缓冲区复用检查。已有 Fortran 源码与结果保存在 `reference/`。
+Windows 将 `.so` 换成 `libaeroacoustics_shared.dll`，并给可执行文件加 `.exe`。GitHub Actions 执行 Linux 编译、这三项对比、声学与整机缓冲区检查，以及 R1–R3 异常检查。已有 Fortran 源码与结果保存在 `reference/`。
 
 ## 性能
 
-结构 Jacobian 只重算被扰动叶片的载荷映射；声学谱形和 TNO 积分按节点计算一次，供各观察点共用。时间循环复用频谱、积分及输出缓冲区，固定配置在初始化时解析。
+结构运动按叶片状态批量计算，由载荷映射和加速度装配共用；求解器复用气动、运动及载荷缓冲区。表格边界层只在声学采样时对发声节点插值，TI 仍逐步更新。
 
-Windows / GCC 16.2.0、Release、未启用 MKL，同机交替运行五轮后的中位数：
+P1–P3 相对包含 R1–R3 的 `e5c57ab` 基线，在 Windows / GCC 16.2.0、Release、未启用 MKL 下，同机交替运行五轮的中位数：
 
 | 20 秒整机工况 | 优化前 | 优化后 | 耗时减少 |
 | --- | ---: | ---: | ---: |
-| 官方 8 m/s | 3.536 s | 1.824 s | 48.4% |
-| 9 m/s 扰动 | 3.497 s | 1.794 s | 48.7% |
+| 官方 8 m/s | 1.985 s | 1.627 s | 18.1% |
+| 9 m/s 扰动 | 2.005 s | 1.570 s | 21.7% |
+| 8 m/s，表格边界层 | 2.188 s | 1.749 s | 20.0% |
 
-两个工况的结构输出与优化前逐字节一致，声学输出最大变化约 `1×10⁻¹⁰ dB`。这是本机实测结果；测试条件、声学局部计时和复现方法见 [优化记录](docs/optimization.md)。
+上述工况的结构、声学和掩码输出均与优化前逐字节一致。测试条件、接口变化和复现方法见 [P1–P3 优化说明](docs/coupling-optimization.md)。此前一轮优化的独立数据保留在 [原优化记录](docs/optimization.md)。
 
 ## 截面示例与 MKL
 

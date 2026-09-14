@@ -23,9 +23,16 @@ MotionMap::MotionMap(std::vector<ReferenceNode> source, std::vector<ReferenceNod
     }
 }
 std::vector<Motion> MotionMap::transfer(const std::vector<Motion> &source) const {
+    std::vector<Motion> result;
+    transfer_into(source, result);
+    return result;
+}
+void MotionMap::transfer_into(const std::vector<Motion> &source, std::vector<Motion> &result) const {
+    if (&source == &result)
+        throw std::invalid_argument("Motion map requires distinct input and output");
     if (source.size() != source_.size())
         throw std::runtime_error("Motion source count mismatch");
-    std::vector<Motion> result(destination_.size());
+    result.assign(destination_.size(), Motion{});
     for (std::size_t i = 0; i < result.size(); ++i) {
         auto &y = result[i];
         const auto p = map_[i];
@@ -49,7 +56,6 @@ std::vector<Motion> MotionMap::transfer(const std::vector<Motion> &source) const
             y.angular_velocity = y.angular_velocity + w * source[j].angular_velocity;
         }
     }
-    return result;
 }
 LoadMap::LoadMap(std::vector<Vec3> source, std::vector<Vec3> destination)
     : source_count_(source.size()), destination_count_(destination.size()) {
@@ -91,10 +97,18 @@ LoadMap::LoadMap(std::vector<Vec3> source, std::vector<Vec3> destination)
 }
 std::vector<PointLoad> LoadMap::transfer(const std::vector<PointLoad> &loads, const std::vector<Vec3> &source,
                                          const std::vector<Vec3> &destination) const {
+    std::vector<PointLoad> result;
+    transfer_into(loads, source, destination, result);
+    return result;
+}
+void LoadMap::transfer_into(const std::vector<PointLoad> &loads, const std::vector<Vec3> &source,
+                            const std::vector<Vec3> &destination, std::vector<PointLoad> &result) const {
+    if (&loads == &result)
+        throw std::invalid_argument("Load map requires distinct input and output");
     if (loads.size() != source_count_ || source.size() != source_count_ ||
         destination.size() != destination_count_)
         throw std::runtime_error("Load mesh count mismatch");
-    std::vector<PointLoad> result(destination_count_);
+    result.assign(destination_count_, PointLoad{});
     for (const auto &s : segments_) {
         const auto i = s.source;
         const Vec3 fa = (1 - s.a) * loads[i].force + s.a * loads[i + 1].force,
@@ -114,6 +128,5 @@ std::vector<PointLoad> LoadMap::transfer(const std::vector<PointLoad> &loads, co
         b.moment =
             b.moment + (s.length / 6) * (ma + 2 * mb) - couple + cross(pb - destination[s.dest_b], force_b);
     }
-    return result;
 }
 } // namespace turbine

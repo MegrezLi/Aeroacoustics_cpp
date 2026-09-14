@@ -42,3 +42,9 @@
 - 根目录 `tests/CMakeLists.txt`：数值对照探针。
 
 公开头文件路径、构建目标名称及可执行文件位置保持兼容。原有 `section_spectrum()`、`snapshot_spectrum()` 和返回独立快照的 `AcousticDriver::step()` 仍可使用；连续计算可使用复用缓冲区的接口。构建及运行命令见根目录 README。
+
+## 整机工作区与边界层采样
+
+`Solver` 持有 `RotorWorkspace` 和 `LoadWorkspace`。`Rotor::evaluate_into()` 复用气动结果与运动映射数组；`structural_acceleration()` 先重建指定状态的运动，再供载荷映射与质量方程共用。所有暂存区都由调用者持有，不在 `Rotor` 的 `const` 方法中隐藏可变缓存。`transfer_into()` 每次清零累加结果，输入与输出不得使用同一数组。
+
+`PreparedBLTable` 持有已验证表格的私有副本；原 `BLTable` 仍可编辑，其 `interpolate()` 保留校验。整机入口通过 `AcousticDriver::is_sample_time()` 与 `first_node()` 决定哪些节点需要插值。测试及限制见 [P1–P3 说明](../docs/coupling-optimization.md)。

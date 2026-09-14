@@ -13,6 +13,8 @@ class Solver {
     void step();
 
   private:
+    RotorWorkspace rotor_workspace_;
+    LoadWorkspace load_workspace_;
     double dt_, alpha_m_, alpha_f_, beta_, gamma_, beta_prime_, gamma_prime_;
 };
 } // namespace turbine

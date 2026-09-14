@@ -151,7 +151,15 @@ Matrix3 BladeStructure::blade_basis(double time, std::size_t blade) const {
 }
 Motion BladeStructure::motion(double time, std::size_t blade, const ModalState &state,
                               const StructuralStation &s) const {
-    const auto b = blade_basis(time, blade);
+    return motion(blade_basis(time, blade), state, s);
+}
+void BladeStructure::motions_into(const Matrix3 &basis, const ModalState &state,
+                                  std::vector<Motion> &result) const {
+    result.resize(nodes.size());
+    for (std::size_t j = 0; j < nodes.size(); ++j)
+        result[j] = motion(basis, state, nodes[j]);
+}
+Motion BladeStructure::motion(const Matrix3 &b, const ModalState &state, const StructuralStation &s) const {
     const auto &q = state.q;
     const auto &qd = state.qd;
     Motion y;
@@ -180,12 +188,18 @@ Motion BladeStructure::motion(double time, std::size_t blade, const ModalState &
 }
 Vec3 BladeStructure::acceleration(double time, std::size_t blade, const ModalState &s,
                                   const std::vector<PointLoad> &loads) const {
-    if (loads.size() != nodes.size())
+    std::vector<Motion> motions;
+    motions_into(blade_basis(time, blade), s, motions);
+    return acceleration(blade, s, motions, loads);
+}
+Vec3 BladeStructure::acceleration(std::size_t blade, const ModalState &s, const std::vector<Motion> &motions,
+                                  const std::vector<PointLoad> &loads) const {
+    if (blade >= tip_mass.size() || motions.size() != nodes.size() || loads.size() != nodes.size())
         throw std::runtime_error("Structural load count mismatch");
     Matrix3 mass{};
     Vec3 force{};
     for (std::size_t j = 1; j < nodes.size(); ++j) {
-        const auto motion_j = motion(time, blade, s, nodes[j]);
+        const auto &motion_j = motions[j];
         const double m = j + 1 == nodes.size() ? tip_mass[blade] : nodes[j].mass;
         const Vec3 f = loads[j].force - m * (Vec3{0, 0, gravity_} + motion_j.acceleration_bias);
         for (int i = 0; i < 3; ++i) {

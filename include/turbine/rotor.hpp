@@ -18,11 +18,23 @@ struct RotorOutput {
     Vec3 average_velocity{};
     double skew = 0;
 };
+// Owned by the caller/Solver, never shared as hidden mutable Rotor state.
+struct RotorWorkspace {
+    std::vector<Motion> structural, aerodynamic;
+};
+struct LoadWorkspace {
+    std::vector<Vec3> source, destination;
+    std::vector<PointLoad> distributed, points, result;
+};
 class Rotor {
   public:
     explicit Rotor(const Case &);
     BladeStructure structure;
     RotorOutput evaluate(double time, const RotorState &) const;
+    void evaluate_into(double time, const RotorState &, RotorOutput &, RotorWorkspace &) const;
+    // Reuses motions for both load mapping and acceleration in one state evaluation.
+    Vec3 structural_acceleration(std::size_t blade, const Matrix3 &basis, const ModalState &,
+                                 const RotorOutput &, std::vector<Motion> &, LoadWorkspace &) const;
     void advance_airfoils(const RotorOutput &, std::size_t step);
     std::array<std::vector<PointLoad>, 3> structural_loads(double time, const RotorState &,
                                                            const RotorOutput &) const;
@@ -30,6 +42,8 @@ class Rotor {
                                                       const RotorOutput &) const;
 
   private:
+    void structural_loads_into(std::size_t blade, const RotorOutput &, const std::vector<Motion> &,
+                               LoadWorkspace &) const;
     const Case *case_;
     BEMOptions options_;
     struct SkewOptions {

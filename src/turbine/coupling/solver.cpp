@@ -10,7 +10,7 @@ Solver::Solver(const Case &c) : rotor(c), dt_(c.dt) {
     beta_ = std::pow(1 - alpha_m_ + alpha_f_, 2) / 4;
     beta_prime_ = dt_ * dt_ * beta_ * (1 - alpha_f_) / (1 - alpha_m_);
     gamma_prime_ = dt_ * gamma_ * (1 - alpha_f_) / (1 - alpha_m_);
-    aerodynamic = rotor.evaluate(0, state);
+    rotor.evaluate_into(0, state, aerodynamic, rotor_workspace_);
     // FAST_Solver initializes its acceleration arrays to zero; Step0 solves
     // module inputs without populating these arrays for ElastoDyn.
 }
@@ -27,14 +27,17 @@ void Solver::step() {
     // AeroDyn is an Option 2 module in FAST_Solver: it advances once from
     // the predicted structural motion before the structural Newton solve.
     rotor.advance_airfoils(aerodynamic, step_number);
-    aerodynamic = rotor.evaluate(next_time, predicted);
+    rotor.evaluate_into(next_time, predicted, aerodynamic, rotor_workspace_);
+    std::array<Matrix3, 3> basis;
+    for (int b = 0; b < 3; ++b)
+        basis[b] = rotor.structure.blade_basis(next_time, b);
     std::array<Vec3, 3> current_acc{};
     state = predicted;
     for (int iteration = 0; iteration < 12; ++iteration) {
-        const auto loads = rotor.structural_loads(next_time, state, aerodynamic);
         double largest = 0;
         for (int b = 0; b < 3; ++b) {
-            const auto f = rotor.structure.acceleration(next_time, b, state[b], loads[b]);
+            const auto f = rotor.structural_acceleration(b, basis[b], state[b], aerodynamic,
+                                                         rotor_workspace_.structural, load_workspace_);
             const Vec3 residual = f - current_acc[b];
             Matrix3 jac{};
             for (int j = 0; j < 3; ++j) {
@@ -42,8 +45,8 @@ void Solver::step() {
                 auto perturbed = state[b];
                 perturbed.q[j] += beta_prime_ * h;
                 perturbed.qd[j] += gamma_prime_ * h;
-                const auto lp = rotor.structural_loads_for_blade(b, next_time, perturbed, aerodynamic);
-                const auto fp = rotor.structure.acceleration(next_time, b, perturbed, lp);
+                const auto fp = rotor.structural_acceleration(b, basis[b], perturbed, aerodynamic,
+                                                              rotor_workspace_.structural, load_workspace_);
                 for (int i = 0; i < 3; ++i)
                     jac[i][j] = (i == j ? 1. : 0.) - (fp[i] - f[i]) / h;
             }

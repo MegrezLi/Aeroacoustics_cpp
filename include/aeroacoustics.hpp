@@ -36,11 +36,22 @@ struct Section {
     double ti_section = -1., te_thickness = .001, te_angle = 14., thickness_1p = .02, thickness_10p = .12;
     bool is_tip = true;
 };
+class PreparedBLTable;
 struct BLTable {
     Spectrum aoa, reynolds;
     std::vector<std::array<double, 8>> values; // Re-major, then AoA
     std::string source_name = "in-memory BL table";
     static BLTable read(const std::string &path);
+    PreparedBLTable prepare() const;
+    // Public mutable tables retain validation on every interpolation.
+    BoundaryLayer interpolate(double alpha_deg, double re, double chord) const;
+};
+// Owns a validated copy: later changes to a BLTable cannot invalidate it.
+class PreparedBLTable {
+    BLTable table_;
+
+  public:
+    explicit PreparedBLTable(BLTable);
     BoundaryLayer interpolate(double alpha_deg, double re, double chord) const;
 };
 struct Node {
@@ -97,6 +108,8 @@ class AcousticDriver {
     TurbulenceState state;
     AcousticDriver(Parameters, Spectrum span, std::size_t blades, std::vector<Vec3> observers, double dt = .1,
                    double start = 0., double percentage = 70., double hub_height = 0., int ti_method = 1);
+    bool is_sample_time(double time) const;
+    std::size_t first_node() const noexcept { return first_; }
     std::optional<Snapshot> step(double time, const std::vector<std::vector<Node>> &blades);
     // Borrowed output; nullptr on non-sampling steps. Valid until the next call.
     const Snapshot *step_view(double time, const std::vector<std::vector<Node>> &blades);

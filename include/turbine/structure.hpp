@@ -28,10 +28,15 @@ class BladeStructure {
     std::array<double, 3> cone{}, pitch{}, tip_mass{};
     Matrix3 blade_basis(double time, std::size_t blade) const;
     Motion motion(double time, std::size_t blade, const ModalState &, const StructuralStation &) const;
+    // Rebuilt for each state; callers can share these motions within that evaluation.
+    void motions_into(const Matrix3 &basis, const ModalState &, std::vector<Motion> &) const;
+    Vec3 acceleration(std::size_t blade, const ModalState &, const std::vector<Motion> &,
+                      const std::vector<PointLoad> &) const;
     Vec3 acceleration(double time, std::size_t blade, const ModalState &,
                       const std::vector<PointLoad> &) const;
 
   private:
+    Motion motion(const Matrix3 &basis, const ModalState &, const StructuralStation &) const;
     double gravity_, tilt_, yaw_;
 };
 } // namespace turbine

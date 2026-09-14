@@ -13,6 +13,8 @@ class MotionMap {
   public:
     MotionMap(std::vector<ReferenceNode> source, std::vector<ReferenceNode> destination);
     std::vector<Motion> transfer(const std::vector<Motion> &source) const;
+    // Source and output must be distinct buffers.
+    void transfer_into(const std::vector<Motion> &source, std::vector<Motion> &output) const;
 
   private:
     std::vector<ReferenceNode> source_, destination_;
@@ -25,6 +27,9 @@ class LoadMap {
     std::vector<PointLoad> transfer(const std::vector<PointLoad> &distributed,
                                     const std::vector<Vec3> &source_positions,
                                     const std::vector<Vec3> &destination_positions) const;
+
+    void transfer_into(const std::vector<PointLoad> &distributed, const std::vector<Vec3> &source_positions,
+                       const std::vector<Vec3> &destination_positions, std::vector<PointLoad> &output) const;
 
   private:
     struct Segment {
