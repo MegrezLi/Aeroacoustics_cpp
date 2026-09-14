@@ -171,7 +171,7 @@ int main(int argc, char **argv) {
                     check(*snapshot == snapshot_spectrum(p, selected, {{100, 0, 2}}),
                           "Acoustic sample must use previous TI");
                 reference.update(speeds, inflow, leading);
-                check(driver.state.values == reference.values, "TI missed non-sampling update");
+                check(driver.turbulence_state().values == reference.values, "TI missed non-sampling update");
             }
         }
         std::cout << "P1-P3 checks passed; allocations in 50 warmed solver steps: " << allocations << '\n';

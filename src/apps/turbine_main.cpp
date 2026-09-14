@@ -1,267 +1,38 @@
-#include "acoustic_levels.hpp"
-#include "checked_output.hpp"
-#include "lookup_diagnostics.hpp"
-#include "turbine/solver.hpp"
-#include <algorithm>
-#include <chrono>
-#include <fstream>
-#include <iomanip>
+#include "turbine/simulation.hpp"
 #include <iostream>
-#include <memory>
-#include <sstream>
-namespace {
-std::string csv_text(const std::string &s) {
-    std::string result = "\"";
-    for (char c : s) {
-        result += c;
-        if (c == '"')
-            result += c;
-    }
-    return result + '"';
-}
-} // namespace
 int main(int argc, char **argv) {
     try {
-        const auto started = std::chrono::steady_clock::now();
         if (argc < 3 || argc > 5)
             throw std::runtime_error("Usage: aeroacoustics_turbine CASE.fst OUTPUT_DIRECTORY [duration] "
                                      "[--lookup-policy=clamp|error]");
-        diagnostics::LookupReport lookup;
+        turbine::RunOptions options;
         bool has_duration = false, has_policy = false;
-        diagnostics::LookupSession lookup_session(lookup);
-        turbine::Case c(argv[1]);
         for (int i = 3; i < argc; ++i) {
             const std::string option = argv[i];
             if (option.rfind("--lookup-policy=", 0) == 0 && !has_policy) {
                 const auto policy = option.substr(16);
                 if (policy != "clamp" && policy != "error")
                     throw std::invalid_argument("Lookup policy must be clamp or error");
-                lookup.policy =
+                options.lookup_policy =
                     policy == "error" ? diagnostics::LookupPolicy::error : diagnostics::LookupPolicy::clamp;
                 has_policy = true;
             } else if (!has_duration && option.rfind("--", 0) != 0) {
                 std::size_t used = 0;
-                c.duration = std::stod(option, &used);
+                options.duration = std::stod(option, &used);
                 if (used != option.size())
                     throw std::invalid_argument("Invalid duration");
                 has_duration = true;
             } else
                 throw std::invalid_argument("Unknown or duplicate argument: " + option);
         }
-        if (!std::isfinite(c.duration) || c.duration < 0)
-            throw std::runtime_error("Duration must be finite and nonnegative");
-        const std::filesystem::path directory = argv[2];
-        std::filesystem::create_directories(directory);
-        // Invalidate any old success record before producing this run's outputs.
-        diagnostics::CheckedOutput metadata;
-        metadata.open(directory / "run.json");
-        auto parameters = aeroacoustics::read_aa_input(c.acoustic.path.string()).first;
-        parameters.airdens = c.rho;
-        parameters.kinvisc = c.nu;
-        parameters.spdsound = c.sound_speed;
-        const auto observers = aeroacoustics::read_observers(c.acoustic.file("ObserverLocations").string());
-        aeroacoustics::Spectrum span;
-        for (const auto &s : c.stations)
-            span.push_back(s.span);
-        const auto elements = aeroacoustics::blade_elements(span, c.acoustic.number("BldPrcnt"));
-        const auto first = elements.first;
-        const int output_count = c.acoustic.integer("NrOutFile");
-        aeroacoustics::AcousticDriver acoustic(
-            parameters, span, 3, observers, c.acoustic.number("DT_AA", c.dt), c.acoustic.number("AAStart"),
-            c.acoustic.number("BldPrcnt"), c.structure.number("TowerHt") + c.structure.number("Twr2Shft"),
-            c.acoustic.integer("TICalcMeth"));
-        std::vector<std::vector<aeroacoustics::Node>> nodes(3);
-        std::vector<std::optional<aeroacoustics::PreparedBLTable>> tables(c.stations.size());
-        for (int b = 0; b < 3; ++b)
-            for (std::size_t j = 0; j < c.stations.size(); ++j) {
-                const auto &s = c.stations[j];
-                const auto &af = c.airfoils[s.airfoil];
-                aeroacoustics::Node n;
-                n.section.chord = s.chord;
-                n.section.stall_deg = af.input.number("alpha1");
-                n.airfoil_reference = af.reference;
-                if (parameters.timod == 2) {
-                    const auto thickness = aeroacoustics::guidati_thickness(af.coordinates);
-                    n.section.thickness_1p = thickness[0];
-                    n.section.thickness_10p = thickness[1];
-                }
-                if (parameters.bluntmod) {
-                    turbine::InputFile bl(af.input.file("BL_file"));
-                    n.section.te_angle = bl.number("TEAngle");
-                    n.section.te_thickness = bl.number("TEThick");
-                }
-                if ((parameters.x_blmethod == 2 || parameters.tbltemod == 2) && b == 0)
-                    tables[j].emplace(aeroacoustics::BLTable::read(af.input.file("BL_file").string()));
-                nodes[b].push_back(n);
-            }
-        std::array<diagnostics::CheckedOutput, 4> outputs, masks;
-        const std::string prefix = std::filesystem::path(c.acoustic.value("AAOutFile")).filename().string();
-        std::array<std::vector<std::string>, 4> labels;
-        const std::array<std::string, 7> mechanism_names{
-            {"LBL", "TBL_pressure", "TBL_suction", "TBL_separation", "bluntness", "tip", "inflow"}};
-        for (std::size_t o = 0; o < observers.size(); ++o) {
-            const auto observer = "Obs" + std::to_string(o + 1);
-            labels[0].push_back(observer);
-            for (double f : parameters.freqlist) {
-                std::ostringstream value;
-                value << f;
-                labels[1].push_back(observer + "_Freq" + value.str());
-                for (const auto &m : mechanism_names)
-                    labels[2].push_back(observer + "_Freq" + value.str() + "_" + m);
-            }
-        }
-        for (int b = 1; b <= 3; ++b)
-            for (std::size_t j = 0; j < c.stations.size(); ++j)
-                for (std::size_t o = 0; o < observers.size(); ++o)
-                    labels[3].push_back("Blade" + std::to_string(b) + "_Node" + std::to_string(j + 1) +
-                                        "_Obs" + std::to_string(o + 1));
-        for (int k = 0; k < output_count; ++k) {
-            outputs[k].open(directory / (prefix + std::to_string(k + 1) + ".out"));
-            masks[k].open(directory / (prefix + std::to_string(k + 1) + ".mask"));
-            masks[k] << "Energy mask: 1=positive energy; 0=zero energy (legacy 0 dB placeholder)\nTime";
-            for (const auto &label : labels[k])
-                masks[k] << '\t' << label;
-            masks[k] << "\n(s)";
-            for (std::size_t j = 0; j < labels[k].size(); ++j)
-                masks[k] << "\t(flag)";
-            masks[k] << '\n' << std::setprecision(12);
-            outputs[k] << "C++ turbine aeroacoustics; reference sound pressure 20 uPa\nTime";
-            for (const auto &label : labels[k])
-                outputs[k] << '\t' << label;
-            outputs[k] << "\n(s)";
-            for (std::size_t j = 0; j < labels[k].size(); ++j)
-                outputs[k] << "\t(dB)";
-            outputs[k] << '\n' << std::setprecision(12);
-        }
-        diagnostics::CheckedOutput dynamics, lookup_output;
-        dynamics.open(directory / "dynamics.csv");
-        lookup_output.open(directory / "lookup_diagnostics.csv");
-        dynamics << std::setprecision(17) << "time";
-        for (int b = 1; b <= 3; ++b)
-            dynamics << ",q" << b << "_flap1,q" << b << "_flap2,q" << b << "_edge,qd" << b << "_flap1,qd" << b
-                     << "_flap2,qd" << b << "_edge";
-        dynamics << '\n';
-        turbine::Solver solver(c);
-        std::size_t snapshots = 0;
-        const std::size_t nf = parameters.freqlist.size(), no = observers.size();
-        std::array<std::vector<double>, 4> values{{std::vector<double>(no), std::vector<double>(no * nf),
-                                                   std::vector<double>(no * nf * 7),
-                                                   std::vector<double>(3 * c.stations.size() * no)}};
-        auto &total = values[0], &spectra = values[1], &mechanisms = values[2], &nodal = values[3];
-        for (;;) {
-            dynamics << solver.time;
-            for (const auto &s : solver.state)
-                for (const auto &v : {s.q, s.qd})
-                    for (double x : v)
-                        dynamics << ',' << x;
-            dynamics << '\n';
-            const bool sampling = acoustic.is_sample_time(solver.time);
-            for (int b = 0; b < 3; ++b)
-                for (std::size_t j = 0; j < c.stations.size(); ++j) {
-                    const auto &a = solver.aerodynamic.blades[b][j];
-                    auto &node = nodes[b][j];
-                    node.aero_center = a.motion.position;
-                    node.inflow = a.wind;
-                    node.section.speed = a.speed;
-                    node.section.alpha_deg = a.alpha / turbine::deg;
-                    for (int i = 0; i < 3; ++i)
-                        for (int k = 0; k < 3; ++k)
-                            node.global_to_local[3 * i + k] = a.motion.orientation[i][k];
-                    if (sampling && j >= acoustic.first_node() && tables[j]) {
-                        diagnostics::LookupLocation location(
-                            {solver.time, std::size_t(b + 1), j + 1, "BL_interpolate"});
-                        node.section.bl = tables[j]->interpolate(
-                            node.section.alpha_deg, a.speed * node.section.chord / c.nu, node.section.chord);
-                    }
-                }
-            const auto *snapshot = acoustic.step_view(solver.time, nodes);
-            if (snapshot) {
-                ++snapshots;
-                for (auto &v : values)
-                    std::fill(v.begin(), v.end(), 0.);
-                for (std::size_t o = 0; o < no; ++o)
-                    for (std::size_t n = 0; n < (*snapshot)[o].size(); ++n) {
-                        double node_power = 0;
-                        for (std::size_t m = 0; m < 7; ++m)
-                            for (std::size_t f = 0; f < nf; ++f) {
-                                const double db = (*snapshot)[o][n][m][f];
-                                double power;
-                                try {
-                                    power = aeroacoustics::relative_power(db);
-                                } catch (const std::exception &e) {
-                                    throw std::runtime_error(
-                                        std::string(e.what()) + " time=" + std::to_string(solver.time) +
-                                        " observer=" + std::to_string(o + 1) + " blade=" +
-                                        std::to_string(n / (c.stations.size() - first) + 1) + " node=" +
-                                        std::to_string(n % (c.stations.size() - first) + first + 1) +
-                                        aeroacoustics::spectrum_context(parameters, m, f));
-                                }
-                                total[o] += power;
-                                spectra[o * nf + f] += power;
-                                mechanisms[(o * nf + f) * 7 + m] += power;
-                                node_power += power;
-                            }
-                        const auto b = n / (c.stations.size() - first),
-                                   j = n % (c.stations.size() - first) + first;
-                        nodal[(b * c.stations.size() + j) * no + o] = node_power;
-                    }
-                for (int k = 0; k < output_count; ++k) {
-                    outputs[k] << solver.time;
-                    masks[k] << solver.time;
-                    for (std::size_t channel = 0; channel < values[k].size(); ++channel) {
-                        const double p = values[k][channel];
-                        double db;
-                        try {
-                            db = aeroacoustics::output_decibels(p);
-                        } catch (const std::exception &e) {
-                            throw std::runtime_error(
-                                std::string(e.what()) + " time=" + std::to_string(solver.time) +
-                                " file=" + std::to_string(k + 1) + " channel=" + labels[k][channel]);
-                        }
-                        outputs[k] << '\t' << db;
-                        masks[k] << '\t' << (p > 0 ? 1 : 0);
-                    }
-                    outputs[k] << '\n';
-                    masks[k] << '\n';
-                }
-            }
-            if (solver.time + c.dt / 2 >= c.duration)
-                break;
-            solver.step();
-        }
-        lookup_output
-            << "table,axis,blade,node,stage,calls,first_time_s,last_time_s,min_value,max_value,lower,upper\n"
-            << std::setprecision(17);
-        for (const auto &entry : lookup.entries) {
-            const auto &[table, axis, blade, node, stage] = entry.first;
-            const auto &s = entry.second;
-            lookup_output << csv_text(table) << ',' << axis << ',' << blade << ',' << node << ',' << stage
-                          << ',' << s.calls << ',' << s.first_time << ',' << s.last_time << ',' << s.minimum
-                          << ',' << s.maximum << ',' << s.lower << ',' << s.upper << '\n';
-        }
-        for (int k = 0; k < output_count; ++k) {
-            outputs[k].finish();
-            masks[k].finish();
-        }
-        dynamics.finish();
-        lookup_output.finish();
-        metadata << std::setprecision(17) << "{\n  \"solver\": \"standalone C++\",\n  \"dt\": " << c.dt
-                 << ",\n  \"duration\": " << solver.time << ",\n  \"steps\": " << solver.step_number
-                 << ",\n  \"acoustic_samples\": " << snapshots << ",\n  \"elapsed_seconds\": "
-                 << std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count()
-                 << ",\n  \"zero_energy_encoding\": \"0 dB placeholder; see matching .mask (0=zero, "
-                    "1=positive energy)\""
-                 << ",\n  \"lookup_policy\": \""
-                 << (lookup.policy == diagnostics::LookupPolicy::error ? "error" : "clamp")
-                 << "\",\n  \"lookup_out_of_range_calls\": " << lookup.calls
-                 << ",\n  \"lookup_report\": \"lookup_diagnostics.csv\"\n}\n";
-        metadata.finish();
-        if (lookup.calls)
-            std::cerr << "Warning: " << lookup.calls
+
+        const auto result = turbine::run_case(argv[1], argv[2], options);
+        if (result.lookup.calls)
+            std::cerr << "Warning: " << result.lookup.calls
                       << " out-of-range lookup calls; endpoint values used. See lookup_diagnostics.csv "
                          "(includes BEM trial and UA internal queries).\n";
-        std::cout << "C++ turbine completed " << solver.time << " s, " << solver.step_number << " steps, "
-                  << snapshots << " acoustic samples\n";
+        std::cout << "C++ turbine completed " << result.duration << " s, " << result.steps << " steps, "
+                  << result.acoustic_samples << " acoustic samples\n";
     } catch (const std::exception &e) {
         std::cerr << e.what() << '\n';
         return 1;

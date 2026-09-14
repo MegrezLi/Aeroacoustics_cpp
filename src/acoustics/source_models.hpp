@@ -80,7 +80,8 @@ struct PreparedSection {
     TnoSource tno;
     Spectrum guidati;
 };
-void prepare_section(const Parameters &, const Section &, TnoWorkspace &, PreparedSection &);
-void emit_section(const Parameters &, const PreparedSection &, const Geometry &leading,
-                  const Geometry &trailing, const Spectrum &weighting, Mechanisms &);
+void prepare_section(const Parameters &, const SourceSelection &, const Section &, TnoWorkspace &,
+                     PreparedSection &);
+void emit_section(const Parameters &, const SourceSelection &, const PreparedSection &,
+                  const Geometry &leading, const Geometry &trailing, const Spectrum &weighting, Mechanisms &);
 } // namespace aeroacoustics::detail

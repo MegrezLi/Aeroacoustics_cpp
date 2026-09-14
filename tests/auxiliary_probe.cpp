@@ -31,7 +31,7 @@ int main(int argc,char** argv) {
             auto result=driver.step(step,blades);
             if(!result)return 3;
             for(const auto& observer:*result)for(const auto& node:observer)for(const auto& mechanism:node)emit(mechanism);
-            emit(driver.state.values);
+            emit(driver.turbulence_state().values);
         }
     }
     std::cout<<'\n';

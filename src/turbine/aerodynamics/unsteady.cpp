@@ -18,8 +18,10 @@ double blend(double x, double lo, double hi) {
 bool small_single(double x) { return std::abs(x) < 1e-6; }
 } // namespace
 UnsteadyAirfoil::UnsteadyAirfoil(const Airfoil &af, double c, double dt, double sound)
-    : af_(&af), chord_(c), dt_(dt), sound_(sound) {
-    const auto &f = af.input;
+    : UnsteadyAirfoil(std::make_shared<const Airfoil>(af), c, dt, sound) {}
+UnsteadyAirfoil::UnsteadyAirfoil(std::shared_ptr<const Airfoil> af, double c, double dt, double sound)
+    : af_(std::move(af)), chord_(c), dt_(dt), sound_(sound) {
+    const auto &f = af_->input;
     p_ = {f.number("alpha0", 0) * deg,
           f.number("C_nalpha", 0),
           f.number("T_f0", 3),
@@ -41,9 +43,9 @@ UnsteadyAirfoil::UnsteadyAirfoil(const Airfoil &af, double c, double dt, double 
           f.number("UACutout", 45) * deg,
           f.number("filtCutOff", .5)};
     bool constant = true;
-    for (const auto &x : af.coefficients)
-        if (x.cl != af.coefficients.front().cl || x.cd != af.coefficients.front().cd ||
-            x.cm != af.coefficients.front().cm)
+    for (const auto &x : af_->coefficients)
+        if (x.cl != af_->coefficients.front().cl || x.cd != af_->coefficients.front().cd ||
+            x.cm != af_->coefficients.front().cm)
             constant = false;
     enabled_ = !constant && f.flag("InclUAdata") && std::abs(p_.cnalpha) > 1e-12;
     if (c <= 0 || dt <= 0 || sound <= 0)

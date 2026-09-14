@@ -84,7 +84,13 @@ python tests/run_standalone.py build/aeroacoustics_turbine build/official-check 
 python tests/run_perturbation.py build/aeroacoustics_turbine build/wind9-check --report build/wind9.json
 ```
 
-Windows 将 `.so` 换成 `libaeroacoustics_shared.dll`，并给可执行文件加 `.exe`。GitHub Actions 执行 Linux 编译、这三项对比、声学与整机缓冲区检查，以及 R1–R3 异常检查。已有 Fortran 源码与结果保存在 `reference/`。
+Windows 将 `.so` 换成 `libaeroacoustics_shared.dll`，并给可执行文件加 `.exe`。GitHub Actions 执行 Linux 编译、这三项对比、声学与整机缓冲区检查，以及声源组合、库接口、检查点和 R1–R3 异常检查。已有 Fortran 源码与结果保存在 `reference/`。
+
+## C++ 仿真接口
+
+整机调度已独立为 `Simulation`。可以逐帧调用 `next()`，或通过 `run_case()` 运行完整工况；自定义 `ResultSink` 可直接接收内存中的结果。模型数据共享且只读，求解状态通过检查点完整保存和恢复。
+
+S1–S3 重构还集中管理了七类声源和模型替代关系。命令行及标准输出格式保持不变；原先直接读取 `solver.state`、`solver.time` 的 C++ 调用需改为 `state()`、`time()` 等只读访问器。示例、检查点范围和迁移表见 [仿真接口说明](docs/simulation-api.md)。
 
 ## 性能
 
@@ -120,6 +126,7 @@ src/
 │   ├── aerodynamics/ # BEM 与非定常气动
 │   ├── structure/    # 叶片模态动力学
 │   ├── coupling/     # 网格映射、转子装配和时间积分
+│   ├── simulation/   # 仿真调度、声学适配、结果聚合与输出
 │   └── io/           # 风机算例、翼型及风场输入
 ├── interfaces/      # C ABI
 └── apps/            # 截面示例与整机程序入口
@@ -127,6 +134,8 @@ src/
 
 输入参数与模块调用顺序见 [aeroacoustics 工作流](aeroacoustics工作流.md)，目录职责及源文件索引见 [src/README.md](src/README.md)。公开头文件仍位于 `include/`。
 
+- `include/turbine/simulation.hpp`：整机库接口、逐步运行与进程内检查点。
+- `include/mechanisms.hpp`：声源机制、标准通道顺序及单位。
 - `include/aeroacoustics.hpp`、`include/aeroacoustics_c.h`：声学库 C++ 接口与 C ABI。
 - `examples/IEA_LB_RWT-AeroAcoustics/`：可直接运行的官方输入。
 - `tests/`、`reference/`：Fortran 对照、回归测试与参考结果。

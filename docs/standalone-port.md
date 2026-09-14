@@ -13,7 +13,8 @@
 | `turbine/coupling/mesh.cpp`、`include/turbine/math.hpp` | NWTC 运动与载荷映射、旋转插值及坐标变换 |
 | `turbine/coupling/rotor.cpp` | 转子盘与叶素坐标、风速、气动力、UA/BEM 状态传递 |
 | `turbine/coupling/solver.cpp` | 广义 α 结构积分和气动／结构调用顺序 |
-| `apps/turbine_main.cpp` | 声学节点装配、时间循环、声能叠加及输出 |
+| `turbine/simulation/` | 仿真调度、声学节点适配、声能聚合及结果输出 |
+| `apps/turbine_main.cpp` | 命令行参数解析和库入口调用 |
 
 ## 官方配置
 
@@ -35,7 +36,7 @@
 
 C++ 将固定塔架条件下的结构方程分解为三个 3×3 系统，每次 Newton 迭代重新计算数值 Jacobian，修正量阈值为 1e−9，最多 12 次。原 FAST_Solver 使用包含模块输入的整体 Jacobian、缓存更新及不同的停止准则。因此 `ConvTol`、`MaxConvIter`、`DT_UJac`、`UJacSclFact` 不控制本实现的内部 Newton 迭代。`RhoInf`、`DT` 参与广义 α 系数计算；要求 `ModCoupling=3`、`NumCrctn=0`。
 
-每次 Jacobian 扰动只改变一片叶片，使用 `Rotor::structural_loads_for_blade()` 更新该叶片的载荷映射。每轮 Newton 迭代的单叶片映射次数从 30 次降为 12 次，积分公式、扰动步长和停止准则不变。偏斜模型开关及系数在 `Rotor` 初始化时缓存。
+每次 Jacobian 扰动只改变一片叶片，使用 `Rotor::structural_acceleration()` 共享该状态的节点运动，更新载荷映射并计算加速度。每轮 Newton 迭代的单叶片映射次数从 30 次降为 12 次，积分公式、扰动步长和停止准则不变。偏斜模型开关及系数在 `Rotor` 初始化时缓存。
 
 声学驱动通过 `step_view()` 返回当前快照的只读指针，由 `AcousticWorkspace` 持有数据。工作区先准备各节点的边界层和声源谱形，再分别计算观察点的距离与指向性；主程序汇总输出后才进入下一步。频谱、TNO 积分和输出数组反复使用，湍流强度仍按原来的每步更新顺序推进。详见 [工作流](../aeroacoustics工作流.md) 和 [优化记录](optimization.md)。
 
@@ -52,6 +53,6 @@ BEM 使用 `IndToler` 和 `MaxIter`，默认双精度残差阈值 5e−10，并�
 - 塔架、平台、传动链、变桨、偏航动力学及控制器不启用；固定平台偏移、初始叶片挠度、叶尖附加质量要求为零。
 - 不支持动态入流、自由涡尾流、其他 UA 模型、塔影、塔架／机舱／尾翼气动力或扇区平均。
 - 气动步长与主步长相同，声学步长须为其整数倍；整机驱动支持 `TICalcMeth=1`。
-- 不提供 OpenFAST 的线性化、稳态求解、检查点或 `.outb` 输出。`OutList`、`DT_Out` 等原动力学输出设置不用于选择 C++ 的 `dynamics.csv` 通道。
+- 不提供 OpenFAST 的线性化、稳态求解、重启文件或 `.outb` 输出；C++ 库提供独立的进程内完整检查点，见 [仿真接口](simulation-api.md)。`OutList`、`DT_Out` 等原动力学输出设置不用于选择 C++ 的 `dynamics.csv` 通道。
 
 声学库还含 TNO、层流与叶尖模型以及其他辅助算法，默认整机案例的开关并不覆盖所有声学分支。源码级 Fortran 对照单独验证这些公式。

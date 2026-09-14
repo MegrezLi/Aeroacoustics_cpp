@@ -6,6 +6,10 @@ set(turbine_sources
   coupling/mesh.cpp
   coupling/rotor.cpp
   coupling/solver.cpp
+  simulation/acoustic_adapter.cpp
+  simulation/results.cpp
+  simulation/file_output.cpp
+  simulation/simulation.cpp
 )
 add_library(turbine_modules STATIC ${turbine_sources})
 target_include_directories(turbine_modules PUBLIC "${PROJECT_SOURCE_DIR}/include")

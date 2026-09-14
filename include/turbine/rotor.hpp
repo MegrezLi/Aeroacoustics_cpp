@@ -1,6 +1,7 @@
 #pragma once
 #include "turbine/bem.hpp"
 #include "turbine/mesh.hpp"
+#include "turbine/model.hpp"
 #include "turbine/unsteady.hpp"
 namespace turbine {
 using RotorState = std::array<ModalState, 3>;
@@ -27,9 +28,14 @@ struct LoadWorkspace {
     std::vector<PointLoad> distributed, points, result;
 };
 class Rotor {
+    TurbineModel model_;
+    BladeStructure structure_;
+
   public:
     explicit Rotor(const Case &);
-    BladeStructure structure;
+    explicit Rotor(TurbineModel);
+    const TurbineModel &model() const noexcept { return model_; }
+    const BladeStructure &structure() const noexcept { return structure_; }
     RotorOutput evaluate(double time, const RotorState &) const;
     void evaluate_into(double time, const RotorState &, RotorOutput &, RotorWorkspace &) const;
     // Reuses motions for both load mapping and acceleration in one state evaluation.
@@ -44,7 +50,6 @@ class Rotor {
   private:
     void structural_loads_into(std::size_t blade, const RotorOutput &, const std::vector<Motion> &,
                                LoadWorkspace &) const;
-    const Case *case_;
     BEMOptions options_;
     struct SkewOptions {
         bool redistribute;

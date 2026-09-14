@@ -24,10 +24,14 @@
 | | [solver.cpp](turbine/coupling/solver.cpp) | 广义 α 时间推进及结构迭代 |
 | `turbine/io/` | [case_input.cpp](turbine/io/case_input.cpp) | 输入解析、配置检查、翼型表及稳态风场 |
 | `interfaces/` | [c_api.cpp](interfaces/c_api.cpp) | 对外 C ABI、错误与调用状态 |
+| `turbine/simulation/` | [simulation.cpp](turbine/simulation/simulation.cpp) | 完整仿真调度、重置和检查点 |
+| | [acoustic_adapter.cpp](turbine/simulation/acoustic_adapter.cpp) | 声学配置装配、气动状态到声学节点的转换 |
+| | [results.cpp](turbine/simulation/results.cpp) | 通道布局和声能聚合 |
+| | [file_output.cpp](turbine/simulation/file_output.cpp) | 标准文件输出及失败状态 |
 | `apps/` | [section_main.cpp](apps/section_main.cpp) | 单截面频谱示例入口 |
-| | [turbine_main.cpp](apps/turbine_main.cpp) | 整机声学命令行入口和结果输出 |
+| | [turbine_main.cpp](apps/turbine_main.cpp) | 整机命令行参数解析及运行入口 |
 
-`apps/turbine_main.cpp` 调用整机求解器，并将求得的节点状态交给声学驱动。整机求解器负责协调气动、结构与网格传递；声学模型调用数值积分和后端计算。
+`apps/turbine_main.cpp` 调用 `run_case()`；`Simulation` 通过适配器、声学驱动及聚合器处理各时间步，结果交给 `ResultSink`。整机求解器负责协调气动、结构与网格传递；声学模型调用数值积分和后端计算。
 
 声学主路径为 `AcousticDriver::step_view()` → `AcousticWorkspace::evaluate()`。每个采样时刻先对各节点调用 `prepare_section()`，再按观察点调用 `emit_section()`。各模型的 `prepare_*()` 计算与观察点无关的谱形，`emit_*()` 施加距离和指向性。源码调用链见 [工作流](../aeroacoustics工作流.md)，性能和数值检查见 [优化记录](../docs/optimization.md)。
 
@@ -48,3 +52,9 @@
 `Solver` 持有 `RotorWorkspace` 和 `LoadWorkspace`。`Rotor::evaluate_into()` 复用气动结果与运动映射数组；`structural_acceleration()` 先重建指定状态的运动，再供载荷映射与质量方程共用。所有暂存区都由调用者持有，不在 `Rotor` 的 `const` 方法中隐藏可变缓存。`transfer_into()` 每次清零累加结果，输入与输出不得使用同一数组。
 
 `PreparedBLTable` 持有已验证表格的私有副本；原 `BLTable` 仍可编辑，其 `interpolate()` 保留校验。整机入口通过 `AcousticDriver::is_sample_time()` 与 `first_node()` 决定哪些节点需要插值。测试及限制见 [P1–P3 说明](../docs/coupling-optimization.md)。
+
+## 模型与状态
+
+`TurbineModel` 深复制 `Case` 并提供只读访问；`Rotor`、UA 翼型引用共享这份模型的所有权。`Solver` 和 `Simulation` 的演化状态私有，复制、移动和完整检查点不会依赖外部容器地址。`AcousticDriver` 的 TI 状态通过 `turbulence_state()` 只读访问。
+
+声源通道信息集中在 [mechanisms.hpp](../include/mechanisms.hpp)，模型选择集中在 `SourceSelection`。TNO 替代压力面、吸力面贡献，保留 BPM 分离贡献。库调用和接口迁移见 [S1–S3 说明](../docs/simulation-api.md)。

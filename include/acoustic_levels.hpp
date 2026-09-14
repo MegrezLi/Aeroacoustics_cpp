@@ -25,11 +25,10 @@ inline double output_decibels(double power) {
     return power == 0 ? 0 : 10 * std::log10(power);
 }
 inline std::string spectrum_context(const Parameters &p, std::size_t mechanism, std::size_t frequency) {
-    static const char *names[] = {"LBL",       "TBL_pressure", "TBL_suction", "TBL_separation",
-                                  "bluntness", "tip",          "inflow"};
     std::ostringstream message;
-    message << " mechanism=" << names[mechanism] << " frequency_Hz=" << p.freqlist[frequency]
-            << " TBLTEMod=" << p.tbltemod << " TIMod=" << p.timod;
+    message << " mechanism=" << mechanism_registry.at(mechanism).name
+            << " frequency_Hz=" << p.freqlist[frequency] << " TBLTEMod=" << p.tbltemod
+            << " TIMod=" << p.timod;
     return message.str();
 }
 } // namespace aeroacoustics

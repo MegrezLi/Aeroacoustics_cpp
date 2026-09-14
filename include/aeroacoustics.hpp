@@ -1,4 +1,5 @@
 #pragma once
+#include "mechanisms.hpp"
 #include <array>
 #include <functional>
 #include <limits>
@@ -11,7 +12,7 @@
 
 namespace aeroacoustics {
 using Spectrum = std::vector<double>;
-using Mechanisms = std::array<Spectrum, 7>;
+using Mechanisms = std::array<Spectrum, mechanism_count>;
 using Vec3 = std::array<double, 3>;
 using Mat3 = std::array<double, 9>; // row-major global-to-local
 struct Parameters {
@@ -21,6 +22,14 @@ struct Parameters {
     double spdsound = 340., kinvisc = 1.48e-5, airdens = 1.225, lturb = 40., alprat = 1., ti = .1, avgv = 8.;
     int x_blmethod = 1, itrip = 1, timod = 1, tbltemod = 1, lammod = 0, tipmod = 0, bluntmod = 0;
     bool round = true, aweighting = false;
+};
+enum class TrailingEdgeModel { off, bpm, tno_with_bpm_separation };
+enum class InflowModel { off, lowson, lowson_guidati };
+struct SourceSelection {
+    TrailingEdgeModel trailing;
+    InflowModel inflow;
+    bool laminar, bluntness, tip;
+    explicit SourceSelection(const Parameters &);
 };
 struct BoundaryLayer {
     std::array<double, 2> dstar{}, d99{}, cf{}, edge_velocity_ratio{{1., 1.}};
@@ -104,8 +113,10 @@ class AcousticDriver {
     Spectrum speeds_;
     std::vector<Vec3> inflow_, leading_;
 
+    TurbulenceState state_;
+
   public:
-    TurbulenceState state;
+    const TurbulenceState &turbulence_state() const noexcept { return state_; }
     AcousticDriver(Parameters, Spectrum span, std::size_t blades, std::vector<Vec3> observers, double dt = .1,
                    double start = 0., double percentage = 70., double hub_height = 0., int ti_method = 1);
     bool is_sample_time(double time) const;
@@ -126,8 +137,8 @@ double dot(const Spectrum &, const Spectrum &);
 Spectrum a_weighting(const Spectrum &);
 double db_sum(const Spectrum &);
 Mechanisms section_spectrum(const Parameters &, const Section &);
-std::pair<Spectrum, Spectrum> tblte_tno(double, double, double, double, double, const BoundaryLayer &,
-                                        const Parameters &);
+std::pair<Spectrum, Spectrum> tblte_tno(double speed, double theta, double phi, double span, double distance,
+                                        const BoundaryLayer &, const Parameters &);
 double spl_integrate(double, double, double, bool, double, const BoundaryLayer &, const Parameters &);
 std::pair<Geometry, Geometry> observe(const Vec3 &, const Vec3 &, const Mat3 &, double,
                                       std::array<double, 2> reference = {{.25, 0.}});

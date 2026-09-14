@@ -16,6 +16,8 @@ jobs:
       - run: cmake --build build -j 2
       - run: ./build/aeroacoustics_example build/spectrum.csv
       - run: ./build/acoustic_workspace_probe verify build/workspace.csv
+      - run: ./build/mechanism_probe
+      - run: ./build/simulation_api_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst build/api-check
       - run: ./build/turbine_workspace_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst
       - run: ./build/reliability_probe examples/IEA_LB_RWT-AeroAcoustics/Airfoils/RotorSE_FAST_IEA_landBased_RWT_AeroDyn_Polar_10.dat build/reliability-unit
       - run: python tests/check_reliability.py build/aeroacoustics_turbine build/reliability-cli

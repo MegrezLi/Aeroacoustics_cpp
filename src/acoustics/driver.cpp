@@ -214,7 +214,7 @@ Snapshot snapshot_spectrum(const Parameters &p, const std::vector<Node> &nodes,
 AcousticDriver::AcousticDriver(Parameters p, Spectrum span, std::size_t blades, std::vector<Vec3> observers,
                                double dt, double start, double percentage, double height, int method)
     : workspace_(p), span_(span), blades_(blades), observers_(std::move(observers)), dt_(dt), start_(start),
-      state(span, blades, dt, height, method, p.ti, p.avgv) {
+      state_(span, blades, dt, height, method, p.ti, p.avgv) {
     std::tie(first_, lengths_) = blade_elements(span, percentage);
     require(!observers_.empty(), "No observers");
     const auto count = blades_ * span_.size();
@@ -253,7 +253,7 @@ const Snapshot *AcousticDriver::step_view(double time, const std::vector<std::ve
                 copy.node_number = j + 1;
                 copy.section.span = lengths_[j];
                 copy.section.is_tip = j == span_.size() - 1;
-                copy.section.ti_section = state.values[k];
+                copy.section.ti_section = state_.values[k];
             }
         }
     }
@@ -265,7 +265,7 @@ const Snapshot *AcousticDriver::step_view(double time, const std::vector<std::ve
         throw std::runtime_error("Acoustic time=" + std::to_string(time) + ": " + e.what());
     }
     // Sampling uses the previous TI state; every solver step then updates it.
-    state.update(speeds_, inflow_, leading_);
+    state_.update(speeds_, inflow_, leading_);
     last_time_ = time;
     return result;
 }

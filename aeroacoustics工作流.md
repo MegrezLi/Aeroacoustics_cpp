@@ -1,6 +1,6 @@
 # IEA_LB_RWT-AeroAcoustics 工作流
 
-本文沿着 `aeroacoustics_turbine` 的实际 C++ 调用链，说明官方算例从输入文件到结构、气动和声学结果的计算过程。对应 2026 年 9 月完成五类源码优化后的实现，修改与计时见 [优化记录](docs/optimization.md)。文中的函数名均可在链接的源码中查到；调用树省略了标准库函数和通用向量运算。
+本文沿着 `aeroacoustics_turbine` 的实际 C++ 调用链，说明官方算例从输入文件到结构、气动和声学结果的计算过程。对应 S1–S3 重构后的实现，层次、接口迁移和状态管理见 [仿真接口说明](docs/simulation-api.md)。文中的函数名均可在链接的源码中查到；调用树省略了标准库函数和通用向量运算。
 
 R1–R3 更新增加了非法声级检查、同名 `.mask`、查表报告与严格策略，见 [可靠性说明](docs/reliability.md)。
 
@@ -11,11 +11,11 @@ R1–R3 更新增加了非法声级检查、同名 `.mask`、查表报告与严�
 ```mermaid
 flowchart TD
     A[main：接收 fst 路径、输出目录和可选时长] --> B[Case：读取输入、翼型表和风场配置]
-    B --> C[初始化声学参数、观察点和叶片声学节点]
+    B --> C[Simulation：装配声学配置、适配器和结果布局]
     C --> D[Solver：初始化结构、气动状态和网格映射]
-    D --> E[当前时刻：保存结构状态，向声学节点填入气动状态]
+    D --> E[AcousticInputAdapter：转换当前气动状态]
     E --> F[AcousticDriver.step_view：到达声学采样时刻则计算频谱]
-    F --> G[更新声学湍流强度状态；有频谱则汇总输出]
+    F --> G[每步更新 TI；AcousticAggregator 汇总，ResultSink 输出]
     G --> H{达到结束时间？}
     H -->|是| I[写入 run.json，结束]
     H -->|否| J[Solver.step：预测下一时刻的结构运动]
@@ -75,7 +75,7 @@ IEA_LB_RWT-AeroAcoustics.fst
 | Inflow 文件 | `RefHt`、`PLExp` | 110 m、0 | 幂律风切变；指数为 0 时风速不随高度变化 |
 | Inflow 文件 | `PropagationDir`、`VFlowAng` | 0°、0° | 风向和垂直入流角 |
 
-AeroDyn 文件中的 `AirDens`、`KinVisc`、`SpdSound` 当前为 `default`，采用 `.fst` 中的值；如果改成数值，则由 AeroDyn 值覆盖。`main()` 再将最终环境参数写入声学 `Parameters`，使气动与声学使用一致的介质属性。
+AeroDyn 文件中的 `AirDens`、`KinVisc`、`SpdSound` 当前为 `default`，采用 `.fst` 中的值；如果改成数值，则由 AeroDyn 值覆盖。`AcousticConfiguration` 将最终环境参数写入声学 `Parameters`，使气动与声学使用一致的介质属性。
 
 ### 2.4 结构与气动参数
 
@@ -125,54 +125,42 @@ AeroDyn 文件中的 `AirDens`、`KinVisc`、`SpdSound` 当前为 `default`，�
 
 ## 3. 启动时先调用哪些模块
 
-下面按照 `main()` 的执行顺序列出初始化调用；缩进表示调用或对象构造关系。
+命令行只解析路径和 `RunOptions`，随后进入 [simulation.cpp](src/turbine/simulation/simulation.cpp) 中的库入口。
 
 ```text
-main()
-├─ 1. turbine::Case(fst_path)
-│  ├─ InputFile()：依次读取主文件、结构、气动、风场、声学、结构叶片文件
-│  │  ├─ tokenize()：识别字段、引号和注释
-│  │  └─ value()/number()/integer()/flag()/file()：取得参数和文件路径
-│  ├─ SteadyWind()：保存速度、风向、风切变参数
-│  ├─ Case::validate_scope()：检查模块、自由度、模型和时间步设置
-│  ├─ InputFile::table_after()：读取 30 个气动站位
-│  └─ InputFile::files_after() → Airfoil()：读取 30 份极曲线及翼型坐标
-├─ 2. read_aa_input()、read_observers()：建立声学 Parameters 和观察点数组
-├─ 3. blade_elements()、AcousticDriver()
-│  ├─ AcousticWorkspace()：校验并保存参数，准备 A 计权和可复用缓冲区
-│  ├─ TurbulenceState()：建立每个叶素的湍流强度状态，初值为 0
-│  └─ blade_elements()：保存声学节点范围和每段展向长度
-├─ 4. 建立每片叶片的 Node 数组
-│  ├─ 写入弦长、失速参考角 alpha1、翼型参考点
-│  ├─ guidati_thickness()：从翼型轮廓提取 1% 和 10% 弦长附近的厚度
-│  └─ InputFile(BL_file)：读取 TEThick、TEAngle
-├─ 5. 建立四个声学输出文件和 dynamics.csv
-└─ 6. turbine::Solver(c)
-   ├─ Rotor(c)
-   │  ├─ BladeStructure(c) → shape()：构造模态、节点、质量、刚度和阻尼
-   │  ├─ BladeStructure::motion()/blade_basis()：建立参考运动和坐标系
-   │  ├─ UnsteadyAirfoil()：为每片叶片的每个气动站位建立独立历史状态
-   │  └─ MotionMap()、LoadMap()：预先建立运动和载荷映射关系
-   ├─ 计算广义 α 时间积分系数
-   └─ Rotor::evaluate_into(0, state, aerodynamic, workspace)：计算 t=0 的气动状态
+main() → run_case(input, output, options)
+├─ Case(input)：解析主文件、结构、气动、翼型及风场配置
+├─ TurbineModel：复制并冻结 Case，供求解器共享
+├─ FileOutput(output)：创建目录，清空旧 run.json 成功记录
+├─ Simulation(model, options)
+│  ├─ AcousticConfiguration：读取声学参数、观察点，保存具名采样配置
+│  ├─ OutputLayout：根据机制描述表生成标准输出列
+│  ├─ AcousticInputAdapter：建立 Node 数组，按需读取边界层表和尾缘几何
+│  ├─ AcousticDriver：建立频谱工作区、采样范围及初始 TI
+│  ├─ AcousticAggregator：预分配总量、频带、机制、节点的声能数组
+│  └─ Solver(model)
+│     ├─ Rotor → BladeStructure、UnsteadyAirfoil、MotionMap、LoadMap
+│     ├─ 计算广义 α 积分系数
+│     └─ Rotor::evaluate_into(0, state, aerodynamic, workspace)
+└─ run(simulation, sink)
+   ├─ FileOutput::begin()：写通道标题，打开输出文件
+   ├─ 循环 Simulation::next() → FileOutput::write()
+   └─ FileOutput::finish()：检查写入及关闭，最后保存 run.json
 ```
 
-`Case` 的首个任务是解析文件；真正首次执行气动求解发生在 `Solver` 构造末尾的 `Rotor::evaluate_into(0, state, aerodynamic, workspace)`。默认初始模态位移、速度和积分器加速度数组为零，此处不会额外求解一次初始结构加速度。
-
-默认 `BLMod=1`、`TBLTEMod=1`，第 4 步只从 `BL_file` 取得尾缘几何，不执行 `BLTable::read()` 的完整边界层表读取。后者用于表格边界层或 TNO 分支。
+首次气动求解仍发生在 `Solver` 构造末尾；初始模态位移、速度和积分器加速度为零。默认经验边界层不读取完整 BL 表；表格边界层或 TNO 分支在适配器初始化时构造 `PreparedBLTable`。
 
 ## 4. 一个时间步怎样推进
 
-### 4.1 主循环的顺序
+### 4.1 仿真循环的顺序
 
-主循环从 `t=0` 开始。每次先保存当前时刻的结果，再推进到下一个时刻：
+1. 首次 `Simulation::next()` 处理 `t=0`；之后的调用先检查结束条件，再执行 `Solver::step()`。
+2. `AcousticInputAdapter::update()` 将气动状态写入 90 个声学节点；由 `is_sample_time()` 与 `first_node()` 决定是否执行边界层插值。
+3. `AcousticDriver::step_view()` 在采样时计算频谱，随后每步更新 TI；采样使用更新前的 TI。
+4. 有频谱时调用 `AcousticAggregator::aggregate()`，返回含只读结构状态与可选声能结果的 `StepView`。
+5. `FileOutput::write()` 按原格式写结构数据和声学结果。自定义接收器可以直接保存内存数据。
 
-1. 将 `solver.state` 中三片叶片的 `q` 和 `qd` 写入 `dynamics.csv`。
-2. 从 `solver.aerodynamic` 向 90 个声学 `Node` 填入位置、方向、风速、截面相对速度和攻角。`AcousticDriver::is_sample_time()` 统一判断采样时刻；只有采样时选中的发声节点才进行表格边界层插值。
-3. 调用 `AcousticDriver::step_view(time, nodes)`；若到达声学采样时刻，则返回工作区内频谱快照的只读指针，主程序随即汇总并写入结果。
-4. 达到结束时间则退出；否则调用 `Solver::step()`。
-
-默认 `DT_AA / DT = 16`。因此 `AcousticDriver::step_view()` 每个整机时间步都调用，但完整频谱每 16 步计算一次；其他时刻返回空指针。0–20 s 共推进 3200 步，保存 3201 行结构数据和 201 个声学时刻，均包含 `t=0`。
+默认仍每 16 个动力学步采样一次：0–20 s 共 3200 步、3201 行结构数据和 201 个声学时刻。`StepView` 的引用只在下一次推进、恢复或重置前有效。
 
 ### 4.2 `Solver::step()` 的真实调用顺序
 
@@ -324,7 +312,7 @@ BladeStructure::acceleration() → 模态加速度 → Solver 修正 q、qd
 
 ### 7.1 气动结果转为声学输入
 
-`main()` 将 `AeroStation` 的动态数据写入声学 `Node`：
+`AcousticInputAdapter::update()` 将 `AeroStation` 的动态数据写入声学 `Node`：
 
 | 气动/输入数据 | 声学字段 | 用途 |
 | --- | --- | --- |
@@ -413,14 +401,14 @@ Snapshot[观察点][选中的节点，按叶片依次排列][声源机制][频�
 
 七个机制的固定顺序为：`LBL`、`TBL_pressure`、`TBL_suction`、`TBL_separation`、`bluntness`、`tip`、`inflow`。关闭的机制在内部初始化为负无穷，对声能总和贡献为零。
 
-`main()` 先将每个声级转换为相对声能，再按观察点、频率、机制或节点求和，最后调用 `output_decibels()` 转回 dB：
+`AcousticAggregator::aggregate()` 将每个声级转换为相对声能，再按观察点、频率、机制或节点求和；`FileOutput::write()` 调用 `output_decibels()` 转回 dB：
 
 ```text
 E_k   = 10^(L_k / 10)
 L_sum = 10 × log10(Σ E_k)
 ```
 
-这个求和发生在 `main()` 内，未调用库里的 `db_sum()`。不能直接对不同节点或机制的 dB 数值作算术求和或平均。声级参考声压为 20 μPa。
+这个求和发生在聚合器中，未调用库里的 `db_sum()`。不能直接对不同节点或机制的 dB 数值作算术求和或平均。声级参考声压为 20 μPa。
 
 四类输出各有一份预分配的聚合数组，每次采样清零后重新累加；输出文件数量 `NrOutFile` 在时间循环外解析。
 
@@ -451,8 +439,10 @@ L_sum = 10 × log10(Σ E_k)
 | 噪声机制开关、模型公式 | [spectrum.cpp](src/acoustics/spectrum.cpp)、[模型文件索引](src/README.md) | 七类机制频谱 |
 | 频谱和积分缓冲区、跨观察点共享计算 | [workspace.cpp](src/acoustics/workspace.cpp)、[source_models.hpp](src/acoustics/source_models.hpp) | 声学运行效率与返回数据的生命周期 |
 | 频率列表 | [aeroacoustics.hpp](include/aeroacoustics.hpp)：`Parameters::freqlist` | 频谱维度和输出列数，修改后需重新编译 |
-| 输出列、声级聚合、文件命名 | [turbine_main.cpp](src/apps/turbine_main.cpp) | 四个声学文件、结构 CSV 和运行记录 |
+| 输出列、声级聚合、文件命名 | [results.cpp](src/turbine/simulation/results.cpp)、[file_output.cpp](src/turbine/simulation/file_output.cpp) | 四个声学文件、结构 CSV 和运行记录 |
 
-完整阅读顺序可沿 `main()` → `Case` → `Solver` → `Rotor` 展开；查气动算法进入 `bem.cpp` 和 `unsteady.cpp`，查结构进入 `blade_dynamics.cpp` 和 `mesh.cpp`，查声学进入 `driver.cpp` → `workspace.cpp` → `spectrum.cpp` → 各模型的 `prepare_*()` 与 `emit_*()`。
+完整阅读顺序可沿 `main()` → `run_case()` → `Simulation` → `Solver` → `Rotor` 展开；查气动算法进入 `bem.cpp` 和 `unsteady.cpp`，查结构进入 `blade_dynamics.cpp` 和 `mesh.cpp`，查声学进入 `driver.cpp` → `workspace.cpp` → `spectrum.cpp` → 各模型的 `prepare_*()` 与 `emit_*()`。
 
 P1–P3 的缓冲区所有权、接口使用约定和配对计时见 [耦合与采样优化](docs/coupling-optimization.md)。
+
+S1–S3 将状态读取改为 `solver.state()`、`time()`、`aerodynamic()` 等只读接口；`checkpoint()`/`restore()` 同时处理结构、气动和声学历史。完整契约见 [仿真接口说明](docs/simulation-api.md)。

@@ -1,7 +1,9 @@
 #include "turbine/rotor.hpp"
 #include "lookup_diagnostics.hpp"
 namespace turbine {
-Rotor::Rotor(const Case &c) : structure(c), case_(&c) {
+Rotor::Rotor(const Case &c) : Rotor(TurbineModel(c)) {}
+Rotor::Rotor(TurbineModel model) : model_(std::move(model)), structure_(model_.data()) {
+    const auto &c = model_.data();
     options_.tip_loss = c.aero.flag("TipLoss");
     options_.hub_loss = c.aero.flag("HubLoss");
     options_.tangential = c.aero.flag("TanInd");
@@ -11,12 +13,12 @@ Rotor::Rotor(const Case &c) : structure(c), case_(&c) {
     options_.max_iterations = c.aero.integer("MaxIter");
     skew_ = {c.aero.integer("Skew_Mod") == 1 && c.aero.number("SkewRedistr_Mod", 1) == 1,
              c.aero.number("SkewRedistrFactor", 15 * pi / 32)};
-    BladeStructure reference = structure;
+    BladeStructure reference = structure_;
     reference.pitch = {0, 0, 0};
     reference.initial_azimuth -= c.structure.number("Azimuth") * deg;
     std::vector<double> arc;
     Vec3 last{};
-    double distance = structure.hub_radius;
+    double distance = structure_.hub_radius;
     for (const auto &s : c.stations) {
         const Vec3 p{s.curve, s.sweep, s.span};
         distance += norm(p - last);
@@ -25,7 +27,7 @@ Rotor::Rotor(const Case &c) : structure(c), case_(&c) {
     }
     for (double z : arc) {
         tip_constant_.push_back(1.5 * (arc.back() - z) / z);
-        hub_constant_.push_back(1.5 * (z - structure.hub_radius) / structure.hub_radius);
+        hub_constant_.push_back(1.5 * (z - structure_.hub_radius) / structure_.hub_radius);
     }
     for (int b = 0; b < 3; ++b) {
         std::vector<ReferenceNode> sr, ar;
@@ -43,7 +45,7 @@ Rotor::Rotor(const Case &c) : structure(c), case_(&c) {
                           multiply(euler_matrix({0, s.curve_angle, -s.twist}), root)});
             ap.push_back(ar.back().position);
             previous_phi_[b].push_back(0);
-            airfoils_[b].emplace_back(c.airfoils[s.airfoil], s.chord, c.dt, c.sound_speed);
+            airfoils_[b].push_back(UnsteadyAirfoil(model_.airfoil(s.airfoil), s.chord, c.dt, c.sound_speed));
         }
         motion_maps_.emplace_back(sr, ar);
         load_maps_.emplace_back(ap, sp);
@@ -57,21 +59,21 @@ RotorOutput Rotor::evaluate(double time, const RotorState &state) const {
 }
 void Rotor::evaluate_into(double time, const RotorState &state, RotorOutput &y,
                           RotorWorkspace &workspace) const {
-    const auto &c = *case_;
+    const auto &c = model_.data();
     y.average_velocity = {};
     std::array<Matrix3, 3> basis;
     for (int b = 0; b < 3; ++b)
-        basis[b] = structure.blade_basis(time, b);
+        basis[b] = structure_.blade_basis(time, b);
     const std::size_t count = c.stations.size();
     for (int b = 0; b < 3; ++b) {
-        structure.motions_into(basis[b], state[b], workspace.structural);
+        structure_.motions_into(basis[b], state[b], workspace.structural);
         motion_maps_[b].transfer_into(workspace.structural, workspace.aerodynamic);
         const auto &aerodynamic = workspace.aerodynamic;
         y.blades[b].resize(count);
         // Removing prescribed pitch from the blade basis is equivalent to the
         // Euler decomposition in Calculate_MeshOrientation_NoSweepPitchTwist.
         const auto &root = basis[b];
-        const double pitch = structure.pitch[b];
+        const double pitch = structure_.pitch[b];
         const Matrix3 unpitched{{std::cos(pitch) * root[0] + std::sin(pitch) * root[1],
                                  -std::sin(pitch) * root[0] + std::cos(pitch) * root[1], root[2]}};
         for (std::size_t j = 0; j < count; ++j) {
@@ -83,8 +85,8 @@ void Rotor::evaluate_into(double time, const RotorState &state, RotorOutput &y,
             const auto angles = euler_angles(multiply(a.motion.orientation, transpose(unpitched)));
             a.annulus = multiply(euler_matrix({0, angles[1], 0}), unpitched);
             const Vec3 relative = a.wind - a.motion.velocity,
-                       hub_relative = a.motion.position - structure.hub;
-            a.bem = {norm(hub_relative - dot(hub_relative, structure.shaft) * structure.shaft),
+                       hub_relative = a.motion.position - structure_.hub;
+            a.bem = {norm(hub_relative - dot(hub_relative, structure_.shaft) * structure_.shaft),
                      s.chord,
                      -angles[2],
                      dot(relative, a.annulus[0]),
@@ -94,26 +96,26 @@ void Rotor::evaluate_into(double time, const RotorState &state, RotorOutput &y,
         }
     }
     y.average_velocity = y.average_velocity / (3 * count);
-    const double axial_velocity = dot(y.average_velocity, structure.shaft);
+    const double axial_velocity = dot(y.average_velocity, structure_.shaft);
     y.skew = norm(y.average_velocity) < 1e-14
                  ? 0
                  : std::acos(std::clamp(axial_velocity / norm(y.average_velocity), -1., 1.));
-    const Vec3 transverse = axial_velocity * structure.shaft - y.average_velocity;
+    const Vec3 transverse = axial_velocity * structure_.shaft - y.average_velocity;
     Vec3 disk_y{}, disk_z{};
     if (norm(transverse) > 1e-14) {
         disk_y = unit(transverse);
-        disk_z = cross(y.average_velocity, structure.shaft) / norm(transverse);
+        disk_z = cross(y.average_velocity, structure_.shaft) / norm(transverse);
     } else {
         const auto &base = basis[0];
-        disk_y = unit(cross(base[2], structure.shaft));
-        disk_z = cross(structure.shaft, disk_y);
+        disk_y = unit(cross(base[2], structure_.shaft));
+        disk_z = cross(structure_.shaft, disk_y);
     }
     double max_radius = 0;
     for (const auto &blade : y.blades)
         for (const auto &a : blade)
             max_radius = std::max(max_radius, a.bem.radius);
     const double tsr =
-        std::abs(axial_velocity) < 1e-14 ? 1e10 : std::abs(structure.omega * max_radius / axial_velocity);
+        std::abs(axial_velocity) < 1e-14 ? 1e10 : std::abs(structure_.omega * max_radius / axial_velocity);
     const double weight = tsr >= 2 ? 1 : tsr <= 1 ? 0 : .5 * (1 - std::cos(pi * (tsr - 1)));
     for (int b = 0; b < 3; ++b) {
         const auto &root = basis[b];
@@ -158,7 +160,8 @@ void Rotor::evaluate_into(double time, const RotorState &state, RotorOutput &y,
 void Rotor::advance_airfoils(const RotorOutput &y, std::size_t step) {
     for (int b = 0; b < 3; ++b)
         for (std::size_t j = 0; j < y.blades[b].size(); ++j) {
-            diagnostics::LookupLocation location({step * case_->dt, std::size_t(b + 1), j + 1, "UA_advance"});
+            diagnostics::LookupLocation location(
+                {step * model_.data().dt, std::size_t(b + 1), j + 1, "UA_advance"});
             airfoils_[b][j].advance(y.blades[b][j].alpha, y.blades[b][j].speed, step);
             previous_phi_[b][j] = y.blades[b][j].root_phi;
         }
@@ -174,7 +177,7 @@ std::vector<PointLoad> Rotor::structural_loads_for_blade(std::size_t b, double t
                                                          const RotorOutput &y) const {
     std::vector<Motion> motions;
     LoadWorkspace workspace;
-    structure.motions_into(structure.blade_basis(time, b), state, motions);
+    structure_.motions_into(structure_.blade_basis(time, b), state, motions);
     structural_loads_into(b, y, motions, workspace);
     return std::move(workspace.result);
 }
@@ -183,23 +186,23 @@ void Rotor::structural_loads_into(std::size_t b, const RotorOutput &y, const std
     const auto &blade = y.blades.at(b);
     w.source.resize(blade.size());
     w.distributed.resize(blade.size());
-    w.destination.resize(structure.nodes.size() - 2);
+    w.destination.resize(structure_.nodes.size() - 2);
     for (std::size_t j = 0; j < blade.size(); ++j) {
         w.source[j] = blade[j].motion.position;
         w.distributed[j] = blade[j].load;
     }
-    for (std::size_t j = 1; j + 1 < structure.nodes.size(); ++j)
+    for (std::size_t j = 1; j + 1 < structure_.nodes.size(); ++j)
         w.destination[j - 1] = motions[j].position;
     load_maps_[b].transfer_into(w.distributed, w.source, w.destination, w.points);
-    w.result.assign(structure.nodes.size(), PointLoad{});
+    w.result.assign(structure_.nodes.size(), PointLoad{});
     std::copy(w.points.begin(), w.points.end(), w.result.begin() + 1);
 }
 Vec3 Rotor::structural_acceleration(std::size_t b, const Matrix3 &basis, const ModalState &state,
                                     const RotorOutput &y, std::vector<Motion> &motions,
                                     LoadWorkspace &workspace) const {
     // Always rebuild for the supplied state, including every Jacobian perturbation.
-    structure.motions_into(basis, state, motions);
+    structure_.motions_into(basis, state, motions);
     structural_loads_into(b, y, motions, workspace);
-    return structure.acceleration(b, state, motions, workspace.result);
+    return structure_.acceleration(b, state, motions, workspace.result);
 }
 } // namespace turbine

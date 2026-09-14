@@ -1,5 +1,6 @@
 #pragma once
 #include "turbine/input.hpp"
+#include <memory>
 namespace turbine {
 // Direct port of the UA_Mod=3 Kelvin chain and discrete states. evaluate()
 // leaves state untouched; advance() is called once per aerodynamic time step.
@@ -11,7 +12,9 @@ class UnsteadyAirfoil {
     bool active() const { return enabled_; }
 
   private:
-    const Airfoil *af_;
+    friend class Rotor;
+    UnsteadyAirfoil(std::shared_ptr<const Airfoil>, double chord, double dt, double sound_speed);
+    std::shared_ptr<const Airfoil> af_;
     double chord_, dt_, sound_;
     bool enabled_, first_ = true;
     struct Parameters {
