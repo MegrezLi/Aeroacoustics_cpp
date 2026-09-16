@@ -115,3 +115,11 @@ python tests/check_refactor.py /path/to/baseline/aeroacoustics_turbine build/aer
 ```
 
 比较基线为本文件开头的提交；两个比较程序应使用相同编译器和构建选项。测试输出目录使用新目录，Windows 给程序名加 `.exe`。Python 只负责测试调度和文件比较。
+
+## P4–P7 接口补充
+
+`RunOptions` 新增 `observer_block_size`（默认 1）和 `solver`（`SolverOptions`）。`Simulation` 的声学路径改用观察点分块回调，`AcousticResult::power` 中未由 `NrOutFile` 请求的类别为空。需要完整四类结果时设置 `NrOutFile=4`；已有完整快照 API 不变。
+
+`Solver::diagnostics()` 与 `RunSummary::structure` 提供求解统计。默认参考模式保持原数值路径，尺度化模式须明确选择。`run.json` 新增 `structural_*` 字段。`SolverOptions` 随检查点恢复，`reset()` 保留选项。
+
+`turbine/batch.hpp` 提供独立工况的 `run_cases()`。线程、路径限制、借用块生命周期、完整参数与验证见 [P4–P7 说明](performance-p4-p7.md)。

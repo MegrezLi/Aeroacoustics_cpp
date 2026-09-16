@@ -72,6 +72,8 @@ struct Node {
 };
 using Snapshot = std::vector<std::vector<Mechanisms>>; // observer, node,
                                                        // mechanism, frequency
+// Callback borrows one ordered observer block; do not retain it or reenter the workspace.
+using ObserverBlockCallback = std::function<void(std::size_t first_observer, const Snapshot &)>;
 // Owns validated options, prepared sources and reusable spectrum buffers.
 class AcousticWorkspace {
     struct Impl;
@@ -86,6 +88,8 @@ class AcousticWorkspace {
     AcousticWorkspace &operator=(AcousticWorkspace &&) noexcept;
     // View remains valid until the next evaluate() or destruction.
     const Snapshot &evaluate(const std::vector<Node> &, const std::vector<Vec3> &observers);
+    void evaluate_blocks(const std::vector<Node> &, const std::vector<Vec3> &observers,
+                         const ObserverBlockCallback &, std::size_t block_size = 1);
 };
 std::pair<std::size_t, Spectrum> blade_elements(const Spectrum &span, double percentage = 100.);
 std::array<double, 2> guidati_thickness(const std::vector<std::array<double, 2>> &coords);
@@ -114,6 +118,8 @@ class AcousticDriver {
     std::vector<Vec3> inflow_, leading_;
 
     TurbulenceState state_;
+    const Snapshot *advance(double, const std::vector<std::vector<Node>> &, const ObserverBlockCallback &,
+                            std::size_t);
 
   public:
     const TurbulenceState &turbulence_state() const noexcept { return state_; }
@@ -124,6 +130,8 @@ class AcousticDriver {
     std::optional<Snapshot> step(double time, const std::vector<std::vector<Node>> &blades);
     // Borrowed output; nullptr on non-sampling steps. Valid until the next call.
     const Snapshot *step_view(double time, const std::vector<std::vector<Node>> &blades);
+    bool step_blocks(double time, const std::vector<std::vector<Node>> &blades, const ObserverBlockCallback &,
+                     std::size_t block_size = 1);
 };
 std::vector<Vec3> read_observers(const std::string &path);
 std::pair<Parameters, std::map<std::string, std::string>> read_aa_input(const std::string &path);

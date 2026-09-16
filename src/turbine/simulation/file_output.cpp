@@ -152,7 +152,15 @@ void FileOutput::finish_output(const RunSummary &summary) {
     metadata_ << std::setprecision(17) << "{\n  \"solver\": \"standalone C++\",\n  \"dt\": " << summary.dt
               << ",\n  \"duration\": " << summary.duration << ",\n  \"steps\": " << summary.steps
               << ",\n  \"acoustic_samples\": " << summary.acoustic_samples
-              << ",\n  \"elapsed_seconds\": " << summary.elapsed_seconds
+              << ",\n  \"elapsed_seconds\": " << summary.elapsed_seconds << ",\n  \"structural_mode\": \""
+              << (summary.structure.mode == SolverMode::scaled ? "scaled" : "reference") << "\""
+              << ",\n  \"structural_iterations\": " << summary.structure.iterations
+              << ",\n  \"structural_max_iterations\": " << summary.structure.max_iterations
+              << ",\n  \"structural_acceleration_evaluations\": "
+              << summary.structure.acceleration_evaluations
+              << ",\n  \"structural_jacobian_builds\": " << summary.structure.jacobian_builds
+              << ",\n  \"structural_last_residual\": " << summary.structure.residual
+              << ",\n  \"structural_last_scaled_residual\": " << summary.structure.scaled_residual
               << ",\n  \"zero_energy_encoding\": \"0 dB placeholder; see matching .mask (0=zero, "
                  "1=positive energy)\""
               << ",\n  \"lookup_policy\": \""

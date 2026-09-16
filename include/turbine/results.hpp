@@ -1,6 +1,7 @@
 #pragma once
 #include "lookup_diagnostics.hpp"
 #include "turbine/acoustic_adapter.hpp"
+#include "turbine/solver.hpp"
 namespace turbine {
 struct OutputLayout {
     aeroacoustics::Parameters parameters;
@@ -17,10 +18,14 @@ struct AcousticResult {
 class AcousticAggregator {
     OutputLayout layout_;
     AcousticResult result_;
+    std::size_t next_observer_ = 0;
 
   public:
     explicit AcousticAggregator(OutputLayout);
     const AcousticResult &aggregate(double time, const aeroacoustics::Snapshot &);
+    void begin();
+    void append(double time, std::size_t first_observer, const aeroacoustics::Snapshot &);
+    const AcousticResult &finish() const;
 };
 struct StepView {
     double time;
@@ -31,6 +36,7 @@ struct RunSummary {
     double dt, duration, elapsed_seconds;
     std::size_t steps, acoustic_samples;
     diagnostics::LookupReport lookup;
+    SolverDiagnostics structure;
 };
 class ResultSink {
   public:

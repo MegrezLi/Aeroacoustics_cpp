@@ -1,10 +1,27 @@
 #pragma once
 #include "turbine/rotor.hpp"
 namespace turbine {
+enum class SolverMode { reference, scaled };
+struct SolverOptions {
+    SolverMode mode = SolverMode::reference;
+    int max_iterations = 12;
+    double perturbation = 1e-4, correction_tolerance = 1e-9;
+    Vec3 acceleration_scale{1., 1., 1.};
+    double residual_absolute = 1e-9, residual_relative = 1e-9;
+    bool reuse_jacobian = true; // scaled mode only, within one step
+};
+struct SolverDiagnostics {
+    SolverMode mode = SolverMode::reference;
+    std::size_t iterations = 0, acceleration_evaluations = 0, jacobian_builds = 0;
+    int last_iterations = 0, max_iterations = 0, blade = 0;
+    double time = 0, residual = 0, scaled_residual = 0, correction = 0;
+};
 class Solver {
   public:
-    explicit Solver(const Case &);
-    explicit Solver(TurbineModel);
+    explicit Solver(const Case &, SolverOptions = {});
+    explicit Solver(TurbineModel, SolverOptions = {});
+    const SolverOptions &options() const noexcept { return options_; }
+    const SolverDiagnostics &diagnostics() const noexcept { return diagnostics_; }
     // Copies share frozen model data; all evolving states and workspaces are independent.
     const Rotor &rotor() const noexcept { return rotor_; }
     const RotorState &state() const noexcept { return state_; }
@@ -29,6 +46,8 @@ class Solver {
 
   private:
     Rotor rotor_;
+    SolverOptions options_;
+    SolverDiagnostics diagnostics_;
     RotorState state_{};
     RotorOutput aerodynamic_;
     std::array<Vec3, 3> acceleration_{}, algorithmic_{};

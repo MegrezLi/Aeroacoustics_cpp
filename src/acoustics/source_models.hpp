@@ -57,6 +57,9 @@ void prepare_guidati(const Parameters &, const Section &, Spectrum &);
 
 struct TnoWorkspace {
     Spectrum wave, height, factor, gauss, decay, exp_gauss, exp_decay, pressure;
+    // One side's frequency-independent boundary-layer profile.
+    Spectrum ke, uc, ag, amplitude, denominator, normalization;
+    Spectrum frequencies, bandwidth;
     TnoWorkspace();
 };
 struct TnoSource {

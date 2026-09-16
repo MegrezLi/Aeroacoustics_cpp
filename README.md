@@ -34,7 +34,7 @@ cmake --build build -j 4
 | `IEA_LB_RWT-AeroAcoustics_3.out` | 各频带的 7 类声源分量 |
 | `IEA_LB_RWT-AeroAcoustics_4.out` | 各叶片、节点对观察点的声级贡献 |
 | `dynamics.csv` | 每个时间步的 9 个模态位移和速度 |
-| `run.json` | 步长、运行时长、步数和声学输出次数 |
+| `run.json` | 步长、运行时长、采样次数、结构求解模式与收敛统计 |
 | 同名 `.mask` | 与每份 `.out` 对应：0 表示零声能占位，1 表示有效正声能 |
 | `lookup_diagnostics.csv` | 按表格、坐标轴、叶片、节点和调用阶段统计查表超界 |
 
@@ -92,6 +92,16 @@ Windows 将 `.so` 换成 `libaeroacoustics_shared.dll`，并给可执行文件�
 
 S1–S3 重构还集中管理了七类声源和模型替代关系。命令行及标准输出格式保持不变；原先直接读取 `solver.state`、`solver.time` 的 C++ 调用需改为 `state()`、`time()` 等只读访问器。示例、检查点范围和迁移表见 [仿真接口说明](docs/simulation-api.md)。
 
+## 批量运行与求解选项
+
+独立工况可通过 C++ 线程并行运行，输出目录必须互不重叠：
+
+```sh
+./build/aeroacoustics_batch 2 case8/IEA_LB_RWT-AeroAcoustics.fst results/wind8 case9/IEA_LB_RWT-AeroAcoustics.fst results/wind9
+```
+
+整机默认按一个观察点一块计算，并按 `NrOutFile` 分配和聚合输出。`--observer-block-size=N` 可调整块大小。`--solver=scaled` 启用尺度化扰动、残差判停和同一步内 Jacobian 复用；默认 `reference` 保留原数值路径。参数、限制和验证见 [P4–P7 说明](docs/performance-p4-p7.md)。
+
 ## 性能
 
 结构运动按叶片状态批量计算，由载荷映射和加速度装配共用；求解器复用气动、运动及载荷缓冲区。表格边界层只在声学采样时对发声节点插值，TI 仍逐步更新。
@@ -105,6 +115,8 @@ P1–P3 相对包含 R1–R3 的 `e5c57ab` 基线，在 Windows / GCC 16.2.0、R
 | 8 m/s，表格边界层 | 2.188 s | 1.749 s | 20.0% |
 
 上述工况的结构、声学和掩码输出均与优化前逐字节一致。测试条件、接口变化和复现方法见 [P1–P3 优化说明](docs/coupling-optimization.md)。此前一轮优化的独立数据保留在 [原优化记录](docs/optimization.md)。
+
+P4–P7 增加了 TNO 剖面缓存、按需聚合、观察点分块、独立工况并行和可选的尺度化结构求解。本机五轮计时中，四工况采用四个工作线程的吞吐约为串行的 2.33 倍；默认单工况耗时基本持平。内存规模、完整计时和误差见 [P4–P7 说明](docs/performance-p4-p7.md)。
 
 ## 截面示例与 MKL
 
@@ -129,11 +141,12 @@ src/
 │   ├── simulation/   # 仿真调度、声学适配、结果聚合与输出
 │   └── io/           # 风机算例、翼型及风场输入
 ├── interfaces/      # C ABI
-└── apps/            # 截面示例与整机程序入口
+└── apps/            # 截面示例、整机与批量程序入口
 ```
 
 输入参数与模块调用顺序见 [aeroacoustics 工作流](aeroacoustics工作流.md)，目录职责及源文件索引见 [src/README.md](src/README.md)。公开头文件仍位于 `include/`。
 
+- `include/turbine/batch.hpp`：独立工况并行与逐项运行结果。
 - `include/turbine/simulation.hpp`：整机库接口、逐步运行与进程内检查点。
 - `include/mechanisms.hpp`：声源机制、标准通道顺序及单位。
 - `include/aeroacoustics.hpp`、`include/aeroacoustics_c.h`：声学库 C++ 接口与 C ABI。

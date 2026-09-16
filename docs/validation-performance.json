@@ -1,0 +1,965 @@
+{
+  "date": "2026-09-16",
+  "baseline_commit": "fd193c7f9fb6b467e5f9f06c25e1b187f327691c",
+  "toolchain": "Windows x64, GCC/GFortran 16.2.0, CMake Release; oneMKL 2025.2 sequential",
+  "source_sha256": {
+    "src/acoustics/boundary_layer.cpp": "96d34b9764188733516294ff1fb00b13973316fea292c4dd28d1e1954e13d8bb",
+    "src/acoustics/bpm_other_sources.cpp": "d0bb216969c6ca3de52ce1bde95916b4bd36e563deae205f5a3487ed456e3a06",
+    "src/acoustics/bpm_spectral_shapes.cpp": "65b7004a54286991e2e5a421f737257c0069a38c1eec5f6b0e7dd9a4b3dd3594",
+    "src/acoustics/bpm_trailing_edge.cpp": "9967e51d0d939b40309e2ba4a4af97f307547a045dbbbc4a3cd3cd2535dd362e",
+    "src/acoustics/directivity.cpp": "cc5c85263b314c1241d0e1a932075b6d3b2166b528090a5cc21e5d936fb208c8",
+    "src/acoustics/driver.cpp": "bdd72eec16f6731981e97e19f8360ee30cf3b26c614bb4bd149fc2fa405c3b2a",
+    "src/acoustics/geometry.cpp": "1f0f64c7d33971a7cb373f0a42bbdc5646420246548affd323f41af6e77803db",
+    "src/acoustics/inflow_noise.cpp": "8586df72983a3f7368c14eaaf9ef020488465f15399c480f7bd13dc3167f978f",
+    "src/acoustics/kernel_compat.cpp": "b8cceb276dbb8ae7fa911cf10d038d0f32317948d17e787bfcf0549882489a68",
+    "src/acoustics/source_models.hpp": "d0e72ea4f662aca121ad572e2111d2c01d1fc8ae66b8823028e4468cb7480185",
+    "src/acoustics/spectrum.cpp": "b805244dd145c479eef6917ad5dd267baa6905a8c7f6fb1dc7ef8ed11f4e2572",
+    "src/acoustics/tno.cpp": "9e2a31987fa4c79d95a752b0e5f250a014ad221f6db9fb61a3b985ff59ff4a6c",
+    "src/acoustics/workspace.cpp": "0774aeee875b117749f88e6ccd3176dfb7ccbd9f98d50953ad8579cfe2591b1d",
+    "src/apps/batch_main.cpp": "8ef091c6a451db81a7b8d8edbd6d7ae653d8a5ca62165c1449af196885d1ff00",
+    "src/apps/section_main.cpp": "7bb35fefa7f8dfa2f8bc1192fd68665ce6c65dcceabcef05027239fe3a62ca63",
+    "src/apps/turbine_main.cpp": "29890fb8aacb10583abe55ebaffbb5a1ee079990319260ae7139e6af5841dde2",
+    "src/interfaces/c_api.cpp": "60e479467096d66d9bab0fbaaa64dde1589870c09fcbd4a0076df56287224b36",
+    "src/numerics/backend.cpp": "7f9d390fa16c3f20247d8c7848f1e68aa6af0301e02a38802e8baf0d8e42e6c5",
+    "src/numerics/quadrature.cpp": "16651e200a42160ea8ee362ba9337f43bb1bbd6d5207c4ac57dada6cfada2ab8",
+    "src/turbine/aerodynamics/bem.cpp": "d4951e60c6155d5cf2c623e35617cfbd411e5b88690bf126d98b7633d6af88fd",
+    "src/turbine/aerodynamics/unsteady.cpp": "e53999159cb712511c7ae274de76aaa59ae4ddf74be5d330d0c6f6b53609fdd8",
+    "src/turbine/coupling/mesh.cpp": "882636db6b1fc902c4e6b6b70f78d6a82fd28f0537a16fb9992d09367f9b78b5",
+    "src/turbine/coupling/rotor.cpp": "545ad7e2f2ad39ce6f9eb7311575281d947d3c098c2ddf1dffc44d0ec9b1951b",
+    "src/turbine/coupling/solver.cpp": "d73c7b31e2aef29f211226b8d969fb140c2c3ef990f3a59e20e751c32c1868cd",
+    "src/turbine/io/case_input.cpp": "1a8c0fbcd674b2e9155c11ab68861c82e5d1175ac2fabe018e2bd7c339b1dbe8",
+    "src/turbine/simulation/acoustic_adapter.cpp": "03d76cf094b7237a69ab6965a05bb9e90cff13babe2edc481c5d1b7d5fed6cdd",
+    "src/turbine/simulation/batch.cpp": "d51dd92fbd477b3d33951fbc926870f12784071e0b4d647cfc77234d489bf4d7",
+    "src/turbine/simulation/file_output.cpp": "1aed6e5588d1a37f3508f65142156303641d167b772999b670db3d28e079e101",
+    "src/turbine/simulation/results.cpp": "1f0e6cdfaa52d79aafbe10ed660e7de0c3493ea8a352e6ee6450c2280ef57365",
+    "src/turbine/simulation/simulation.cpp": "39ba2594061ebbe87d8f03d77df0be435c83732a895eef1e6f3e5164e9d55b14",
+    "src/turbine/structure/blade_dynamics.cpp": "24674a2044266aa17286ebf83fa94cb4d69202cd30a0e94232f8dcd7604fe6da",
+    "include/acoustic_levels.hpp": "267dc1cfd4d55e54e1f3fce3e28bbe41e3802ad3f4c72322a20a37dfcc757bb5",
+    "include/aeroacoustics.hpp": "85510fb4a538eb278b824c7d9134aea8c19cbb15a4140260a589910a621c1d47",
+    "include/checked_output.hpp": "f91c778c5743623d9dce386d08a53210033a6a18a5b9e9bfda51c0be2a6766b0",
+    "include/kernels.hpp": "2b43d5c560e8d4c58f4b7bea9ab9585a3d44fc4f887c00dc22d7b69495746be0",
+    "include/lookup_diagnostics.hpp": "f41494e46a488c64b2c0dea0335e53e32c86dea8e0db44cb0d6da7a8e382e861",
+    "include/mechanisms.hpp": "97318c623b01438545751fabc7db29acad656bb37d71ddb8b82b5af7cc0ef49c",
+    "include/quadrature_data.hpp": "fbe0a6a92126596ddd254caa3e64a422fa7e3e137d1dfea51a57b19fc4015cae",
+    "include/turbine/acoustic_adapter.hpp": "635dae79ff70eacb3866eaaa01b6b7667b01152ddc98f06af23415207c4aeff6",
+    "include/turbine/batch.hpp": "c041e0e3dcac6978956c1aa4d862e93da876979ce7947e9e66c18c05b534a309",
+    "include/turbine/bem.hpp": "109899d9145983e0c9b9d57cceaa775083aa7750076ead17e36f7578568ca8db",
+    "include/turbine/file_output.hpp": "00fbffa28299df49dd8dfbc649e9377a70bc0c85c5b9698173c042c6c3657c28",
+    "include/turbine/input.hpp": "4e43a82293b3d1ac36ce862b40ad64f91acdef2b737a5e76d9942d40d736a300",
+    "include/turbine/math.hpp": "e330b0ae8526fecccf4926a846b5c231d9c43bc99150fccc5e5c513d81afa023",
+    "include/turbine/mesh.hpp": "7b612c5f8297d1eeb940d0f1b9f4ad19020ff9611533f4577320f68e1b49303c",
+    "include/turbine/model.hpp": "5df48d95beabbc01c284aff1607cd434b86a0b3b8518176ec596a76952897231",
+    "include/turbine/results.hpp": "87855dae2491e61a6e4282bf8b67f9f880e723af0296c30e660dea01b86fc069",
+    "include/turbine/rotor.hpp": "498804f6b05f246599ea4b5debd7c85a3af2c53bea0cda7e56f7616ada8a223d",
+    "include/turbine/simulation.hpp": "22354fb07fe2f922f1bcb77fc1f79f04bb6635b45884988e78d01baea29196a8",
+    "include/turbine/solver.hpp": "8e79ebeb79c586ff1792c6fa4ddc974947eb3e58c845ac6dcb5ad0f3d1074234",
+    "include/turbine/structure.hpp": "31e3b5d338292140f486ea3bd342b33dc728253d2043851f9c5c96b852a2140c",
+    "include/turbine/unsteady.hpp": "01012f5169016b795a0b67935cbc84fb68e43e72891f66df427c8abc1d251484"
+  },
+  "checks": {
+    "before_after": {
+      "baseline_commit": "fd193c7f9fb6b467e5f9f06c25e1b187f327691c",
+      "executables_sha256": {
+        "before": "10f7783b4703f81297469c522d71b654d2426e6a7841790f7ccc14764f3a622f",
+        "after": "8376e627fe97e3021c64f15edd24d1b0bc4f53a70bf460b2366c978914f2e362"
+      },
+      "cases": {
+        "official8": {
+          "duration_s": 20,
+          "byte_identical_sha256": {
+            "dynamics.csv": "8adaef87cc858f4e4b781f84cf70f62abc8fdbbab4d3597d85833707fa063594",
+            "IEA_LB_RWT-AeroAcoustics_1.mask": "da67d06df7d4fb4bacb2d7017ebc95f588ababeb1d5154d70bc38765eb2674a8",
+            "IEA_LB_RWT-AeroAcoustics_1.out": "7268e4cab8e68e30a5bc72ee38665f872a133d2c59347cb8b4f6e16311af71ed",
+            "IEA_LB_RWT-AeroAcoustics_2.mask": "00a4891f2d4c7a26f1427e96ee85abc8ba2b8278585c9bea336a046449467aef",
+            "IEA_LB_RWT-AeroAcoustics_2.out": "199a41014473d4efaeba4ff527cfff4e4dadb757dd1dec671884bef455e85638",
+            "IEA_LB_RWT-AeroAcoustics_3.mask": "f7b1a2ba1b693372ab20664545c8c56b24696d71345b2773bb8ff3d683b29592",
+            "IEA_LB_RWT-AeroAcoustics_3.out": "4bf3d4871a6eecc65b228f3450c3a7522255290c0002b14aa551b7900e07967e",
+            "IEA_LB_RWT-AeroAcoustics_4.mask": "5e85fd5400a5749b5877e0521e263bcde462d4487956f0f11fba42fe859ce546",
+            "IEA_LB_RWT-AeroAcoustics_4.out": "b342a402e1fdedeee1dc36e3170a715958e1a49ac8a6b18028db64c57de1f7cf",
+            "lookup_diagnostics.csv": "1c46756c5828b8af5394d4b4ddfcdde3a5076fdf0a34f1c42fa247f4f1a28a7c"
+          }
+        },
+        "wind9": {
+          "duration_s": 20,
+          "byte_identical_sha256": {
+            "dynamics.csv": "1fd72279b0d48ee0a1d5d4a75c6f4f653809554589220b5fef5eb7d884b8d161",
+            "IEA_LB_RWT-AeroAcoustics_1.mask": "da67d06df7d4fb4bacb2d7017ebc95f588ababeb1d5154d70bc38765eb2674a8",
+            "IEA_LB_RWT-AeroAcoustics_1.out": "db411889f5e4f8406aca8dd3a79c17b8676ff979552f55a4c4210765ba0df028",
+            "IEA_LB_RWT-AeroAcoustics_2.mask": "00a4891f2d4c7a26f1427e96ee85abc8ba2b8278585c9bea336a046449467aef",
+            "IEA_LB_RWT-AeroAcoustics_2.out": "2c0f994ddcc7af79fb8581db7e8d4971877feb6fcf4a7ff69013a10b124881d1",
+            "IEA_LB_RWT-AeroAcoustics_3.mask": "f7b1a2ba1b693372ab20664545c8c56b24696d71345b2773bb8ff3d683b29592",
+            "IEA_LB_RWT-AeroAcoustics_3.out": "e944bb54d1158adb4700108b2c833d1003387a0674f2af5fe2af905f63600f38",
+            "IEA_LB_RWT-AeroAcoustics_4.mask": "5e85fd5400a5749b5877e0521e263bcde462d4487956f0f11fba42fe859ce546",
+            "IEA_LB_RWT-AeroAcoustics_4.out": "639cff8c3c6f96a3cf2e76dc63406ab03b4888c020b76e049850097a9629a291",
+            "lookup_diagnostics.csv": "1c46756c5828b8af5394d4b4ddfcdde3a5076fdf0a34f1c42fa247f4f1a28a7c"
+          }
+        },
+        "table_bl2": {
+          "duration_s": 20,
+          "byte_identical_sha256": {
+            "dynamics.csv": "8adaef87cc858f4e4b781f84cf70f62abc8fdbbab4d3597d85833707fa063594",
+            "IEA_LB_RWT-AeroAcoustics_1.mask": "da67d06df7d4fb4bacb2d7017ebc95f588ababeb1d5154d70bc38765eb2674a8",
+            "IEA_LB_RWT-AeroAcoustics_1.out": "62996e77d32b4c0de306286f183db06b8ab9886e746132415f82d53ccd1a9f6e",
+            "IEA_LB_RWT-AeroAcoustics_2.mask": "00a4891f2d4c7a26f1427e96ee85abc8ba2b8278585c9bea336a046449467aef",
+            "IEA_LB_RWT-AeroAcoustics_2.out": "09edca6adef965b70a5c2ef2b9b9d308dedc2f72ee2e83c87289875d0bcee41d",
+            "IEA_LB_RWT-AeroAcoustics_3.mask": "f7b1a2ba1b693372ab20664545c8c56b24696d71345b2773bb8ff3d683b29592",
+            "IEA_LB_RWT-AeroAcoustics_3.out": "d9e6868887c60445da57edc9a16fdb99ab7025fa4a368ee0f70cdeee0456f573",
+            "IEA_LB_RWT-AeroAcoustics_4.mask": "5e85fd5400a5749b5877e0521e263bcde462d4487956f0f11fba42fe859ce546",
+            "IEA_LB_RWT-AeroAcoustics_4.out": "21ea3433ae32a4777c533aee29fa86e357013b8f0f998e7b722777b799a032a4",
+            "lookup_diagnostics.csv": "1c46756c5828b8af5394d4b4ddfcdde3a5076fdf0a34f1c42fa247f4f1a28a7c"
+          }
+        },
+        "tno": {
+          "duration_s": 0.1,
+          "byte_identical_sha256": {
+            "dynamics.csv": "7e884882e242203b3fe7424206b6b173ce4e3aa51d9e021fb6c1788f066f231d",
+            "IEA_LB_RWT-AeroAcoustics_1.mask": "af96b8e42d3e8e06cb6a0bfb3b7129761d7e75573c8264c452ce3f53f1e9e49b",
+            "IEA_LB_RWT-AeroAcoustics_1.out": "3e759077b180d8fd33210e0b880f1d78e5211703a3bfb5d2eec15e3bae7327c8",
+            "IEA_LB_RWT-AeroAcoustics_2.mask": "7a69f12fae022ff5f1fc60d09b7b6c3e75a9048e58cfb0d29a67bc87edb71952",
+            "IEA_LB_RWT-AeroAcoustics_2.out": "72f9fb702a4e57be25892e5bbda9d6bd063be9c9aad96fbbc979c510abf796b1",
+            "IEA_LB_RWT-AeroAcoustics_3.mask": "c42718b9eb74111ffc43bd27a9545f2685c644eeeec3b797ea333dad409c3fc0",
+            "IEA_LB_RWT-AeroAcoustics_3.out": "dc661119f36054edcf696b5891446492553d4d29eb911eda68d9a90f1235d93b",
+            "IEA_LB_RWT-AeroAcoustics_4.mask": "8eab88b67fb1874bbfd3b90967254e586ad9781f6b44ebb7829b0fc26d38f213",
+            "IEA_LB_RWT-AeroAcoustics_4.out": "df0f1ca9313bbe51322b8fd5f1b2a83abc518c6e7d3d9ab3485e080142272216",
+            "lookup_diagnostics.csv": "1c46756c5828b8af5394d4b4ddfcdde3a5076fdf0a34f1c42fa247f4f1a28a7c"
+          }
+        }
+      }
+    },
+    "portable": {
+      "kernels": {
+        "backend": "Portable C++17",
+        "cases": 204,
+        "TNO_cases": 16,
+        "evaluated_values": 56576,
+        "values_by_operation": {
+          "1": 6936,
+          "2": 20808,
+          "3": 6936,
+          "4": 6936,
+          "5": 6936,
+          "6": 6936,
+          "7": 1088
+        },
+        "fortran_max_abs_error_dB": {
+          "1": 2.842170943040401e-14,
+          "2": 4.547473508864641e-13,
+          "3": 1.4210854715202004e-14,
+          "4": 2.842170943040401e-14,
+          "5": 4.263256414560601e-14,
+          "6": 0.0,
+          "7": 5.684341886080802e-14
+        },
+        "fortran_literal_precision": "promoted to double",
+        "tolerance_dB": 2e-08,
+        "kernel_calls": 1240
+      },
+      "full-case": {
+        "case": "IEA_LB_RWT-AeroAcoustics",
+        "comparison": "original Fortran versus standalone C++",
+        "files": {
+          "IEA_LB_RWT-AeroAcoustics_1.out": {
+            "rows": 201,
+            "channels": 2,
+            "compared_values": 402,
+            "max_abs_error_dB": 7.817849999725013e-05,
+            "mean_abs_error_dB": 4.05659005013196e-06,
+            "worst_time_s": 16.6,
+            "worst_channel": 2,
+            "tolerance_dB": 0.001
+          },
+          "IEA_LB_RWT-AeroAcoustics_2.out": {
+            "rows": 201,
+            "channels": 68,
+            "compared_values": 13668,
+            "max_abs_error_dB": 0.00020574810000084653,
+            "mean_abs_error_dB": 5.309601761069335e-06,
+            "worst_time_s": 16.6,
+            "worst_channel": 53,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_3.out": {
+            "rows": 201,
+            "channels": 476,
+            "compared_values": 95676,
+            "max_abs_error_dB": 0.0008517038999968918,
+            "mean_abs_error_dB": 6.7941629877470794e-06,
+            "worst_time_s": 17.0,
+            "worst_channel": 243,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_4.out": {
+            "rows": 201,
+            "channels": 180,
+            "compared_values": 36180,
+            "max_abs_error_dB": 0.0007665902999995922,
+            "mean_abs_error_dB": 5.640247710449697e-06,
+            "worst_time_s": 18.5,
+            "worst_channel": 170,
+            "tolerance_dB": 0.05
+          }
+        },
+        "compared_values": 145926,
+        "identical_input_files": 101,
+        "runtime": {
+          "solver": "standalone C++",
+          "dt": 0.00625,
+          "duration": 20,
+          "steps": 3200,
+          "acoustic_samples": 201,
+          "elapsed_seconds": 1.7908026,
+          "structural_mode": "reference",
+          "structural_iterations": 9600,
+          "structural_max_iterations": 3,
+          "structural_acceleration_evaluations": 115200,
+          "structural_jacobian_builds": 28800,
+          "structural_last_residual": 1.1683867387588975e-13,
+          "structural_last_scaled_residual": 5.5677684684951594e-05,
+          "zero_energy_encoding": "0 dB placeholder; see matching .mask (0=zero, 1=positive energy)",
+          "lookup_policy": "clamp",
+          "lookup_out_of_range_calls": 0,
+          "lookup_report": "lookup_diagnostics.csv"
+        },
+        "cpp_executable_sha256": "f6b5d6c099c073d0ec7cc26aac84a2a26d385761a2867ea0a494d448c2984f21",
+        "reference_openfast_commit": "2895884d2be01862173c88d70f86b358d2f1a50a"
+      },
+      "wind9": {
+        "case": "IEA_LB_RWT-AeroAcoustics",
+        "comparison": "original Fortran versus standalone C++",
+        "files": {
+          "IEA_LB_RWT-AeroAcoustics_1.out": {
+            "rows": 201,
+            "channels": 2,
+            "compared_values": 402,
+            "max_abs_error_dB": 1.5829100000530616e-05,
+            "mean_abs_error_dB": 3.0547644278445306e-06,
+            "worst_time_s": 18.5,
+            "worst_channel": 2,
+            "tolerance_dB": 0.001
+          },
+          "IEA_LB_RWT-AeroAcoustics_2.out": {
+            "rows": 201,
+            "channels": 68,
+            "compared_values": 13668,
+            "max_abs_error_dB": 8.222400000335028e-05,
+            "mean_abs_error_dB": 3.694354420776131e-06,
+            "worst_time_s": 0.6,
+            "worst_channel": 46,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_3.out": {
+            "rows": 201,
+            "channels": 476,
+            "compared_values": 95676,
+            "max_abs_error_dB": 0.00017699829999884287,
+            "mean_abs_error_dB": 3.490456752766962e-06,
+            "worst_time_s": 0.2,
+            "worst_channel": 243,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_4.out": {
+            "rows": 201,
+            "channels": 180,
+            "compared_values": 36180,
+            "max_abs_error_dB": 0.005636691599999466,
+            "mean_abs_error_dB": 3.7928332384903334e-06,
+            "worst_time_s": 1.0,
+            "worst_channel": 116,
+            "tolerance_dB": 0.05
+          }
+        },
+        "compared_values": 145926,
+        "wind_speed_m_s": 9,
+        "changed_input": "HWindSpeed: 8 -> 9",
+        "max_oaspl_change_from_8m_s_dB": 1.5264021744999994,
+        "identical_input_files": 101,
+        "cpp_executable_sha256": "f6b5d6c099c073d0ec7cc26aac84a2a26d385761a2867ea0a494d448c2984f21"
+      }
+    },
+    "mkl": {
+      "kernels": {
+        "backend": "Intel oneMKL: Intel(R) oneAPI Math Kernel Library Version 2025.2-Product Build 20250620 for Intel(R) 64 architecture applications",
+        "cases": 204,
+        "TNO_cases": 16,
+        "evaluated_values": 56576,
+        "values_by_operation": {
+          "1": 6936,
+          "2": 20808,
+          "3": 6936,
+          "4": 6936,
+          "5": 6936,
+          "6": 6936,
+          "7": 1088
+        },
+        "fortran_max_abs_error_dB": {
+          "1": 2.842170943040401e-14,
+          "2": 4.547473508864641e-13,
+          "3": 1.4210854715202004e-14,
+          "4": 2.842170943040401e-14,
+          "5": 4.263256414560601e-14,
+          "6": 0.0,
+          "7": 5.684341886080802e-14
+        },
+        "fortran_literal_precision": "promoted to double",
+        "tolerance_dB": 2e-08,
+        "kernel_calls": 1240
+      },
+      "full-case": {
+        "case": "IEA_LB_RWT-AeroAcoustics",
+        "comparison": "original Fortran versus standalone C++",
+        "files": {
+          "IEA_LB_RWT-AeroAcoustics_1.out": {
+            "rows": 201,
+            "channels": 2,
+            "compared_values": 402,
+            "max_abs_error_dB": 7.817849999725013e-05,
+            "mean_abs_error_dB": 4.05659005013196e-06,
+            "worst_time_s": 16.6,
+            "worst_channel": 2,
+            "tolerance_dB": 0.001
+          },
+          "IEA_LB_RWT-AeroAcoustics_2.out": {
+            "rows": 201,
+            "channels": 68,
+            "compared_values": 13668,
+            "max_abs_error_dB": 0.00020574810000084653,
+            "mean_abs_error_dB": 5.309601761069335e-06,
+            "worst_time_s": 16.6,
+            "worst_channel": 53,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_3.out": {
+            "rows": 201,
+            "channels": 476,
+            "compared_values": 95676,
+            "max_abs_error_dB": 0.0008517038999968918,
+            "mean_abs_error_dB": 6.7941629877470794e-06,
+            "worst_time_s": 17.0,
+            "worst_channel": 243,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_4.out": {
+            "rows": 201,
+            "channels": 180,
+            "compared_values": 36180,
+            "max_abs_error_dB": 0.0007665902999995922,
+            "mean_abs_error_dB": 5.640247710449697e-06,
+            "worst_time_s": 18.5,
+            "worst_channel": 170,
+            "tolerance_dB": 0.05
+          }
+        },
+        "compared_values": 145926,
+        "identical_input_files": 101,
+        "runtime": {
+          "solver": "standalone C++",
+          "dt": 0.00625,
+          "duration": 20,
+          "steps": 3200,
+          "acoustic_samples": 201,
+          "elapsed_seconds": 2.0844681,
+          "structural_mode": "reference",
+          "structural_iterations": 9600,
+          "structural_max_iterations": 3,
+          "structural_acceleration_evaluations": 115200,
+          "structural_jacobian_builds": 28800,
+          "structural_last_residual": 1.1683867387588975e-13,
+          "structural_last_scaled_residual": 5.5677684684951594e-05,
+          "zero_energy_encoding": "0 dB placeholder; see matching .mask (0=zero, 1=positive energy)",
+          "lookup_policy": "clamp",
+          "lookup_out_of_range_calls": 0,
+          "lookup_report": "lookup_diagnostics.csv"
+        },
+        "cpp_executable_sha256": "341f55baf5256e3ca9018465f08a59a50df49610765c57bf0084ce60982f3caa",
+        "reference_openfast_commit": "2895884d2be01862173c88d70f86b358d2f1a50a"
+      },
+      "wind9": {
+        "case": "IEA_LB_RWT-AeroAcoustics",
+        "comparison": "original Fortran versus standalone C++",
+        "files": {
+          "IEA_LB_RWT-AeroAcoustics_1.out": {
+            "rows": 201,
+            "channels": 2,
+            "compared_values": 402,
+            "max_abs_error_dB": 1.5829100000530616e-05,
+            "mean_abs_error_dB": 3.0547644278445306e-06,
+            "worst_time_s": 18.5,
+            "worst_channel": 2,
+            "tolerance_dB": 0.001
+          },
+          "IEA_LB_RWT-AeroAcoustics_2.out": {
+            "rows": 201,
+            "channels": 68,
+            "compared_values": 13668,
+            "max_abs_error_dB": 8.222400000335028e-05,
+            "mean_abs_error_dB": 3.694354420776131e-06,
+            "worst_time_s": 0.6,
+            "worst_channel": 46,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_3.out": {
+            "rows": 201,
+            "channels": 476,
+            "compared_values": 95676,
+            "max_abs_error_dB": 0.00017699829999884287,
+            "mean_abs_error_dB": 3.490456752766962e-06,
+            "worst_time_s": 0.2,
+            "worst_channel": 243,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_4.out": {
+            "rows": 201,
+            "channels": 180,
+            "compared_values": 36180,
+            "max_abs_error_dB": 0.005636691599999466,
+            "mean_abs_error_dB": 3.7928332384903334e-06,
+            "worst_time_s": 1.0,
+            "worst_channel": 116,
+            "tolerance_dB": 0.05
+          }
+        },
+        "compared_values": 145926,
+        "wind_speed_m_s": 9,
+        "changed_input": "HWindSpeed: 8 -> 9",
+        "max_oaspl_change_from_8m_s_dB": 1.5264021744999994,
+        "identical_input_files": 101,
+        "cpp_executable_sha256": "341f55baf5256e3ca9018465f08a59a50df49610765c57bf0084ce60982f3caa"
+      }
+    },
+    "portable_cli": {
+      "scaled_wind8": {
+        "fortran": {
+          "case": "IEA_LB_RWT-AeroAcoustics",
+          "comparison": "original Fortran versus standalone C++",
+          "files": {
+            "IEA_LB_RWT-AeroAcoustics_1.out": {
+              "rows": 201,
+              "channels": 2,
+              "compared_values": 402,
+              "max_abs_error_dB": 7.817849999725013e-05,
+              "mean_abs_error_dB": 4.05659005013196e-06,
+              "worst_time_s": 16.6,
+              "worst_channel": 2,
+              "tolerance_dB": 0.001
+            },
+            "IEA_LB_RWT-AeroAcoustics_2.out": {
+              "rows": 201,
+              "channels": 68,
+              "compared_values": 13668,
+              "max_abs_error_dB": 0.00020574810000084653,
+              "mean_abs_error_dB": 5.309601753826007e-06,
+              "worst_time_s": 16.6,
+              "worst_channel": 53,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_3.out": {
+              "rows": 201,
+              "channels": 476,
+              "compared_values": 95676,
+              "max_abs_error_dB": 0.0008517038999968918,
+              "mean_abs_error_dB": 6.7941629863164925e-06,
+              "worst_time_s": 17.0,
+              "worst_channel": 243,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_4.out": {
+              "rows": 201,
+              "channels": 180,
+              "compared_values": 36180,
+              "max_abs_error_dB": 0.0007665902999995922,
+              "mean_abs_error_dB": 5.640247710700867e-06,
+              "worst_time_s": 18.5,
+              "worst_channel": 170,
+              "tolerance_dB": 0.05
+            }
+          },
+          "compared_values": 145926
+        },
+        "runtime": {
+          "solver": "standalone C++",
+          "dt": 0.00625,
+          "duration": 20,
+          "steps": 3200,
+          "acoustic_samples": 201,
+          "elapsed_seconds": 1.701843,
+          "structural_mode": "scaled",
+          "structural_iterations": 9632,
+          "structural_max_iterations": 4,
+          "structural_acceleration_evaluations": 57984,
+          "structural_jacobian_builds": 9696,
+          "structural_last_residual": 9.88488279516958e-14,
+          "structural_last_scaled_residual": 4.807265696626928e-05,
+          "zero_energy_encoding": "0 dB placeholder; see matching .mask (0=zero, 1=positive energy)",
+          "lookup_policy": "clamp",
+          "lookup_out_of_range_calls": 0,
+          "lookup_report": "lookup_diagnostics.csv"
+        }
+      },
+      "scaled_wind9": {
+        "fortran": {
+          "case": "IEA_LB_RWT-AeroAcoustics",
+          "comparison": "original Fortran versus standalone C++",
+          "files": {
+            "IEA_LB_RWT-AeroAcoustics_1.out": {
+              "rows": 201,
+              "channels": 2,
+              "compared_values": 402,
+              "max_abs_error_dB": 1.5829100000530616e-05,
+              "mean_abs_error_dB": 3.0547644278445306e-06,
+              "worst_time_s": 18.5,
+              "worst_channel": 2,
+              "tolerance_dB": 0.001
+            },
+            "IEA_LB_RWT-AeroAcoustics_2.out": {
+              "rows": 201,
+              "channels": 68,
+              "compared_values": 13668,
+              "max_abs_error_dB": 8.222400000335028e-05,
+              "mean_abs_error_dB": 3.6943544200687037e-06,
+              "worst_time_s": 0.6,
+              "worst_channel": 46,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_3.out": {
+              "rows": 201,
+              "channels": 476,
+              "compared_values": 95676,
+              "max_abs_error_dB": 0.00017699829999884287,
+              "mean_abs_error_dB": 3.49045675147183e-06,
+              "worst_time_s": 0.2,
+              "worst_channel": 243,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_4.out": {
+              "rows": 201,
+              "channels": 180,
+              "compared_values": 36180,
+              "max_abs_error_dB": 0.005636691599999466,
+              "mean_abs_error_dB": 3.792833241791234e-06,
+              "worst_time_s": 1.0,
+              "worst_channel": 116,
+              "tolerance_dB": 0.05
+            }
+          },
+          "compared_values": 145926
+        },
+        "runtime": {
+          "solver": "standalone C++",
+          "dt": 0.00625,
+          "duration": 20,
+          "steps": 3200,
+          "acoustic_samples": 201,
+          "elapsed_seconds": 1.6350433,
+          "structural_mode": "scaled",
+          "structural_iterations": 9640,
+          "structural_max_iterations": 4,
+          "structural_acceleration_evaluations": 58080,
+          "structural_jacobian_builds": 9720,
+          "structural_last_residual": 2.2475085662172783e-13,
+          "structural_last_scaled_residual": 0.00010734035188475488,
+          "zero_energy_encoding": "0 dB placeholder; see matching .mask (0=zero, 1=positive energy)",
+          "lookup_policy": "clamp",
+          "lookup_out_of_range_calls": 0,
+          "lookup_report": "lookup_diagnostics.csv"
+        }
+      },
+      "output_counts_1_to_4": "requested files byte-identical; unused files absent",
+      "tno_batch_api": "solver max_state_difference=5.973e-14 acceleration_evaluations reference=40320 scaled=22284\nP4-P7 API checks passed\n",
+      "invalid_cli_options": "passed"
+    },
+    "mkl_cli": {
+      "scaled_wind8": {
+        "fortran": {
+          "case": "IEA_LB_RWT-AeroAcoustics",
+          "comparison": "original Fortran versus standalone C++",
+          "files": {
+            "IEA_LB_RWT-AeroAcoustics_1.out": {
+              "rows": 201,
+              "channels": 2,
+              "compared_values": 402,
+              "max_abs_error_dB": 7.817849999725013e-05,
+              "mean_abs_error_dB": 4.05659005013196e-06,
+              "worst_time_s": 16.6,
+              "worst_channel": 2,
+              "tolerance_dB": 0.001
+            },
+            "IEA_LB_RWT-AeroAcoustics_2.out": {
+              "rows": 201,
+              "channels": 68,
+              "compared_values": 13668,
+              "max_abs_error_dB": 0.00020574810000084653,
+              "mean_abs_error_dB": 5.309601753826007e-06,
+              "worst_time_s": 16.6,
+              "worst_channel": 53,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_3.out": {
+              "rows": 201,
+              "channels": 476,
+              "compared_values": 95676,
+              "max_abs_error_dB": 0.0008517038999968918,
+              "mean_abs_error_dB": 6.7941629863164925e-06,
+              "worst_time_s": 17.0,
+              "worst_channel": 243,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_4.out": {
+              "rows": 201,
+              "channels": 180,
+              "compared_values": 36180,
+              "max_abs_error_dB": 0.0007665902999995922,
+              "mean_abs_error_dB": 5.640247710700867e-06,
+              "worst_time_s": 18.5,
+              "worst_channel": 170,
+              "tolerance_dB": 0.05
+            }
+          },
+          "compared_values": 145926
+        },
+        "runtime": {
+          "solver": "standalone C++",
+          "dt": 0.00625,
+          "duration": 20,
+          "steps": 3200,
+          "acoustic_samples": 201,
+          "elapsed_seconds": 1.8315921,
+          "structural_mode": "scaled",
+          "structural_iterations": 9632,
+          "structural_max_iterations": 4,
+          "structural_acceleration_evaluations": 57984,
+          "structural_jacobian_builds": 9696,
+          "structural_last_residual": 9.88488279516958e-14,
+          "structural_last_scaled_residual": 4.807265696626928e-05,
+          "zero_energy_encoding": "0 dB placeholder; see matching .mask (0=zero, 1=positive energy)",
+          "lookup_policy": "clamp",
+          "lookup_out_of_range_calls": 0,
+          "lookup_report": "lookup_diagnostics.csv"
+        }
+      },
+      "scaled_wind9": {
+        "fortran": {
+          "case": "IEA_LB_RWT-AeroAcoustics",
+          "comparison": "original Fortran versus standalone C++",
+          "files": {
+            "IEA_LB_RWT-AeroAcoustics_1.out": {
+              "rows": 201,
+              "channels": 2,
+              "compared_values": 402,
+              "max_abs_error_dB": 1.5829100000530616e-05,
+              "mean_abs_error_dB": 3.0547644278445306e-06,
+              "worst_time_s": 18.5,
+              "worst_channel": 2,
+              "tolerance_dB": 0.001
+            },
+            "IEA_LB_RWT-AeroAcoustics_2.out": {
+              "rows": 201,
+              "channels": 68,
+              "compared_values": 13668,
+              "max_abs_error_dB": 8.222400000335028e-05,
+              "mean_abs_error_dB": 3.6943544200687037e-06,
+              "worst_time_s": 0.6,
+              "worst_channel": 46,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_3.out": {
+              "rows": 201,
+              "channels": 476,
+              "compared_values": 95676,
+              "max_abs_error_dB": 0.00017699829999884287,
+              "mean_abs_error_dB": 3.49045675147183e-06,
+              "worst_time_s": 0.2,
+              "worst_channel": 243,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_4.out": {
+              "rows": 201,
+              "channels": 180,
+              "compared_values": 36180,
+              "max_abs_error_dB": 0.005636691599999466,
+              "mean_abs_error_dB": 3.792833241791234e-06,
+              "worst_time_s": 1.0,
+              "worst_channel": 116,
+              "tolerance_dB": 0.05
+            }
+          },
+          "compared_values": 145926
+        },
+        "runtime": {
+          "solver": "standalone C++",
+          "dt": 0.00625,
+          "duration": 20,
+          "steps": 3200,
+          "acoustic_samples": 201,
+          "elapsed_seconds": 1.7725508,
+          "structural_mode": "scaled",
+          "structural_iterations": 9640,
+          "structural_max_iterations": 4,
+          "structural_acceleration_evaluations": 58080,
+          "structural_jacobian_builds": 9720,
+          "structural_last_residual": 2.2475085662172783e-13,
+          "structural_last_scaled_residual": 0.00010734035188475488,
+          "zero_energy_encoding": "0 dB placeholder; see matching .mask (0=zero, 1=positive energy)",
+          "lookup_policy": "clamp",
+          "lookup_out_of_range_calls": 0,
+          "lookup_report": "lookup_diagnostics.csv"
+        }
+      },
+      "output_counts_1_to_4": "requested files byte-identical; unused files absent",
+      "tno_batch_api": "solver max_state_difference=5.973e-14 acceleration_evaluations reference=40320 scaled=22284\nP4-P7 API checks passed\n",
+      "invalid_cli_options": "passed"
+    },
+    "api_checks": "portable/MKL passed: full and blocked BPM/TNO, selected outputs, serial/parallel batches, failure isolation, checkpoints, invalid options",
+    "final_tno_recheck": "both backends: Fortran kernels, workspace equivalence, TNO batch API probe including TI methods 1/2 after constant caching",
+    "solver_matrix": {
+      "winds_m_s": [
+        8,
+        9
+      ],
+      "dt_s": [
+        0.003125,
+        0.00625,
+        0.0125
+      ],
+      "duration_per_case_s": 1,
+      "max_state_difference": 5.973e-14,
+      "reference_acceleration_evaluations": 40320,
+      "scaled_acceleration_evaluations": 22284
+    },
+    "existing_checks": "S1-S3 ownership/simulation/checkpoint; P1-P3 zero-allocation solver; 216 mechanism combinations; R1-R3 portable CLI and portable/MKL unit checks passed",
+    "thread_sanitizer": "configured in GitHub Actions; run conclusion recorded in delivery message"
+  },
+  "snapshot_payload_bytes": {
+    "official_full_two_observers": 251328,
+    "default_one_observer_block": 125664,
+    "sixteen_observer_full": 2010624
+  },
+  "aggregation_payload_bytes_output1": {
+    "before": 5808,
+    "after": 16
+  },
+  "timing": {
+    "baseline_commit": "fd193c7f9fb6b467e5f9f06c25e1b187f327691c",
+    "platform": "Windows-11-10.0.22621-SP0",
+    "logical_cpus": 16,
+    "rounds": 5,
+    "results": {
+      "bpm_2_observers": {
+        "seconds": {
+          "before": [
+            0.0194411,
+            0.0201565,
+            0.0199711,
+            0.0198749,
+            0.0201864
+          ],
+          "after": [
+            0.019869,
+            0.0205399,
+            0.020643,
+            0.0213789,
+            0.01994
+          ]
+        },
+        "median_seconds": {
+          "before": 0.0199711,
+          "after": 0.0205399
+        },
+        "speedup": 0.9723075574856742,
+        "clock": "C++ warmed loop"
+      },
+      "bpm_16_observers": {
+        "seconds": {
+          "before": [
+            0.0375987,
+            0.0385893,
+            0.043979,
+            0.0377657,
+            0.0385534
+          ],
+          "after": [
+            0.0390608,
+            0.0382979,
+            0.040679,
+            0.0427369,
+            0.0381699
+          ]
+        },
+        "median_seconds": {
+          "before": 0.0385534,
+          "after": 0.0390608
+        },
+        "speedup": 0.9870099946749683,
+        "clock": "C++ warmed loop"
+      },
+      "tno_2_observers": {
+        "seconds": {
+          "before": [
+            1.2437003,
+            1.1714248,
+            1.1426801,
+            1.1145541,
+            1.1144388
+          ],
+          "after": [
+            1.1165669,
+            1.1480479,
+            1.1193841,
+            1.094588,
+            1.1185951
+          ]
+        },
+        "median_seconds": {
+          "before": 1.1426801,
+          "after": 1.1185951
+        },
+        "speedup": 1.0215314728269416,
+        "clock": "C++ warmed loop"
+      },
+      "tno_16_observers": {
+        "seconds": {
+          "before": [
+            1.283283,
+            1.1491247,
+            1.1164312,
+            1.1314792,
+            1.152568
+          ],
+          "after": [
+            1.153443,
+            1.104668,
+            1.1345128,
+            1.1222036,
+            1.1320367
+          ]
+        },
+        "median_seconds": {
+          "before": 1.1491247,
+          "after": 1.1320367
+        },
+        "speedup": 1.0150949169757482,
+        "clock": "C++ warmed loop"
+      },
+      "full_case_output1": {
+        "seconds": {
+          "before": [
+            1.570076199946925,
+            1.5045812000753358,
+            1.4731632999610156,
+            1.4900891999714077,
+            1.5072884999681264
+          ],
+          "after": [
+            1.501021199976094,
+            1.6046295000705868,
+            1.4918706000316888,
+            1.4966697000199929,
+            1.499132699915208
+          ]
+        },
+        "median_seconds": {
+          "before": 1.5045812000753358,
+          "after": 1.499132699915208
+        },
+        "speedup": 1.0036344348705328,
+        "clock": "external wall clock"
+      },
+      "full_case_output4": {
+        "seconds": {
+          "before": [
+            1.6956852999283,
+            1.788142399978824,
+            1.7224327999865636,
+            1.629940600018017,
+            1.6260711000068113
+          ],
+          "after": [
+            1.7116807999555022,
+            1.6757661999436095,
+            1.6326440999982879,
+            1.5985496999928728,
+            1.647455499973148
+          ]
+        },
+        "median_seconds": {
+          "before": 1.6956852999283,
+          "after": 1.647455499973148
+        },
+        "speedup": 1.0292753278956173,
+        "clock": "external wall clock"
+      },
+      "structural_mode_full_case": {
+        "seconds": {
+          "reference": [
+            1.6308619999326766,
+            1.6594189999159425,
+            1.684563699993305,
+            1.6526532000862062,
+            1.6437446000054479
+          ],
+          "scaled": [
+            1.4935370000312105,
+            1.5458369000116363,
+            1.527763899997808,
+            1.5325161999789998,
+            1.4679279999108985
+          ]
+        },
+        "median_seconds": {
+          "reference": 1.6526532000862062,
+          "scaled": 1.527763899997808
+        },
+        "speedup": 1.0817464662495149,
+        "clock": "external wall clock"
+      },
+      "four_case_batch_workers": {
+        "seconds": {
+          "1": [
+            6.634325999999419,
+            6.448904999997467,
+            6.501683500013314,
+            6.840925599914044,
+            6.725188000011258
+          ],
+          "4": [
+            2.8847185999620706,
+            2.907059199991636,
+            2.6997440999839455,
+            2.852188999997452,
+            2.7940141999861225
+          ]
+        },
+        "median_seconds": {
+          "1": 6.634325999999419,
+          "4": 2.852188999997452
+        },
+        "speedup": 2.3260471167953267,
+        "clock": "external wall clock"
+      }
+    },
+    "executable_sha256": {
+      "before": "10f7783b4703f81297469c522d71b654d2426e6a7841790f7ccc14764f3a622f",
+      "after": "8376e627fe97e3021c64f15edd24d1b0bc4f53a70bf460b2366c978914f2e362"
+    },
+    "structural_diagnostics": {
+      "reference": {
+        "structural_mode": "reference",
+        "structural_iterations": 9600,
+        "structural_max_iterations": 3,
+        "structural_acceleration_evaluations": 115200,
+        "structural_jacobian_builds": 28800,
+        "structural_last_residual": 1.1683867387588975e-13,
+        "structural_last_scaled_residual": 5.5677684684951594e-05
+      },
+      "scaled": {
+        "structural_mode": "scaled",
+        "structural_iterations": 9632,
+        "structural_max_iterations": 4,
+        "structural_acceleration_evaluations": 57984,
+        "structural_jacobian_builds": 9696,
+        "structural_last_residual": 9.88488279516958e-14,
+        "structural_last_scaled_residual": 4.807265696626928e-05
+      }
+    },
+    "numerical_files": "byte-identical before/after and serial/parallel; scaled mode tested separately"
+  }
+}

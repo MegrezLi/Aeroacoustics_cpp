@@ -20,11 +20,13 @@ struct Simulation::Impl {
         : model(std::move(m)), options(o), config(model.data()), layout(model.data(), config),
           adapter(model.data(), config), acoustic(config.make_driver()), aggregator(layout),
           duration(o.duration.value_or(model.data().duration)) {
+        if (!options.observer_block_size)
+            throw std::invalid_argument("Observer block size must be positive");
         if (!std::isfinite(duration) || duration < 0)
             throw std::invalid_argument("Duration must be finite and nonnegative");
         lookup.policy = options.lookup_policy;
         diagnostics::LookupSession session(lookup);
-        solver.emplace(model);
+        solver.emplace(model, options.solver);
     }
 };
 Simulation::Simulation(TurbineModel m, RunOptions o) : impl_(std::make_unique<Impl>(std::move(m), o)) {}
@@ -58,10 +60,17 @@ std::optional<StepView> Simulation::next() {
         const auto &nodes =
             s.adapter.update(solver.aerodynamic(), solver.time(), s.acoustic.is_sample_time(solver.time()),
                              s.acoustic.first_node());
-        const auto *snapshot = s.acoustic.step_view(solver.time(), nodes);
+        if (s.acoustic.is_sample_time(solver.time()))
+            s.aggregator.begin();
+        const bool sampled = s.acoustic.step_blocks(
+            solver.time(), nodes,
+            [&](std::size_t first, const aeroacoustics::Snapshot &block) {
+                s.aggregator.append(solver.time(), first, block);
+            },
+            s.options.observer_block_size);
         const AcousticResult *result = nullptr;
-        if (snapshot) {
-            result = &s.aggregator.aggregate(solver.time(), *snapshot);
+        if (sampled) {
+            result = &s.aggregator.finish();
             ++s.samples;
         }
         s.started = true;
@@ -80,7 +89,8 @@ RunSummary Simulation::summary() const {
             std::chrono::duration<double>(std::chrono::steady_clock::now() - s.began).count(),
             s.solver->step_number(),
             s.samples,
-            s.lookup};
+            s.lookup,
+            s.solver->diagnostics()};
 }
 void Simulation::reset() {
     // Reset from the loaded configuration and tables; do not reopen input files.
@@ -90,7 +100,7 @@ void Simulation::reset() {
     fresh->lookup.policy = fresh->options.lookup_policy;
     diagnostics::LookupSession session(fresh->lookup);
     fresh->acoustic = fresh->config.make_driver();
-    fresh->solver.emplace(fresh->model);
+    fresh->solver.emplace(fresh->model, fresh->options.solver);
     fresh->started = fresh->finished = fresh->failed = false;
     fresh->samples = 0;
     impl_ = std::move(fresh);

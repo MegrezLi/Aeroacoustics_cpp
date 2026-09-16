@@ -5,6 +5,8 @@ namespace turbine {
 struct RunOptions {
     std::optional<double> duration;
     diagnostics::LookupPolicy lookup_policy = diagnostics::LookupPolicy::clamp;
+    std::size_t observer_block_size = 1;
+    SolverOptions solver;
 };
 class Simulation {
     friend RunSummary run(Simulation &, ResultSink &);

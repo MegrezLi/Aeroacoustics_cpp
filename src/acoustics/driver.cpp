@@ -229,6 +229,17 @@ bool AcousticDriver::is_sample_time(double time) const {
     return time >= start_ && phase < 1e-6;
 }
 const Snapshot *AcousticDriver::step_view(double time, const std::vector<std::vector<Node>> &blades) {
+    return advance(time, blades, {}, 0);
+}
+bool AcousticDriver::step_blocks(double time, const std::vector<std::vector<Node>> &blades,
+                                 const ObserverBlockCallback &consume, std::size_t block_size) {
+    require(bool(consume) && block_size > 0, "Invalid observer block request");
+    const bool sampling = is_sample_time(time);
+    advance(time, blades, consume, block_size);
+    return sampling;
+}
+const Snapshot *AcousticDriver::advance(double time, const std::vector<std::vector<Node>> &blades,
+                                        const ObserverBlockCallback &consume, std::size_t block_size) {
     require(std::isfinite(time) && time > last_time_, "Times must be finite and increasing");
     require(blades.size() == blades_, "Blade count mismatch");
     const bool sampling = is_sample_time(time);
@@ -259,8 +270,12 @@ const Snapshot *AcousticDriver::step_view(double time, const std::vector<std::ve
     }
     const Snapshot *result = nullptr;
     try {
-        if (sampling)
-            result = &workspace_.evaluate(selected_, observers_);
+        if (sampling) {
+            if (consume)
+                workspace_.evaluate_blocks(selected_, observers_, consume, block_size);
+            else
+                result = &workspace_.evaluate(selected_, observers_);
+        }
     } catch (const std::exception &e) {
         throw std::runtime_error("Acoustic time=" + std::to_string(time) + ": " + e.what());
     }

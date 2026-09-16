@@ -24,15 +24,11 @@ void exponential(const Spectrum &x, Spectrum &y) {
 } // namespace
 detail::TnoWorkspace::TnoWorkspace()
     : wave(61), height(61), factor(61 * 61), gauss(61 * 61), decay(61 * 61), exp_gauss(61 * 61),
-      exp_decay(61 * 61), pressure(61) {}
-double detail::integrate_tno(double omega, double lower, double upper, bool suction, double mach,
-                             const BoundaryLayer &bl, const Parameters &p, TnoWorkspace &work) {
-    const int side = suction ? 0 : 1;
-    const double cf = bl.cf[side], delta = bl.d99[side];
-    const double uo = mach * p.spdsound * std::abs(bl.edge_velocity_ratio[side]);
-    if (cf <= 0 || delta <= 0 || uo <= 0)
-        throw std::invalid_argument("TNO needs positive Cf, delta and edge speed");
-    static const auto quadrature = [] {
+      exp_decay(61 * 61), pressure(61), ke(61), uc(61), ag(61), amplitude(61), denominator(61),
+      normalization(61) {}
+namespace {
+const std::array<Spectrum, 2> &quadrature_rule() {
+    static const auto rule = [] {
         std::array<Spectrum, 2> rule{Spectrum(61), Spectrum(61)};
         for (int i = 0; i < 30; ++i) {
             rule[0][i] = -xgk[i];
@@ -43,13 +39,19 @@ double detail::integrate_tno(double omega, double lower, double upper, bool suct
         rule[1][30] = wgk[30];
         return rule;
     }();
-    const auto &nodes = quadrature[0], &weights = quadrature[1];
-    auto &wave = work.wave, &x2 = work.height, &factor = work.factor, &gauss = work.gauss,
-         &decay = work.decay;
-    for (int i = 0; i < 61; ++i) {
-        wave[i] = (lower + upper) / 2 + (upper - lower) / 2 * nodes[i];
-        x2[i] = delta / 2 * (1 + nodes[i]);
-    }
+    return rule;
+}
+void prepare_profile(bool suction, double mach, const BoundaryLayer &bl, const Parameters &p,
+                     detail::TnoWorkspace &work) {
+    const int side = suction ? 0 : 1;
+    const double cf = bl.cf[side], delta = bl.d99[side];
+    const double uo = mach * p.spdsound * std::abs(bl.edge_velocity_ratio[side]);
+    if (cf <= 0 || delta <= 0 || uo <= 0)
+        throw std::invalid_argument("TNO needs positive Cf, delta and edge speed");
+    const auto &nodes = quadrature_rule()[0];
+    auto &x2 = work.height;
+    for (int j = 0; j < 61; ++j)
+        x2[j] = delta / 2 * (1 + nodes[j]);
     const double alpha = suction ? .45 : .30, kappa = .41, cmu = .09, cnuk = 5.5;
     const double ustar = uo * std::sqrt(cf / 2.);
     const double wf = uo / ustar - std::log(ustar * delta / p.kinvisc) / kappa - cnuk;
@@ -62,11 +64,28 @@ double detail::integrate_tno(double omega, double lower, double upper, bool suct
         const double nut = std::pow(length * kappa, 2) * std::abs(grad);
         const double ums = alpha * std::sqrt(std::pow(nut * grad, 2) / cmu), uc = .7 * u,
                      ag = .05 * uc / length;
-        for (int i = 0; i < 61; ++i) {
+        work.ke[j] = ke;
+        work.uc[j] = uc;
+        work.ag[j] = ag;
+        // Preserve the original multiplication/division grouping when caching constants.
+        work.amplitude[j] = length * ums * grad * grad;
+        work.denominator[j] = ag * std::sqrt(pi);
+        work.normalization[j] = 4. / 9. / pi / (ke * ke);
+    }
+}
+double integrate_profile(double omega, double lower, double upper, double delta, const Parameters &p,
+                         detail::TnoWorkspace &work) {
+    const auto &quadrature = quadrature_rule();
+    const auto &nodes = quadrature[0], &weights = quadrature[1];
+    auto &wave = work.wave, &factor = work.factor, &gauss = work.gauss, &decay = work.decay;
+    for (int i = 0; i < 61; ++i) {
+        wave[i] = (lower + upper) / 2 + (upper - lower) / 2 * nodes[i];
+        for (int j = 0; j < 61; ++j) {
+            const double x = work.height[j], ke = work.ke[j], uc = work.uc[j], ag = work.ag[j];
             const int idx = i * 61 + j;
             const double kh = wave[i] / ke;
-            const double phi22 = 4. / 9. / pi / (ke * ke) * (kh * kh) / std::pow(1 + kh * kh, 7. / 3.);
-            factor[idx] = length * ums * grad * grad * phi22 / (ag * std::sqrt(pi));
+            const double phi22 = work.normalization[j] * (kh * kh) / std::pow(1 + kh * kh, 7. / 3.);
+            factor[idx] = work.amplitude[j] * phi22 / work.denominator[j];
             gauss[idx] = -std::pow((omega - uc * wave[i]) / ag, 2);
             decay[idx] = -2 * std::abs(wave[i]) * x;
         }
@@ -90,21 +109,36 @@ double detail::integrate_tno(double omega, double lower, double upper, bool suct
         pressure[i] *= 4 * p.airdens * p.airdens * delta / 2 * omega / p.spdsound / wave[i];
     return dot(weights, pressure) * (upper - lower) / 2;
 }
+} // namespace
+double detail::integrate_tno(double omega, double lower, double upper, bool suction, double mach,
+                             const BoundaryLayer &bl, const Parameters &p, TnoWorkspace &work) {
+    prepare_profile(suction, mach, bl, p, work);
+    return integrate_profile(omega, lower, upper, bl.d99[suction ? 0 : 1], p, work);
+}
 
 void detail::prepare_tno(const Parameters &p, const Section &s, TnoWorkspace &work, TnoSource &out) {
     out.mach = s.speed / p.spdsound;
     out.span = s.span;
-    const double ratio = std::pow(2., 1. / 3.);
-    out.bandwidth.resize(p.freqlist.size());
+    if (work.frequencies != p.freqlist) {
+        work.frequencies = p.freqlist;
+        work.bandwidth.resize(p.freqlist.size());
+        const double ratio = std::pow(2., 1. / 3.);
+        for (std::size_t i = 0; i < p.freqlist.size(); ++i) {
+            const double omega = 2 * pi * p.freqlist[i];
+            work.bandwidth[i] = 2 * omega * (std::sqrt(ratio) - 1 / std::sqrt(ratio));
+        }
+    }
+    out.bandwidth = work.bandwidth;
     for (int side = 0; side < 2; ++side) {
         out.active[side] = s.bl.cf[side] > 0;
         out.integral[side].resize(p.freqlist.size());
+        if (out.active[side])
+            prepare_profile(side == 0, out.mach, s.bl, p, work);
         for (std::size_t i = 0; i < p.freqlist.size(); ++i) {
             const double omega = 2 * pi * p.freqlist[i];
-            out.bandwidth[i] = 2 * omega * (std::sqrt(ratio) - 1 / std::sqrt(ratio));
-            out.integral[side][i] = out.active[side] ? integrate_tno(omega, 0, 10 * omega / s.speed,
-                                                                     side == 0, out.mach, s.bl, p, work)
-                                                     : 0.;
+            out.integral[side][i] =
+                out.active[side] ? integrate_profile(omega, 0, 10 * omega / s.speed, s.bl.d99[side], p, work)
+                                 : 0.;
         }
     }
 }

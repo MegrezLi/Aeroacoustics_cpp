@@ -26,14 +26,16 @@
 | `interfaces/` | [c_api.cpp](interfaces/c_api.cpp) | 对外 C ABI、错误与调用状态 |
 | `turbine/simulation/` | [simulation.cpp](turbine/simulation/simulation.cpp) | 完整仿真调度、重置和检查点 |
 | | [acoustic_adapter.cpp](turbine/simulation/acoustic_adapter.cpp) | 声学配置装配、气动状态到声学节点的转换 |
-| | [results.cpp](turbine/simulation/results.cpp) | 通道布局和声能聚合 |
+| | [results.cpp](turbine/simulation/results.cpp) | 按输出需求分配通道、分块聚合声能 |
+| | [batch.cpp](turbine/simulation/batch.cpp) | 独立工况线程调度、输出路径冲突检查和逐项错误 |
 | | [file_output.cpp](turbine/simulation/file_output.cpp) | 标准文件输出及失败状态 |
 | `apps/` | [section_main.cpp](apps/section_main.cpp) | 单截面频谱示例入口 |
 | | [turbine_main.cpp](apps/turbine_main.cpp) | 整机命令行参数解析及运行入口 |
+| | [batch_main.cpp](apps/batch_main.cpp) | 批量工况命令行入口 |
 
 `apps/turbine_main.cpp` 调用 `run_case()`；`Simulation` 通过适配器、声学驱动及聚合器处理各时间步，结果交给 `ResultSink`。整机求解器负责协调气动、结构与网格传递；声学模型调用数值积分和后端计算。
 
-声学主路径为 `AcousticDriver::step_view()` → `AcousticWorkspace::evaluate()`。每个采样时刻先对各节点调用 `prepare_section()`，再按观察点调用 `emit_section()`。各模型的 `prepare_*()` 计算与观察点无关的谱形，`emit_*()` 施加距离和指向性。源码调用链见 [工作流](../aeroacoustics工作流.md)，性能和数值检查见 [优化记录](../docs/optimization.md)。
+声学主路径为 `AcousticDriver::step_blocks()` → `AcousticWorkspace::evaluate_blocks()` → `AcousticAggregator::append()`。每个采样时刻先对各节点调用 `prepare_section()`，再按观察点调用 `emit_section()`。各模型的 `prepare_*()` 计算与观察点无关的谱形，`emit_*()` 施加距离和指向性。源码调用链见 [工作流](../aeroacoustics工作流.md)，性能和数值检查见 [P4–P7 说明](../docs/performance-p4-p7.md)。完整快照接口仍保留。
 
 可靠性辅助接口位于 `include/`：[acoustic_levels.hpp](../include/acoustic_levels.hpp) 区分静音与非法声级；[checked_output.hpp](../include/checked_output.hpp) 检查输出生命周期；[lookup_diagnostics.hpp](../include/lookup_diagnostics.hpp) 提供显式、线程局部的查表诊断会话。掩码、报告和严格模式见 [R1–R3 说明](../docs/reliability.md)。
 
@@ -42,7 +44,7 @@
 - 根目录 `CMakeLists.txt`：构建开关、编译标准、MKL 查找和输出位置。
 - [CMakeLists.txt](CMakeLists.txt)：声学静态库及动态库的共用源文件清单。
 - [turbine/CMakeLists.txt](turbine/CMakeLists.txt)：整机模块库。
-- [apps/CMakeLists.txt](apps/CMakeLists.txt)：两个可执行程序。
+- [apps/CMakeLists.txt](apps/CMakeLists.txt)：截面、整机和批量三个可执行程序。
 - 根目录 `tests/CMakeLists.txt`：数值对照探针。
 
 公开头文件路径、构建目标名称及可执行文件位置保持兼容。原有 `section_spectrum()`、`snapshot_spectrum()` 和返回独立快照的 `AcousticDriver::step()` 仍可使用；连续计算可使用复用缓冲区的接口。构建及运行命令见根目录 README。

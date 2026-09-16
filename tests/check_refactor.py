@@ -16,10 +16,11 @@ def main():
     p.add_argument('before', type=Path)
     p.add_argument('after', type=Path)
     p.add_argument('output', type=Path)
+    p.add_argument('--baseline-commit', default='2d7fda532b389371a854c49daad9e96282c938b1')
     args = p.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     executables = {'before': args.before.resolve(), 'after': args.after.resolve()}
-    result = {'baseline_commit': '2d7fda532b389371a854c49daad9e96282c938b1',
+    result = {'baseline_commit': args.baseline_commit,
               'executables_sha256': {k: hashlib.sha256(v.read_bytes()).hexdigest() for k, v in executables.items()},
               'cases': {}}
     for name, key, value, duration in [('official8', None, None, 20), ('wind9', 'HWindSpeed', '9', 20),
@@ -46,6 +47,9 @@ def main():
             if f.name == 'run.json':
                 a, b = [json.loads((folder / version / f.name).read_text()) for version in executables]
                 a.pop('elapsed_seconds'); b.pop('elapsed_seconds')
+                # Newly added diagnostic counters do not change numerical output.
+                a = {k: v for k, v in a.items() if not k.startswith('structural_')}
+                b = {k: v for k, v in b.items() if not k.startswith('structural_')}
                 assert a == b, (name, 'runtime metadata')
                 continue
             before, after = f.read_bytes(), (folder / 'after' / f.name).read_bytes()
