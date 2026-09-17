@@ -7,6 +7,21 @@ OutputLayout::OutputLayout(const Case &c, const AcousticConfiguration &config)
       output_count(c.acoustic.integer("NrOutFile")), blades(config.blades), nodes(config.span.size()),
       first(aeroacoustics::blade_elements(config.span, config.blade_percent).first),
       observers(config.observers.size()), frequencies(parameters.freqlist.size()) {
+    const auto configuration = configure_modules(c);
+    module_profile = configuration.profile;
+    const auto layout = structural_dof_layout(configuration);
+    dofs = layout.dofs();
+    coupling_blocks = layout.blocks();
+    for (const auto &block : layout.blocks())
+        for (bool velocity : {false, true})
+            for (std::size_t i = block.offset; i < block.offset + block.size; ++i)
+                dynamics.push_back({i, velocity,
+                                    std::string(velocity ? "qd" : "q") +
+                                        (dofs[i].output_stem.empty() ? dofs[i].name : dofs[i].output_stem)});
+    acoustic_metadata =
+        std::make_shared<const aeroacoustics::AcousticMetadata>(aeroacoustics::AcousticMetadata{
+            aeroacoustics::FrequencyBands::openfast_reference(parameters.freqlist),
+            parameters.aweighting ? aeroacoustics::Weighting::a : aeroacoustics::Weighting::unweighted});
     if (output_count < 1 || output_count > 4)
         throw std::invalid_argument("NrOutFile must be between 1 and 4");
     for (std::size_t o = 0; o < observers; ++o) {
@@ -23,7 +38,7 @@ OutputLayout::OutputLayout(const Case &c, const AcousticConfiguration &config)
             }
     }
     if (output_count >= 4)
-        for (int b = 1; b <= 3; ++b)
+        for (std::size_t b = 1; b <= blades; ++b)
             for (std::size_t j = 0; j < nodes; ++j)
                 for (std::size_t o = 0; o < observers; ++o)
                     labels[3].push_back("Blade" + std::to_string(b) + "_Node" + std::to_string(j + 1) +
@@ -31,6 +46,12 @@ OutputLayout::OutputLayout(const Case &c, const AcousticConfiguration &config)
 }
 AcousticAggregator::AcousticAggregator(OutputLayout layout) : layout_(std::move(layout)) {
     const auto &l = layout_;
+    if (l.frequencies != l.parameters.freqlist.size())
+        throw std::invalid_argument("Aggregation frequency metadata mismatch");
+    result_.metadata =
+        std::make_shared<const aeroacoustics::AcousticMetadata>(aeroacoustics::AcousticMetadata{
+            aeroacoustics::FrequencyBands::openfast_reference(l.parameters.freqlist),
+            l.parameters.aweighting ? aeroacoustics::Weighting::a : aeroacoustics::Weighting::unweighted});
     if (l.first >= l.nodes || !l.blades || !l.observers || !l.frequencies)
         throw std::invalid_argument("Invalid aggregation layout");
     if (l.output_count < 1 || l.output_count > 4)

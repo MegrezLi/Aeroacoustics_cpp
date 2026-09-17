@@ -27,6 +27,8 @@ struct Simulation::Impl {
         lookup.policy = options.lookup_policy;
         diagnostics::LookupSession session(lookup);
         solver.emplace(model, options.solver);
+        layout.dofs = solver->layout().dofs();
+        layout.coupling_blocks = solver->layout().blocks();
     }
 };
 Simulation::Simulation(TurbineModel m, RunOptions o) : impl_(std::make_unique<Impl>(std::move(m), o)) {}
@@ -74,7 +76,7 @@ std::optional<StepView> Simulation::next() {
             ++s.samples;
         }
         s.started = true;
-        return StepView{solver.time(), solver.state(), result};
+        return StepView{solver.time(), solver.state(), result, &solver.generalized_state()};
     } catch (...) {
         s.failed = true;
         throw;

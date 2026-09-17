@@ -6,6 +6,9 @@ set(turbine_sources
   coupling/mesh.cpp
   coupling/rotor.cpp
   coupling/solver.cpp
+  coupling/integrator.cpp
+  coupling/modules.cpp
+  coupling/structural_adapter.cpp
   simulation/acoustic_adapter.cpp
   simulation/results.cpp
   simulation/file_output.cpp

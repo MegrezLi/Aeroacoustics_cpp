@@ -8,6 +8,7 @@ set(acoustic_sources
   acoustics/inflow_noise.cpp
   acoustics/kernel_compat.cpp
   acoustics/tno.cpp
+  acoustics/quantities.cpp
   acoustics/spectrum.cpp
   acoustics/workspace.cpp
   acoustics/geometry.cpp

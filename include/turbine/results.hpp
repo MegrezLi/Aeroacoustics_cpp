@@ -3,8 +3,18 @@
 #include "turbine/acoustic_adapter.hpp"
 #include "turbine/solver.hpp"
 namespace turbine {
+struct DynamicsChannel {
+    std::size_t dof;
+    bool velocity;
+    std::string name;
+};
 struct OutputLayout {
+    std::vector<DynamicsChannel> dynamics;
+    std::vector<DofDescriptor> dofs;
+    std::vector<DofBlock> coupling_blocks;
+    std::string module_profile;
     aeroacoustics::Parameters parameters;
+    std::shared_ptr<const aeroacoustics::AcousticMetadata> acoustic_metadata;
     std::array<std::vector<std::string>, 4> labels;
     std::string prefix;
     int output_count;
@@ -14,6 +24,7 @@ struct OutputLayout {
 struct AcousticResult {
     // Relative mean-square pressure, not dB. Order: total, bands, mechanisms, nodes.
     std::array<std::vector<double>, 4> power;
+    std::shared_ptr<const aeroacoustics::AcousticMetadata> metadata;
 };
 class AcousticAggregator {
     OutputLayout layout_;
@@ -30,7 +41,8 @@ class AcousticAggregator {
 struct StepView {
     double time;
     const RotorState &state;
-    const AcousticResult *acoustics; // null on non-sampling steps
+    const AcousticResult *acoustics;               // null on non-sampling steps
+    const SecondOrderState *generalized = nullptr; // borrowed; legacy state view remains available
 };
 struct RunSummary {
     double dt, duration, elapsed_seconds;

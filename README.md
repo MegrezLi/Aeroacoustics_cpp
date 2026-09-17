@@ -34,7 +34,7 @@ cmake --build build -j 4
 | `IEA_LB_RWT-AeroAcoustics_3.out` | 各频带的 7 类声源分量 |
 | `IEA_LB_RWT-AeroAcoustics_4.out` | 各叶片、节点对观察点的声级贡献 |
 | `dynamics.csv` | 每个时间步的 9 个模态位移和速度 |
-| `run.json` | 步长、运行时长、采样次数、结构求解模式与收敛统计 |
+| `run.json` | 运行统计、频带与计权、参考声压、模块配置及自由度布局 |
 | 同名 `.mask` | 与每份 `.out` 对应：0 表示零声能占位，1 表示有效正声能 |
 | `lookup_diagnostics.csv` | 按表格、坐标轴、叶片、节点和调用阶段统计查表超界 |
 
@@ -92,6 +92,8 @@ Windows 将 `.so` 换成 `libaeroacoustics_shared.dll`，并给可执行文件�
 
 S1–S3 重构还集中管理了七类声源和模型替代关系。命令行及标准输出格式保持不变；原先直接读取 `solver.state`、`solver.time` 的 C++ 调用需改为 `state()`、`time()` 等只读访问器。示例、检查点范围和迁移表见 [仿真接口说明](docs/simulation-api.md)。
 
+声学接口明确区分 PSD、频带均方声压、声压级与声功率，保存频带上下限和计权状态；整机聚合拒绝将任意密集频率样本作为独立频带累加。A 计权输出标题为 dBA。通用广义 α 积分器按具名自由度与耦合块求解，当前三叶片后端通过加速度接口接入。接口、频带约定和扩展边界见 [S4–S5 说明](docs/semantics-modules.md)。
+
 ## 批量运行与求解选项
 
 独立工况可通过 C++ 线程并行运行，输出目录必须互不重叠：
@@ -147,6 +149,8 @@ src/
 输入参数与模块调用顺序见 [aeroacoustics 工作流](aeroacoustics工作流.md)，目录职责及源文件索引见 [src/README.md](src/README.md)。公开头文件仍位于 `include/`。
 
 - `include/turbine/batch.hpp`：独立工况并行与逐项运行结果。
+- `include/turbine/integrator.hpp`、`include/turbine/modules.hpp`：通用积分器、自由度布局和模块组合校验。
+- `include/acoustic_quantities.hpp`：频带、声学量类型与单位换算。
 - `include/turbine/simulation.hpp`：整机库接口、逐步运行与进程内检查点。
 - `include/mechanisms.hpp`：声源机制、标准通道顺序及单位。
 - `include/aeroacoustics.hpp`、`include/aeroacoustics_c.h`：声学库 C++ 接口与 C ABI。

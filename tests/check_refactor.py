@@ -47,6 +47,8 @@ def main():
             if f.name == 'run.json':
                 a, b = [json.loads((folder / version / f.name).read_text()) for version in executables]
                 a.pop('elapsed_seconds'); b.pop('elapsed_seconds')
+                a.pop('acoustic_metadata', None); b.pop('acoustic_metadata', None)
+                a.pop('module_configuration', None); b.pop('module_configuration', None)
                 # Newly added diagnostic counters do not change numerical output.
                 a = {k: v for k, v in a.items() if not k.startswith('structural_')}
                 b = {k: v for k, v in b.items() if not k.startswith('structural_')}

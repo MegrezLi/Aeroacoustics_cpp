@@ -12,6 +12,22 @@ std::string csv_text(const std::string &s) {
     }
     return result + '"';
 }
+std::string json_text(const std::string &s) {
+    constexpr char hex[] = "0123456789abcdef";
+    std::string result = "\"";
+    for (unsigned char c : s) {
+        if (c == '"' || c == '\\') {
+            result += '\\';
+            result += c;
+        } else if (c < 32) {
+            result += "\\u00";
+            result += hex[c >> 4];
+            result += hex[c & 15];
+        } else
+            result += c;
+    }
+    return result + '"';
+}
 
 } // namespace
 FileOutput::FileOutput(std::filesystem::path directory) : directory_(std::move(directory)) {
@@ -31,8 +47,10 @@ void FileOutput::begin(const OutputLayout &layout) {
 void FileOutput::begin_output(const OutputLayout &layout) {
     if (layout_)
         throw std::logic_error("Output already initialized");
-    if (layout.output_count < 1 || layout.output_count > 4 || layout.blades != 3)
+    if (layout.output_count < 1 || layout.output_count > 4 || !layout.blades)
         throw std::invalid_argument("Invalid output layout");
+    if (!layout.acoustic_metadata)
+        throw std::invalid_argument("Missing acoustic metadata");
     layout_ = layout;
     const auto &labels = layout.labels;
     const auto &prefix = layout.prefix;
@@ -52,19 +70,14 @@ void FileOutput::begin_output(const OutputLayout &layout) {
             outputs_[k] << '\t' << label;
         outputs_[k] << "\n(s)";
         for (std::size_t j = 0; j < labels[k].size(); ++j)
-            outputs_[k] << "\t("
-                        << (k == 2
-                                ? aeroacoustics::mechanism_registry[j % aeroacoustics::mechanism_count].unit
-                                : "dB")
-                        << ')';
+            outputs_[k] << "\t(" << layout.acoustic_metadata->level_unit() << ')';
         outputs_[k] << '\n' << std::setprecision(12);
     }
     dynamics_.open(directory_ / "dynamics.csv");
     lookup_output_.open(directory_ / "lookup_diagnostics.csv");
     dynamics_ << std::setprecision(17) << "time";
-    for (int b = 1; b <= 3; ++b)
-        dynamics_ << ",q" << b << "_flap1,q" << b << "_flap2,q" << b << "_edge,qd" << b << "_flap1,qd" << b
-                  << "_flap2,qd" << b << "_edge";
+    for (const auto &channel : layout.dynamics)
+        dynamics_ << ',' << channel.name;
     dynamics_ << '\n';
 }
 void FileOutput::write(const StepView &frame) {
@@ -86,13 +99,32 @@ void FileOutput::write_step(const StepView &frame) {
     const auto output_count = layout_->output_count;
     const auto &labels = layout_->labels;
     dynamics_ << frame.time;
-    for (const auto &s : frame.state)
-        for (const auto &v : {s.q, s.qd})
-            for (double x : v)
-                dynamics_ << ',' << x;
+    if (frame.generalized) {
+        if (frame.generalized->q.size() != layout_->dofs.size() ||
+            frame.generalized->qd.size() != layout_->dofs.size())
+            throw std::invalid_argument("Generalized output state shape mismatch");
+        for (const auto &channel : layout_->dynamics) {
+            const auto &values = channel.velocity ? frame.generalized->qd : frame.generalized->q;
+            dynamics_ << ',' << values.at(channel.dof);
+        }
+    } else {
+        // Compatibility for callers constructing the original three-field StepView.
+        if (layout_->dofs.size() != FixedBaseBladeBackend::blades * FixedBaseBladeBackend::modes_per_blade)
+            throw std::invalid_argument("Legacy state view requires the fixed-base layout");
+        for (const auto &channel : layout_->dynamics) {
+            const auto &state = frame.state.at(channel.dof / FixedBaseBladeBackend::modes_per_blade);
+            dynamics_ << ','
+                      << (channel.velocity ? state.qd : state.q)
+                             .at(channel.dof % FixedBaseBladeBackend::modes_per_blade);
+        }
+    }
     dynamics_ << '\n';
 
     if (frame.acoustics) {
+        const auto &metadata = frame.acoustics->metadata;
+        if (!metadata || metadata->weighting != layout_->acoustic_metadata->weighting ||
+            !metadata->bands.same_as(layout_->acoustic_metadata->bands))
+            throw std::invalid_argument("Output acoustic quantity/weighting/bands mismatch");
         const auto &values = frame.acoustics->power;
         for (int k = 0; k < output_count; ++k)
             if (values[k].size() != labels[k].size())
@@ -166,7 +198,44 @@ void FileOutput::finish_output(const RunSummary &summary) {
               << ",\n  \"lookup_policy\": \""
               << (lookup.policy == diagnostics::LookupPolicy::error ? "error" : "clamp")
               << "\",\n  \"lookup_out_of_range_calls\": " << lookup.calls
-              << ",\n  \"lookup_report\": \"lookup_diagnostics.csv\"\n}\n";
+              << ",\n  \"lookup_report\": \"lookup_diagnostics.csv\",\n  \"acoustic_metadata\": {\n";
+    const auto &acoustic = *layout_->acoustic_metadata;
+    metadata_
+        << "    \"linear_quantity\": \"" << acoustic.linear_quantity()
+        << "\",\n    \"level_quantity\": \"sound_pressure_level\",\n    \"reference_pressure_Pa\": 0.00002,\n"
+        << "    \"weighting\": \"" << (acoustic.weighting == aeroacoustics::Weighting::a ? "A" : "unweighted")
+        << "\",\n    \"frequency_unit\": \"Hz\",\n"
+        << "    \"band_definition\": \"binary third-octave edges; OpenFAST nominal evaluation centers\",\n"
+        << "    \"tno_bandwidth_convention\": \"OpenFAST legacy multiplier; not SI Hz bandwidth\",\n"
+        << "    \"bands_center_lower_upper_Hz\": [";
+    bool comma = false;
+    for (const auto &b : acoustic.bands.values()) {
+        if (comma)
+            metadata_ << ',';
+        comma = true;
+        metadata_ << '[' << b.center_hz << ',' << b.lower_hz << ',' << b.upper_hz << ']';
+    }
+    metadata_ << "]\n  },\n  \"module_configuration\": {\"profile\": " << json_text(layout_->module_profile)
+              << ", \"dof_count\": " << layout_->dofs.size()
+              << ", \"integrator\": \"generalized_alpha\", \"dofs\": [";
+    comma = false;
+    for (const auto &d : layout_->dofs) {
+        if (comma)
+            metadata_ << ',';
+        comma = true;
+        metadata_ << "{\"name\":" << json_text(d.name) << ",\"unit\":" << json_text(d.unit)
+                  << ",\"acceleration_scale\":" << d.acceleration_scale << '}';
+    }
+    metadata_ << "], \"coupling_blocks\": [";
+    comma = false;
+    for (const auto &b : layout_->coupling_blocks) {
+        if (comma)
+            metadata_ << ',';
+        comma = true;
+        metadata_ << "{\"name\":" << json_text(b.name) << ",\"offset\":" << b.offset << ",\"size\":" << b.size
+                  << '}';
+    }
+    metadata_ << "]}\n}\n";
     metadata_.finish();
 
     finished_ = true;

@@ -122,10 +122,8 @@ void detail::prepare_tno(const Parameters &p, const Section &s, TnoWorkspace &wo
     if (work.frequencies != p.freqlist) {
         work.frequencies = p.freqlist;
         work.bandwidth.resize(p.freqlist.size());
-        const double ratio = std::pow(2., 1. / 3.);
         for (std::size_t i = 0; i < p.freqlist.size(); ++i) {
-            const double omega = 2 * pi * p.freqlist[i];
-            work.bandwidth[i] = 2 * omega * (std::sqrt(ratio) - 1 / std::sqrt(ratio));
+            work.bandwidth[i] = reference_tno_bandwidth(p.freqlist[i]).value;
         }
     }
     out.bandwidth = work.bandwidth;

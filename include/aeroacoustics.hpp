@@ -1,4 +1,5 @@
 #pragma once
+#include "acoustic_quantities.hpp"
 #include "mechanisms.hpp"
 #include <array>
 #include <functional>
@@ -16,9 +17,7 @@ using Mechanisms = std::array<Spectrum, mechanism_count>;
 using Vec3 = std::array<double, 3>;
 using Mat3 = std::array<double, 9>; // row-major global-to-local
 struct Parameters {
-    Spectrum freqlist = {10,   12.5, 16,   20,   25,   31.5, 40,    50,    63,    80,   100,  125,
-                         160,  200,  250,  315,  400,  500,  630,   800,   1000,  1250, 1600, 2000,
-                         2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000};
+    Spectrum freqlist{openfast_centers_hz.begin(), openfast_centers_hz.end()};
     double spdsound = 340., kinvisc = 1.48e-5, airdens = 1.225, lturb = 40., alprat = 1., ti = .1, avgv = 8.;
     int x_blmethod = 1, itrip = 1, timod = 1, tbltemod = 1, lammod = 0, tipmod = 0, bluntmod = 0;
     bool round = true, aweighting = false;
@@ -144,7 +143,11 @@ QuadratureResult qk61(const std::function<double(double)> &, double lower, doubl
 double dot(const Spectrum &, const Spectrum &);
 Spectrum a_weighting(const Spectrum &);
 double db_sum(const Spectrum &);
+// Legacy raw kernel samples. Arbitrary increasing frequencies remain accepted here;
+// they do not establish non-overlapping bands or a PSD definition.
 Mechanisms section_spectrum(const Parameters &, const Section &);
+std::array<BandSoundPressureLevel, mechanism_count> band_section_spectrum(const Parameters &,
+                                                                          const Section &);
 std::pair<Spectrum, Spectrum> tblte_tno(double speed, double theta, double phi, double span, double distance,
                                         const BoundaryLayer &, const Parameters &);
 double spl_integrate(double, double, double, bool, double, const BoundaryLayer &, const Parameters &);

@@ -11,6 +11,7 @@
 | | [inflow_noise.cpp](acoustics/inflow_noise.cpp) | Lowson 入流噪声和 Simplified Guidati 修正 |
 | | [tno.cpp](acoustics/tno.cpp) | TNO 尾缘噪声与模型积分装配 |
 | | [spectrum.cpp](acoustics/spectrum.cpp) | 参数检查、声源准备与观察点频谱装配、A 计权和声能叠加工具 |
+| | [quantities.cpp](acoustics/quantities.cpp) | 频带边界、PSD 积分、声压/声功率换算、计权与频带合并 |
 | | [workspace.cpp](acoustics/workspace.cpp)、[source_models.hpp](acoustics/source_models.hpp) | 跨观察点共享声源计算，复用频谱与 TNO 积分缓冲区；内部模型数据类型 |
 | | [kernel_compat.cpp](acoustics/kernel_compat.cpp) | 原标量函数接口的适配，用于直接调用及 Fortran 公式对照 |
 | | [geometry.cpp](acoustics/geometry.cpp) | 观察点与叶片前后缘坐标变换 |
@@ -21,7 +22,10 @@
 | `turbine/structure/` | [blade_dynamics.cpp](turbine/structure/blade_dynamics.cpp) | 叶片模态、运动学、广义载荷与加速度 |
 | `turbine/coupling/` | [mesh.cpp](turbine/coupling/mesh.cpp) | 气动和结构网格的运动、载荷传递 |
 | | [rotor.cpp](turbine/coupling/rotor.cpp) | 叶素状态、气动力和转子装配 |
-| | [solver.cpp](turbine/coupling/solver.cpp) | 广义 α 时间推进及结构迭代 |
+| | [solver.cpp](turbine/coupling/solver.cpp) | UA、BEM、结构的推进顺序和完整求解状态 |
+| | [integrator.cpp](turbine/coupling/integrator.cpp) | 按自由度布局执行广义 α 与 Newton 迭代 |
+| | [structural_adapter.cpp](turbine/coupling/structural_adapter.cpp) | 当前三叶片结构后端的加速度接口 |
+| | [modules.cpp](turbine/coupling/modules.cpp) | 模块能力表、组合校验和结构布局工厂 |
 | `turbine/io/` | [case_input.cpp](turbine/io/case_input.cpp) | 输入解析、配置检查、翼型表及稳态风场 |
 | `interfaces/` | [c_api.cpp](interfaces/c_api.cpp) | 对外 C ABI、错误与调用状态 |
 | `turbine/simulation/` | [simulation.cpp](turbine/simulation/simulation.cpp) | 完整仿真调度、重置和检查点 |
@@ -60,3 +64,5 @@
 `TurbineModel` 深复制 `Case` 并提供只读访问；`Rotor`、UA 翼型引用共享这份模型的所有权。`Solver` 和 `Simulation` 的演化状态私有，复制、移动和完整检查点不会依赖外部容器地址。`AcousticDriver` 的 TI 状态通过 `turbulence_state()` 只读访问。
 
 声源通道信息集中在 [mechanisms.hpp](../include/mechanisms.hpp)，模型选择集中在 `SourceSelection`。TNO 替代压力面、吸力面贡献，保留 BPM 分离贡献。库调用和接口迁移见 [S1–S3 说明](../docs/simulation-api.md)。
+
+频带与量纲由 `acoustic_quantities.hpp` 定义，输出携带声学元数据。`GeneralizedAlpha` 独立持有动态长度的状态与工作区，`FixedBaseAcceleration` 适配现有三叶片结构；模块历史只在 `Solver` 指定的阶段推进。新增共享自由度必须重新定义耦合块并实现物理后端，见 [S4–S5 说明](../docs/semantics-modules.md)。

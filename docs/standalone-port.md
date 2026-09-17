@@ -12,7 +12,9 @@
 | `turbine/aerodynamics/unsteady.cpp` | UA_Mod=3 的附着流、分离、涡升力、滤波及离散状态 |
 | `turbine/coupling/mesh.cpp`、`include/turbine/math.hpp` | NWTC 运动与载荷映射、旋转插值及坐标变换 |
 | `turbine/coupling/rotor.cpp` | 转子盘与叶素坐标、风速、气动力、UA/BEM 状态传递 |
-| `turbine/coupling/solver.cpp` | 广义 α 结构积分和气动／结构调用顺序 |
+| `turbine/coupling/solver.cpp` | 气动／结构调用顺序和完整状态管理 |
+| `turbine/coupling/integrator.cpp`、`structural_adapter.cpp` | 通用广义 α 积分、Newton 及叶片结构适配 |
+| `turbine/coupling/modules.cpp` | 支持的模块组合、能力声明与自由度布局 |
 | `turbine/simulation/` | 仿真调度、声学节点适配、声能聚合及结果输出 |
 | `apps/turbine_main.cpp` | 命令行参数解析和库入口调用 |
 
@@ -49,6 +51,8 @@ BEM 使用 `IndToler` 和 `MaxIter`，默认双精度残差阈值 5e−10，并�
 实现覆盖上面的官方配置及已验证的 9 m/s 风速变体。支持固定转速、桨距、稳态风及表格参数的输入读取，但两项回归通过不代表任意参数组合都已验证。
 
 主要限制由 `Case::validate_scope` 及各模块构造函数检查：
+
+模块与自由度组合校验集中在 `configure_modules()`，Case 和冻结后的 TurbineModel 均执行检查。数值积分器已支持不同尺寸的耦合块，但当前整机物理后端仍仅实现下列范围，详见 [S4–S5](semantics-modules.md)。
 
 - 只支持单转子、三叶片、相同结构与气动叶片文件；叶片三个模态必须全部启用。
 - 仅支持 WindType=1、单张翼型表和线性翼型插值。

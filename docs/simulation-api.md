@@ -1,4 +1,4 @@
-# S1–S3：仿真接口、声源配置与状态管理
+# 仿真接口、声源配置与状态管理
 
 本轮基线为 [`2d7fda5`](https://github.com/MegrezLi/Aeroacoustics_cpp/commit/2d7fda532b389371a854c49daad9e96282c938b1)。计算公式、时间步长、Newton 收敛条件和七类标准声学通道保持原有定义。
 
@@ -123,3 +123,11 @@ python tests/check_refactor.py /path/to/baseline/aeroacoustics_turbine build/aer
 `Solver::diagnostics()` 与 `RunSummary::structure` 提供求解统计。默认参考模式保持原数值路径，尺度化模式须明确选择。`run.json` 新增 `structural_*` 字段。`SolverOptions` 随检查点恢复，`reset()` 保留选项。
 
 `turbine/batch.hpp` 提供独立工况的 `run_cases()`。线程、路径限制、借用块生命周期、完整参数与验证见 [P4–P7 说明](performance-p4-p7.md)。
+
+## S4–S5 接口补充
+
+`AcousticResult` 新增只读共享元数据；`power` 表示相对均方声压，不是瓦特。`FileOutput` 要求声学频带与计权匹配。A 计权标题现在使用 dBA。
+
+`Solver::generalized_state()`、`layout()` 提供通用状态与自由度布局，`StepView::generalized` 为对应借用视图。`Solver::state()` 和原三字段 StepView 用法仍适用于固定后端；输出列改由布局生成。`SolverOptions` 的 Newton 参数移至 `NewtonOptions` 基类，成员名不变，建议使用具名成员赋值。
+
+广义 α 与 Newton 独立为 `GeneralizedAlpha`，模块组合校验集中到 `configure_modules()`。整机完整检查点范围不变。频带转换、结构适配和新增物理后端的要求见 [声学量与模块接口](semantics-modules.md)。

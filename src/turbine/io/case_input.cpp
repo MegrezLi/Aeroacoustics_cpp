@@ -1,5 +1,6 @@
-#include "turbine/input.hpp"
 #include "lookup_diagnostics.hpp"
+#include "turbine/input.hpp"
+#include "turbine/modules.hpp"
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -188,7 +189,8 @@ Coefficients Airfoil::at(double a) const {
     a = std::remainder(a, 2 * pi);
     // Convert only exceptional queries to degrees; valid hot-path queries do not allocate.
     if (a < alpha.front() || a > alpha.back())
-        diagnostics::check_lookup(input.path.string(), "alpha_deg", a / deg, alpha.front() / deg, alpha.back() / deg);
+        diagnostics::check_lookup(input.path.string(), "alpha_deg", a / deg, alpha.front() / deg,
+                                  alpha.back() / deg);
     if (a <= alpha.front())
         return coefficients.front();
     if (a >= alpha.back())
@@ -238,15 +240,7 @@ Case::Case(const std::filesystem::path &filename)
                 "Airfoil index outside table list");
 }
 void Case::validate_scope() const {
-    require(primary.integer("CompElast") == 1 && primary.integer("CompInflow") == 1 &&
-                primary.integer("CompAero") == 2,
-            "Unsupported module configuration");
-    for (auto key :
-         {"CompServo", "CompSeaSt", "CompHydro", "CompSub", "CompMooring", "CompIce", "CompSoil", "MHK"})
-        require(primary.integer(key) == 0, std::string("Unsupported enabled module: ") + key);
-    require(primary.integer("NRotors") == 1 && !primary.flag("MirrorRotor"),
-            "Only one normal rotor is supported");
-    require(structure.integer("NumBl") == 3, "Only three blades are supported");
+    configure_modules(*this);
     for (auto key : {"TTDspFA", "TTDspSS", "PtfmSurge", "PtfmSway", "PtfmHeave", "PtfmRoll", "PtfmPitch",
                      "PtfmYaw", "PtfmRefxt", "PtfmRefyt", "PtfmRefzt"})
         require(structure.number(key) == 0, std::string("Unsupported fixed structural offset: ") + key);
@@ -258,16 +252,6 @@ void Case::validate_scope() const {
         require(aero.file("ADBlFile" + suffix) == aero.file("ADBlFile(1)"),
                 "All blades must use the same aerodynamic station file");
     }
-    for (auto key : {"FlapDOF1", "FlapDOF2", "EdgeDOF"})
-        require(structure.flag(key), std::string("Expected active blade DOF: ") + key);
-    for (auto key :
-         {"PitchDOF", "TeetDOF", "DrTrDOF", "GenDOF", "YawDOF", "TwFADOF1", "TwFADOF2", "TwSSDOF1",
-          "TwSSDOF2", "PtfmSgDOF", "PtfmSwDOF", "PtfmHvDOF", "PtfmRDOF", "PtfmPDOF", "PtfmYDOF", "Furling"})
-        require(!structure.flag(key), std::string("Unsupported active DOF: ") + key);
-    require(aero.integer("Wake_Mod") == 1 && aero.integer("BEM_Mod") == 1 && aero.integer("DBEMT_Mod") == 0,
-            "Unsupported wake model");
-    require(aero.integer("UA_Mod") == 3 && aero.flag("FLookup") && aero.integer("AFTabMod") == 1,
-            "Unsupported unsteady airfoil model");
     require(aero.integer("TwrPotent") == 0 && aero.integer("TwrShadow") == 0 && !aero.flag("TwrAero") &&
                 !aero.flag("NacelleDrag") && !aero.flag("TFinAero"),
             "Unsupported tower, nacelle or tail aerodynamics");

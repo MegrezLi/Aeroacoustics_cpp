@@ -1,0 +1,1939 @@
+{
+  "date": "2026-09-17",
+  "scope": "S4 acoustic quantities and S5 integrator/module interfaces",
+  "compiler": "GCC 16.2.0 MinGW x86_64, Release C++17",
+  "platform": "Windows",
+  "baseline_commit": "c85a4fa93f2d0bb19268eccbb76dd995151092ea",
+  "physical_backend": "fixed-base three blades, three modes per blade; no additional physical modules",
+  "backends": {
+    "build-s45": {
+      "executable_sha256": "76ff883b1813c50184ed7c9233934c1c8b3a2ba5e01e0bddabe422fb1ea161db",
+      "shared_library_sha256": "20f82053c067576ec79708044efc0dc4b1a6c1f3f59070786e77f58724cb45c3",
+      "kernels": {
+        "backend": "Portable C++17",
+        "cases": 204,
+        "TNO_cases": 16,
+        "evaluated_values": 56576,
+        "values_by_operation": {
+          "1": 6936,
+          "2": 20808,
+          "3": 6936,
+          "4": 6936,
+          "5": 6936,
+          "6": 6936,
+          "7": 1088
+        },
+        "fortran_max_abs_error_dB": {
+          "1": 2.842170943040401e-14,
+          "2": 4.547473508864641e-13,
+          "3": 1.4210854715202004e-14,
+          "4": 2.842170943040401e-14,
+          "5": 4.263256414560601e-14,
+          "6": 0.0,
+          "7": 5.684341886080802e-14
+        },
+        "fortran_literal_precision": "promoted to double",
+        "tolerance_dB": 2e-08,
+        "kernel_calls": 1240
+      },
+      "official8": {
+        "case": "IEA_LB_RWT-AeroAcoustics",
+        "comparison": "original Fortran versus standalone C++",
+        "files": {
+          "IEA_LB_RWT-AeroAcoustics_1.out": {
+            "rows": 201,
+            "channels": 2,
+            "compared_values": 402,
+            "max_abs_error_dB": 7.817849999725013e-05,
+            "mean_abs_error_dB": 4.05659005013196e-06,
+            "worst_time_s": 16.6,
+            "worst_channel": 2,
+            "tolerance_dB": 0.001
+          },
+          "IEA_LB_RWT-AeroAcoustics_2.out": {
+            "rows": 201,
+            "channels": 68,
+            "compared_values": 13668,
+            "max_abs_error_dB": 0.00020574810000084653,
+            "mean_abs_error_dB": 5.309601761069335e-06,
+            "worst_time_s": 16.6,
+            "worst_channel": 53,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_3.out": {
+            "rows": 201,
+            "channels": 476,
+            "compared_values": 95676,
+            "max_abs_error_dB": 0.0008517038999968918,
+            "mean_abs_error_dB": 6.7941629877470794e-06,
+            "worst_time_s": 17.0,
+            "worst_channel": 243,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_4.out": {
+            "rows": 201,
+            "channels": 180,
+            "compared_values": 36180,
+            "max_abs_error_dB": 0.0007665902999995922,
+            "mean_abs_error_dB": 5.640247710449697e-06,
+            "worst_time_s": 18.5,
+            "worst_channel": 170,
+            "tolerance_dB": 0.05
+          }
+        },
+        "compared_values": 145926,
+        "identical_input_files": 101,
+        "runtime": {
+          "solver": "standalone C++",
+          "dt": 0.00625,
+          "duration": 20,
+          "steps": 3200,
+          "acoustic_samples": 201,
+          "elapsed_seconds": 1.6634652,
+          "structural_mode": "reference",
+          "structural_iterations": 9600,
+          "structural_max_iterations": 3,
+          "structural_acceleration_evaluations": 115200,
+          "structural_jacobian_builds": 28800,
+          "structural_last_residual": 1.1683867387588975e-13,
+          "structural_last_scaled_residual": 5.5677684684951594e-05,
+          "zero_energy_encoding": "0 dB placeholder; see matching .mask (0=zero, 1=positive energy)",
+          "lookup_policy": "clamp",
+          "lookup_out_of_range_calls": 0,
+          "lookup_report": "lookup_diagnostics.csv",
+          "acoustic_metadata": {
+            "linear_quantity": "relative_mean_square_pressure",
+            "level_quantity": "sound_pressure_level",
+            "reference_pressure_Pa": 2e-05,
+            "weighting": "unweighted",
+            "frequency_unit": "Hz",
+            "band_definition": "binary third-octave edges; OpenFAST nominal evaluation centers",
+            "tno_bandwidth_convention": "OpenFAST legacy multiplier; not SI Hz bandwidth",
+            "bands_center_lower_upper_Hz": [
+              [
+                10,
+                8.769234752416978,
+                11.048543456039805
+              ],
+              [
+                12.5,
+                11.048543456039805,
+                13.9202924709428
+              ],
+              [
+                16,
+                13.9202924709428,
+                17.538469504833955
+              ],
+              [
+                20,
+                17.538469504833955,
+                22.09708691207961
+              ],
+              [
+                25,
+                22.09708691207961,
+                27.8405849418856
+              ],
+              [
+                31.5,
+                27.8405849418856,
+                35.07693900966791
+              ],
+              [
+                40,
+                35.07693900966791,
+                44.19417382415922
+              ],
+              [
+                50,
+                44.19417382415922,
+                55.6811698837712
+              ],
+              [
+                63,
+                55.6811698837712,
+                70.1538780193358
+              ],
+              [
+                80,
+                70.1538780193358,
+                88.38834764831844
+              ],
+              [
+                100,
+                88.38834764831844,
+                111.36233976754242
+              ],
+              [
+                125,
+                111.36233976754242,
+                140.3077560386716
+              ],
+              [
+                160,
+                140.3077560386716,
+                176.7766952966369
+              ],
+              [
+                200,
+                176.7766952966369,
+                222.72467953508485
+              ],
+              [
+                250,
+                222.72467953508485,
+                280.6155120773433
+              ],
+              [
+                315,
+                280.6155120773433,
+                353.5533905932738
+              ],
+              [
+                400,
+                353.5533905932738,
+                445.44935907016963
+              ],
+              [
+                500,
+                445.44935907016963,
+                561.2310241546866
+              ],
+              [
+                630,
+                561.2310241546866,
+                707.1067811865476
+              ],
+              [
+                800,
+                707.1067811865476,
+                890.8987181403393
+              ],
+              [
+                1000,
+                890.8987181403393,
+                1122.4620483093731
+              ],
+              [
+                1250,
+                1122.4620483093731,
+                1414.213562373095
+              ],
+              [
+                1600,
+                1414.213562373095,
+                1781.7974362806785
+              ],
+              [
+                2000,
+                1781.7974362806785,
+                2244.9240966187463
+              ],
+              [
+                2500,
+                2244.9240966187463,
+                2828.42712474619
+              ],
+              [
+                3150,
+                2828.42712474619,
+                3563.594872561357
+              ],
+              [
+                4000,
+                3563.594872561357,
+                4489.848193237492
+              ],
+              [
+                5000,
+                4489.848193237492,
+                5656.85424949238
+              ],
+              [
+                6300,
+                5656.85424949238,
+                7127.189745122715
+              ],
+              [
+                8000,
+                7127.189745122715,
+                8979.696386474983
+              ],
+              [
+                10000,
+                8979.696386474983,
+                11313.70849898476
+              ],
+              [
+                12500,
+                11313.70849898476,
+                14254.37949024543
+              ],
+              [
+                16000,
+                14254.37949024543,
+                17959.39277294997
+              ],
+              [
+                20000,
+                17959.39277294997,
+                22627.41699796952
+              ]
+            ]
+          },
+          "module_configuration": {
+            "profile": "fixed_base_three_blade_three_mode",
+            "dof_count": 9,
+            "integrator": "generalized_alpha",
+            "dofs": [
+              {
+                "name": "blade1_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade1_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade1_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              }
+            ],
+            "coupling_blocks": [
+              {
+                "name": "blade1",
+                "offset": 0,
+                "size": 3
+              },
+              {
+                "name": "blade2",
+                "offset": 3,
+                "size": 3
+              },
+              {
+                "name": "blade3",
+                "offset": 6,
+                "size": 3
+              }
+            ]
+          }
+        },
+        "cpp_executable_sha256": "76ff883b1813c50184ed7c9233934c1c8b3a2ba5e01e0bddabe422fb1ea161db",
+        "reference_openfast_commit": "2895884d2be01862173c88d70f86b358d2f1a50a"
+      },
+      "wind9": {
+        "case": "IEA_LB_RWT-AeroAcoustics",
+        "comparison": "original Fortran versus standalone C++",
+        "files": {
+          "IEA_LB_RWT-AeroAcoustics_1.out": {
+            "rows": 201,
+            "channels": 2,
+            "compared_values": 402,
+            "max_abs_error_dB": 1.5829100000530616e-05,
+            "mean_abs_error_dB": 3.0547644278445306e-06,
+            "worst_time_s": 18.5,
+            "worst_channel": 2,
+            "tolerance_dB": 0.001
+          },
+          "IEA_LB_RWT-AeroAcoustics_2.out": {
+            "rows": 201,
+            "channels": 68,
+            "compared_values": 13668,
+            "max_abs_error_dB": 8.222400000335028e-05,
+            "mean_abs_error_dB": 3.694354420776131e-06,
+            "worst_time_s": 0.6,
+            "worst_channel": 46,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_3.out": {
+            "rows": 201,
+            "channels": 476,
+            "compared_values": 95676,
+            "max_abs_error_dB": 0.00017699829999884287,
+            "mean_abs_error_dB": 3.490456752766962e-06,
+            "worst_time_s": 0.2,
+            "worst_channel": 243,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_4.out": {
+            "rows": 201,
+            "channels": 180,
+            "compared_values": 36180,
+            "max_abs_error_dB": 0.005636691599999466,
+            "mean_abs_error_dB": 3.7928332384903334e-06,
+            "worst_time_s": 1.0,
+            "worst_channel": 116,
+            "tolerance_dB": 0.05
+          }
+        },
+        "compared_values": 145926,
+        "wind_speed_m_s": 9,
+        "changed_input": "HWindSpeed: 8 -> 9",
+        "max_oaspl_change_from_8m_s_dB": 1.5264021744999994,
+        "identical_input_files": 101,
+        "cpp_executable_sha256": "76ff883b1813c50184ed7c9233934c1c8b3a2ba5e01e0bddabe422fb1ea161db"
+      },
+      "passed_probes": [
+        "semantics_modules",
+        "turbine_workspace (50 warmed steps, zero allocations)",
+        "performance_api",
+        "simulation_api",
+        "mechanism",
+        "acoustic_workspace",
+        "reliability"
+      ],
+      "passed_cli_checks": [
+        "reliability",
+        "performance: scaled solver, output counts, batch",
+        "semantics: A/unweighted metadata, unsupported modules"
+      ],
+      "semantics": {
+        "False": {
+          "acoustic_metadata": {
+            "linear_quantity": "relative_mean_square_pressure",
+            "level_quantity": "sound_pressure_level",
+            "reference_pressure_Pa": 2e-05,
+            "weighting": "unweighted",
+            "frequency_unit": "Hz",
+            "band_definition": "binary third-octave edges; OpenFAST nominal evaluation centers",
+            "tno_bandwidth_convention": "OpenFAST legacy multiplier; not SI Hz bandwidth",
+            "bands_center_lower_upper_Hz": [
+              [
+                10,
+                8.769234752416978,
+                11.048543456039805
+              ],
+              [
+                12.5,
+                11.048543456039805,
+                13.9202924709428
+              ],
+              [
+                16,
+                13.9202924709428,
+                17.538469504833955
+              ],
+              [
+                20,
+                17.538469504833955,
+                22.09708691207961
+              ],
+              [
+                25,
+                22.09708691207961,
+                27.8405849418856
+              ],
+              [
+                31.5,
+                27.8405849418856,
+                35.07693900966791
+              ],
+              [
+                40,
+                35.07693900966791,
+                44.19417382415922
+              ],
+              [
+                50,
+                44.19417382415922,
+                55.6811698837712
+              ],
+              [
+                63,
+                55.6811698837712,
+                70.1538780193358
+              ],
+              [
+                80,
+                70.1538780193358,
+                88.38834764831844
+              ],
+              [
+                100,
+                88.38834764831844,
+                111.36233976754242
+              ],
+              [
+                125,
+                111.36233976754242,
+                140.3077560386716
+              ],
+              [
+                160,
+                140.3077560386716,
+                176.7766952966369
+              ],
+              [
+                200,
+                176.7766952966369,
+                222.72467953508485
+              ],
+              [
+                250,
+                222.72467953508485,
+                280.6155120773433
+              ],
+              [
+                315,
+                280.6155120773433,
+                353.5533905932738
+              ],
+              [
+                400,
+                353.5533905932738,
+                445.44935907016963
+              ],
+              [
+                500,
+                445.44935907016963,
+                561.2310241546866
+              ],
+              [
+                630,
+                561.2310241546866,
+                707.1067811865476
+              ],
+              [
+                800,
+                707.1067811865476,
+                890.8987181403393
+              ],
+              [
+                1000,
+                890.8987181403393,
+                1122.4620483093731
+              ],
+              [
+                1250,
+                1122.4620483093731,
+                1414.213562373095
+              ],
+              [
+                1600,
+                1414.213562373095,
+                1781.7974362806785
+              ],
+              [
+                2000,
+                1781.7974362806785,
+                2244.9240966187463
+              ],
+              [
+                2500,
+                2244.9240966187463,
+                2828.42712474619
+              ],
+              [
+                3150,
+                2828.42712474619,
+                3563.594872561357
+              ],
+              [
+                4000,
+                3563.594872561357,
+                4489.848193237492
+              ],
+              [
+                5000,
+                4489.848193237492,
+                5656.85424949238
+              ],
+              [
+                6300,
+                5656.85424949238,
+                7127.189745122715
+              ],
+              [
+                8000,
+                7127.189745122715,
+                8979.696386474983
+              ],
+              [
+                10000,
+                8979.696386474983,
+                11313.70849898476
+              ],
+              [
+                12500,
+                11313.70849898476,
+                14254.37949024543
+              ],
+              [
+                16000,
+                14254.37949024543,
+                17959.39277294997
+              ],
+              [
+                20000,
+                17959.39277294997,
+                22627.41699796952
+              ]
+            ]
+          },
+          "module_configuration": {
+            "profile": "fixed_base_three_blade_three_mode",
+            "dof_count": 9,
+            "integrator": "generalized_alpha",
+            "dofs": [
+              {
+                "name": "blade1_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade1_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade1_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              }
+            ],
+            "coupling_blocks": [
+              {
+                "name": "blade1",
+                "offset": 0,
+                "size": 3
+              },
+              {
+                "name": "blade2",
+                "offset": 3,
+                "size": 3
+              },
+              {
+                "name": "blade3",
+                "offset": 6,
+                "size": 3
+              }
+            ]
+          }
+        },
+        "True": {
+          "acoustic_metadata": {
+            "linear_quantity": "relative_mean_square_pressure",
+            "level_quantity": "sound_pressure_level",
+            "reference_pressure_Pa": 2e-05,
+            "weighting": "A",
+            "frequency_unit": "Hz",
+            "band_definition": "binary third-octave edges; OpenFAST nominal evaluation centers",
+            "tno_bandwidth_convention": "OpenFAST legacy multiplier; not SI Hz bandwidth",
+            "bands_center_lower_upper_Hz": [
+              [
+                10,
+                8.769234752416978,
+                11.048543456039805
+              ],
+              [
+                12.5,
+                11.048543456039805,
+                13.9202924709428
+              ],
+              [
+                16,
+                13.9202924709428,
+                17.538469504833955
+              ],
+              [
+                20,
+                17.538469504833955,
+                22.09708691207961
+              ],
+              [
+                25,
+                22.09708691207961,
+                27.8405849418856
+              ],
+              [
+                31.5,
+                27.8405849418856,
+                35.07693900966791
+              ],
+              [
+                40,
+                35.07693900966791,
+                44.19417382415922
+              ],
+              [
+                50,
+                44.19417382415922,
+                55.6811698837712
+              ],
+              [
+                63,
+                55.6811698837712,
+                70.1538780193358
+              ],
+              [
+                80,
+                70.1538780193358,
+                88.38834764831844
+              ],
+              [
+                100,
+                88.38834764831844,
+                111.36233976754242
+              ],
+              [
+                125,
+                111.36233976754242,
+                140.3077560386716
+              ],
+              [
+                160,
+                140.3077560386716,
+                176.7766952966369
+              ],
+              [
+                200,
+                176.7766952966369,
+                222.72467953508485
+              ],
+              [
+                250,
+                222.72467953508485,
+                280.6155120773433
+              ],
+              [
+                315,
+                280.6155120773433,
+                353.5533905932738
+              ],
+              [
+                400,
+                353.5533905932738,
+                445.44935907016963
+              ],
+              [
+                500,
+                445.44935907016963,
+                561.2310241546866
+              ],
+              [
+                630,
+                561.2310241546866,
+                707.1067811865476
+              ],
+              [
+                800,
+                707.1067811865476,
+                890.8987181403393
+              ],
+              [
+                1000,
+                890.8987181403393,
+                1122.4620483093731
+              ],
+              [
+                1250,
+                1122.4620483093731,
+                1414.213562373095
+              ],
+              [
+                1600,
+                1414.213562373095,
+                1781.7974362806785
+              ],
+              [
+                2000,
+                1781.7974362806785,
+                2244.9240966187463
+              ],
+              [
+                2500,
+                2244.9240966187463,
+                2828.42712474619
+              ],
+              [
+                3150,
+                2828.42712474619,
+                3563.594872561357
+              ],
+              [
+                4000,
+                3563.594872561357,
+                4489.848193237492
+              ],
+              [
+                5000,
+                4489.848193237492,
+                5656.85424949238
+              ],
+              [
+                6300,
+                5656.85424949238,
+                7127.189745122715
+              ],
+              [
+                8000,
+                7127.189745122715,
+                8979.696386474983
+              ],
+              [
+                10000,
+                8979.696386474983,
+                11313.70849898476
+              ],
+              [
+                12500,
+                11313.70849898476,
+                14254.37949024543
+              ],
+              [
+                16000,
+                14254.37949024543,
+                17959.39277294997
+              ],
+              [
+                20000,
+                17959.39277294997,
+                22627.41699796952
+              ]
+            ]
+          },
+          "module_configuration": {
+            "profile": "fixed_base_three_blade_three_mode",
+            "dof_count": 9,
+            "integrator": "generalized_alpha",
+            "dofs": [
+              {
+                "name": "blade1_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade1_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade1_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              }
+            ],
+            "coupling_blocks": [
+              {
+                "name": "blade1",
+                "offset": 0,
+                "size": 3
+              },
+              {
+                "name": "blade2",
+                "offset": 3,
+                "size": 3
+              },
+              {
+                "name": "blade3",
+                "offset": 6,
+                "size": 3
+              }
+            ]
+          }
+        },
+        "unsupported_modules": "servo, tower DOF, dynamic wake rejected before solving"
+      }
+    },
+    "build-s45-mkl": {
+      "executable_sha256": "a4a065b67afa43baf6fdef8704095a94d409e0c3ff773c568a9facc291d2dab1",
+      "shared_library_sha256": "fddea7ddf1476f9084dbabcf7da6c8e58c32a5e0c9440ca5e6808f5c10dcd28e",
+      "kernels": {
+        "backend": "Intel oneMKL: Intel(R) oneAPI Math Kernel Library Version 2025.2-Product Build 20250620 for Intel(R) 64 architecture applications",
+        "cases": 204,
+        "TNO_cases": 16,
+        "evaluated_values": 56576,
+        "values_by_operation": {
+          "1": 6936,
+          "2": 20808,
+          "3": 6936,
+          "4": 6936,
+          "5": 6936,
+          "6": 6936,
+          "7": 1088
+        },
+        "fortran_max_abs_error_dB": {
+          "1": 2.842170943040401e-14,
+          "2": 4.547473508864641e-13,
+          "3": 1.4210854715202004e-14,
+          "4": 2.842170943040401e-14,
+          "5": 4.263256414560601e-14,
+          "6": 0.0,
+          "7": 5.684341886080802e-14
+        },
+        "fortran_literal_precision": "promoted to double",
+        "tolerance_dB": 2e-08,
+        "kernel_calls": 1240
+      },
+      "official8": {
+        "case": "IEA_LB_RWT-AeroAcoustics",
+        "comparison": "original Fortran versus standalone C++",
+        "files": {
+          "IEA_LB_RWT-AeroAcoustics_1.out": {
+            "rows": 201,
+            "channels": 2,
+            "compared_values": 402,
+            "max_abs_error_dB": 7.817849999725013e-05,
+            "mean_abs_error_dB": 4.05659005013196e-06,
+            "worst_time_s": 16.6,
+            "worst_channel": 2,
+            "tolerance_dB": 0.001
+          },
+          "IEA_LB_RWT-AeroAcoustics_2.out": {
+            "rows": 201,
+            "channels": 68,
+            "compared_values": 13668,
+            "max_abs_error_dB": 0.00020574810000084653,
+            "mean_abs_error_dB": 5.309601761069335e-06,
+            "worst_time_s": 16.6,
+            "worst_channel": 53,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_3.out": {
+            "rows": 201,
+            "channels": 476,
+            "compared_values": 95676,
+            "max_abs_error_dB": 0.0008517038999968918,
+            "mean_abs_error_dB": 6.7941629877470794e-06,
+            "worst_time_s": 17.0,
+            "worst_channel": 243,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_4.out": {
+            "rows": 201,
+            "channels": 180,
+            "compared_values": 36180,
+            "max_abs_error_dB": 0.0007665902999995922,
+            "mean_abs_error_dB": 5.640247710449697e-06,
+            "worst_time_s": 18.5,
+            "worst_channel": 170,
+            "tolerance_dB": 0.05
+          }
+        },
+        "compared_values": 145926,
+        "identical_input_files": 101,
+        "runtime": {
+          "solver": "standalone C++",
+          "dt": 0.00625,
+          "duration": 20,
+          "steps": 3200,
+          "acoustic_samples": 201,
+          "elapsed_seconds": 1.7624709,
+          "structural_mode": "reference",
+          "structural_iterations": 9600,
+          "structural_max_iterations": 3,
+          "structural_acceleration_evaluations": 115200,
+          "structural_jacobian_builds": 28800,
+          "structural_last_residual": 1.1683867387588975e-13,
+          "structural_last_scaled_residual": 5.5677684684951594e-05,
+          "zero_energy_encoding": "0 dB placeholder; see matching .mask (0=zero, 1=positive energy)",
+          "lookup_policy": "clamp",
+          "lookup_out_of_range_calls": 0,
+          "lookup_report": "lookup_diagnostics.csv",
+          "acoustic_metadata": {
+            "linear_quantity": "relative_mean_square_pressure",
+            "level_quantity": "sound_pressure_level",
+            "reference_pressure_Pa": 2e-05,
+            "weighting": "unweighted",
+            "frequency_unit": "Hz",
+            "band_definition": "binary third-octave edges; OpenFAST nominal evaluation centers",
+            "tno_bandwidth_convention": "OpenFAST legacy multiplier; not SI Hz bandwidth",
+            "bands_center_lower_upper_Hz": [
+              [
+                10,
+                8.769234752416978,
+                11.048543456039805
+              ],
+              [
+                12.5,
+                11.048543456039805,
+                13.9202924709428
+              ],
+              [
+                16,
+                13.9202924709428,
+                17.538469504833955
+              ],
+              [
+                20,
+                17.538469504833955,
+                22.09708691207961
+              ],
+              [
+                25,
+                22.09708691207961,
+                27.8405849418856
+              ],
+              [
+                31.5,
+                27.8405849418856,
+                35.07693900966791
+              ],
+              [
+                40,
+                35.07693900966791,
+                44.19417382415922
+              ],
+              [
+                50,
+                44.19417382415922,
+                55.6811698837712
+              ],
+              [
+                63,
+                55.6811698837712,
+                70.1538780193358
+              ],
+              [
+                80,
+                70.1538780193358,
+                88.38834764831844
+              ],
+              [
+                100,
+                88.38834764831844,
+                111.36233976754242
+              ],
+              [
+                125,
+                111.36233976754242,
+                140.3077560386716
+              ],
+              [
+                160,
+                140.3077560386716,
+                176.7766952966369
+              ],
+              [
+                200,
+                176.7766952966369,
+                222.72467953508485
+              ],
+              [
+                250,
+                222.72467953508485,
+                280.6155120773433
+              ],
+              [
+                315,
+                280.6155120773433,
+                353.5533905932738
+              ],
+              [
+                400,
+                353.5533905932738,
+                445.44935907016963
+              ],
+              [
+                500,
+                445.44935907016963,
+                561.2310241546866
+              ],
+              [
+                630,
+                561.2310241546866,
+                707.1067811865476
+              ],
+              [
+                800,
+                707.1067811865476,
+                890.8987181403393
+              ],
+              [
+                1000,
+                890.8987181403393,
+                1122.4620483093731
+              ],
+              [
+                1250,
+                1122.4620483093731,
+                1414.213562373095
+              ],
+              [
+                1600,
+                1414.213562373095,
+                1781.7974362806785
+              ],
+              [
+                2000,
+                1781.7974362806785,
+                2244.9240966187463
+              ],
+              [
+                2500,
+                2244.9240966187463,
+                2828.42712474619
+              ],
+              [
+                3150,
+                2828.42712474619,
+                3563.594872561357
+              ],
+              [
+                4000,
+                3563.594872561357,
+                4489.848193237492
+              ],
+              [
+                5000,
+                4489.848193237492,
+                5656.85424949238
+              ],
+              [
+                6300,
+                5656.85424949238,
+                7127.189745122715
+              ],
+              [
+                8000,
+                7127.189745122715,
+                8979.696386474983
+              ],
+              [
+                10000,
+                8979.696386474983,
+                11313.70849898476
+              ],
+              [
+                12500,
+                11313.70849898476,
+                14254.37949024543
+              ],
+              [
+                16000,
+                14254.37949024543,
+                17959.39277294997
+              ],
+              [
+                20000,
+                17959.39277294997,
+                22627.41699796952
+              ]
+            ]
+          },
+          "module_configuration": {
+            "profile": "fixed_base_three_blade_three_mode",
+            "dof_count": 9,
+            "integrator": "generalized_alpha",
+            "dofs": [
+              {
+                "name": "blade1_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade1_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade1_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              }
+            ],
+            "coupling_blocks": [
+              {
+                "name": "blade1",
+                "offset": 0,
+                "size": 3
+              },
+              {
+                "name": "blade2",
+                "offset": 3,
+                "size": 3
+              },
+              {
+                "name": "blade3",
+                "offset": 6,
+                "size": 3
+              }
+            ]
+          }
+        },
+        "cpp_executable_sha256": "a4a065b67afa43baf6fdef8704095a94d409e0c3ff773c568a9facc291d2dab1",
+        "reference_openfast_commit": "2895884d2be01862173c88d70f86b358d2f1a50a"
+      },
+      "wind9": {
+        "case": "IEA_LB_RWT-AeroAcoustics",
+        "comparison": "original Fortran versus standalone C++",
+        "files": {
+          "IEA_LB_RWT-AeroAcoustics_1.out": {
+            "rows": 201,
+            "channels": 2,
+            "compared_values": 402,
+            "max_abs_error_dB": 1.5829100000530616e-05,
+            "mean_abs_error_dB": 3.0547644278445306e-06,
+            "worst_time_s": 18.5,
+            "worst_channel": 2,
+            "tolerance_dB": 0.001
+          },
+          "IEA_LB_RWT-AeroAcoustics_2.out": {
+            "rows": 201,
+            "channels": 68,
+            "compared_values": 13668,
+            "max_abs_error_dB": 8.222400000335028e-05,
+            "mean_abs_error_dB": 3.694354420776131e-06,
+            "worst_time_s": 0.6,
+            "worst_channel": 46,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_3.out": {
+            "rows": 201,
+            "channels": 476,
+            "compared_values": 95676,
+            "max_abs_error_dB": 0.00017699829999884287,
+            "mean_abs_error_dB": 3.490456752766962e-06,
+            "worst_time_s": 0.2,
+            "worst_channel": 243,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_4.out": {
+            "rows": 201,
+            "channels": 180,
+            "compared_values": 36180,
+            "max_abs_error_dB": 0.005636691599999466,
+            "mean_abs_error_dB": 3.7928332384903334e-06,
+            "worst_time_s": 1.0,
+            "worst_channel": 116,
+            "tolerance_dB": 0.05
+          }
+        },
+        "compared_values": 145926,
+        "wind_speed_m_s": 9,
+        "changed_input": "HWindSpeed: 8 -> 9",
+        "max_oaspl_change_from_8m_s_dB": 1.5264021744999994,
+        "identical_input_files": 101,
+        "cpp_executable_sha256": "a4a065b67afa43baf6fdef8704095a94d409e0c3ff773c568a9facc291d2dab1"
+      },
+      "passed_probes": [
+        "semantics_modules",
+        "turbine_workspace (50 warmed steps, zero allocations)",
+        "performance_api",
+        "simulation_api",
+        "mechanism",
+        "acoustic_workspace",
+        "reliability"
+      ],
+      "passed_cli_checks": [
+        "reliability",
+        "performance: scaled solver, output counts, batch",
+        "semantics: A/unweighted metadata, unsupported modules"
+      ],
+      "semantics": {
+        "False": {
+          "acoustic_metadata": {
+            "linear_quantity": "relative_mean_square_pressure",
+            "level_quantity": "sound_pressure_level",
+            "reference_pressure_Pa": 2e-05,
+            "weighting": "unweighted",
+            "frequency_unit": "Hz",
+            "band_definition": "binary third-octave edges; OpenFAST nominal evaluation centers",
+            "tno_bandwidth_convention": "OpenFAST legacy multiplier; not SI Hz bandwidth",
+            "bands_center_lower_upper_Hz": [
+              [
+                10,
+                8.769234752416978,
+                11.048543456039805
+              ],
+              [
+                12.5,
+                11.048543456039805,
+                13.9202924709428
+              ],
+              [
+                16,
+                13.9202924709428,
+                17.538469504833955
+              ],
+              [
+                20,
+                17.538469504833955,
+                22.09708691207961
+              ],
+              [
+                25,
+                22.09708691207961,
+                27.8405849418856
+              ],
+              [
+                31.5,
+                27.8405849418856,
+                35.07693900966791
+              ],
+              [
+                40,
+                35.07693900966791,
+                44.19417382415922
+              ],
+              [
+                50,
+                44.19417382415922,
+                55.6811698837712
+              ],
+              [
+                63,
+                55.6811698837712,
+                70.1538780193358
+              ],
+              [
+                80,
+                70.1538780193358,
+                88.38834764831844
+              ],
+              [
+                100,
+                88.38834764831844,
+                111.36233976754242
+              ],
+              [
+                125,
+                111.36233976754242,
+                140.3077560386716
+              ],
+              [
+                160,
+                140.3077560386716,
+                176.7766952966369
+              ],
+              [
+                200,
+                176.7766952966369,
+                222.72467953508485
+              ],
+              [
+                250,
+                222.72467953508485,
+                280.6155120773433
+              ],
+              [
+                315,
+                280.6155120773433,
+                353.5533905932738
+              ],
+              [
+                400,
+                353.5533905932738,
+                445.44935907016963
+              ],
+              [
+                500,
+                445.44935907016963,
+                561.2310241546866
+              ],
+              [
+                630,
+                561.2310241546866,
+                707.1067811865476
+              ],
+              [
+                800,
+                707.1067811865476,
+                890.8987181403393
+              ],
+              [
+                1000,
+                890.8987181403393,
+                1122.4620483093731
+              ],
+              [
+                1250,
+                1122.4620483093731,
+                1414.213562373095
+              ],
+              [
+                1600,
+                1414.213562373095,
+                1781.7974362806785
+              ],
+              [
+                2000,
+                1781.7974362806785,
+                2244.9240966187463
+              ],
+              [
+                2500,
+                2244.9240966187463,
+                2828.42712474619
+              ],
+              [
+                3150,
+                2828.42712474619,
+                3563.594872561357
+              ],
+              [
+                4000,
+                3563.594872561357,
+                4489.848193237492
+              ],
+              [
+                5000,
+                4489.848193237492,
+                5656.85424949238
+              ],
+              [
+                6300,
+                5656.85424949238,
+                7127.189745122715
+              ],
+              [
+                8000,
+                7127.189745122715,
+                8979.696386474983
+              ],
+              [
+                10000,
+                8979.696386474983,
+                11313.70849898476
+              ],
+              [
+                12500,
+                11313.70849898476,
+                14254.37949024543
+              ],
+              [
+                16000,
+                14254.37949024543,
+                17959.39277294997
+              ],
+              [
+                20000,
+                17959.39277294997,
+                22627.41699796952
+              ]
+            ]
+          },
+          "module_configuration": {
+            "profile": "fixed_base_three_blade_three_mode",
+            "dof_count": 9,
+            "integrator": "generalized_alpha",
+            "dofs": [
+              {
+                "name": "blade1_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade1_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade1_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              }
+            ],
+            "coupling_blocks": [
+              {
+                "name": "blade1",
+                "offset": 0,
+                "size": 3
+              },
+              {
+                "name": "blade2",
+                "offset": 3,
+                "size": 3
+              },
+              {
+                "name": "blade3",
+                "offset": 6,
+                "size": 3
+              }
+            ]
+          }
+        },
+        "True": {
+          "acoustic_metadata": {
+            "linear_quantity": "relative_mean_square_pressure",
+            "level_quantity": "sound_pressure_level",
+            "reference_pressure_Pa": 2e-05,
+            "weighting": "A",
+            "frequency_unit": "Hz",
+            "band_definition": "binary third-octave edges; OpenFAST nominal evaluation centers",
+            "tno_bandwidth_convention": "OpenFAST legacy multiplier; not SI Hz bandwidth",
+            "bands_center_lower_upper_Hz": [
+              [
+                10,
+                8.769234752416978,
+                11.048543456039805
+              ],
+              [
+                12.5,
+                11.048543456039805,
+                13.9202924709428
+              ],
+              [
+                16,
+                13.9202924709428,
+                17.538469504833955
+              ],
+              [
+                20,
+                17.538469504833955,
+                22.09708691207961
+              ],
+              [
+                25,
+                22.09708691207961,
+                27.8405849418856
+              ],
+              [
+                31.5,
+                27.8405849418856,
+                35.07693900966791
+              ],
+              [
+                40,
+                35.07693900966791,
+                44.19417382415922
+              ],
+              [
+                50,
+                44.19417382415922,
+                55.6811698837712
+              ],
+              [
+                63,
+                55.6811698837712,
+                70.1538780193358
+              ],
+              [
+                80,
+                70.1538780193358,
+                88.38834764831844
+              ],
+              [
+                100,
+                88.38834764831844,
+                111.36233976754242
+              ],
+              [
+                125,
+                111.36233976754242,
+                140.3077560386716
+              ],
+              [
+                160,
+                140.3077560386716,
+                176.7766952966369
+              ],
+              [
+                200,
+                176.7766952966369,
+                222.72467953508485
+              ],
+              [
+                250,
+                222.72467953508485,
+                280.6155120773433
+              ],
+              [
+                315,
+                280.6155120773433,
+                353.5533905932738
+              ],
+              [
+                400,
+                353.5533905932738,
+                445.44935907016963
+              ],
+              [
+                500,
+                445.44935907016963,
+                561.2310241546866
+              ],
+              [
+                630,
+                561.2310241546866,
+                707.1067811865476
+              ],
+              [
+                800,
+                707.1067811865476,
+                890.8987181403393
+              ],
+              [
+                1000,
+                890.8987181403393,
+                1122.4620483093731
+              ],
+              [
+                1250,
+                1122.4620483093731,
+                1414.213562373095
+              ],
+              [
+                1600,
+                1414.213562373095,
+                1781.7974362806785
+              ],
+              [
+                2000,
+                1781.7974362806785,
+                2244.9240966187463
+              ],
+              [
+                2500,
+                2244.9240966187463,
+                2828.42712474619
+              ],
+              [
+                3150,
+                2828.42712474619,
+                3563.594872561357
+              ],
+              [
+                4000,
+                3563.594872561357,
+                4489.848193237492
+              ],
+              [
+                5000,
+                4489.848193237492,
+                5656.85424949238
+              ],
+              [
+                6300,
+                5656.85424949238,
+                7127.189745122715
+              ],
+              [
+                8000,
+                7127.189745122715,
+                8979.696386474983
+              ],
+              [
+                10000,
+                8979.696386474983,
+                11313.70849898476
+              ],
+              [
+                12500,
+                11313.70849898476,
+                14254.37949024543
+              ],
+              [
+                16000,
+                14254.37949024543,
+                17959.39277294997
+              ],
+              [
+                20000,
+                17959.39277294997,
+                22627.41699796952
+              ]
+            ]
+          },
+          "module_configuration": {
+            "profile": "fixed_base_three_blade_three_mode",
+            "dof_count": 9,
+            "integrator": "generalized_alpha",
+            "dofs": [
+              {
+                "name": "blade1_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade1_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade1_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade2_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_flap1",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_flap2",
+                "unit": "m",
+                "acceleration_scale": 1
+              },
+              {
+                "name": "blade3_edge",
+                "unit": "m",
+                "acceleration_scale": 1
+              }
+            ],
+            "coupling_blocks": [
+              {
+                "name": "blade1",
+                "offset": 0,
+                "size": 3
+              },
+              {
+                "name": "blade2",
+                "offset": 3,
+                "size": 3
+              },
+              {
+                "name": "blade3",
+                "offset": 6,
+                "size": 3
+              }
+            ]
+          }
+        },
+        "unsupported_modules": "servo, tower DOF, dynamic wake rejected before solving"
+      }
+    }
+  },
+  "before_after": {
+    "baseline_commit": "c85a4fa93f2d0bb19268eccbb76dd995151092ea",
+    "executables_sha256": {
+      "before": "8376e627fe97e3021c64f15edd24d1b0bc4f53a70bf460b2366c978914f2e362",
+      "after": "76ff883b1813c50184ed7c9233934c1c8b3a2ba5e01e0bddabe422fb1ea161db"
+    },
+    "cases": {
+      "official8": {
+        "duration_s": 20,
+        "byte_identical_sha256": {
+          "dynamics.csv": "8adaef87cc858f4e4b781f84cf70f62abc8fdbbab4d3597d85833707fa063594",
+          "IEA_LB_RWT-AeroAcoustics_1.mask": "da67d06df7d4fb4bacb2d7017ebc95f588ababeb1d5154d70bc38765eb2674a8",
+          "IEA_LB_RWT-AeroAcoustics_1.out": "7268e4cab8e68e30a5bc72ee38665f872a133d2c59347cb8b4f6e16311af71ed",
+          "IEA_LB_RWT-AeroAcoustics_2.mask": "00a4891f2d4c7a26f1427e96ee85abc8ba2b8278585c9bea336a046449467aef",
+          "IEA_LB_RWT-AeroAcoustics_2.out": "199a41014473d4efaeba4ff527cfff4e4dadb757dd1dec671884bef455e85638",
+          "IEA_LB_RWT-AeroAcoustics_3.mask": "f7b1a2ba1b693372ab20664545c8c56b24696d71345b2773bb8ff3d683b29592",
+          "IEA_LB_RWT-AeroAcoustics_3.out": "4bf3d4871a6eecc65b228f3450c3a7522255290c0002b14aa551b7900e07967e",
+          "IEA_LB_RWT-AeroAcoustics_4.mask": "5e85fd5400a5749b5877e0521e263bcde462d4487956f0f11fba42fe859ce546",
+          "IEA_LB_RWT-AeroAcoustics_4.out": "b342a402e1fdedeee1dc36e3170a715958e1a49ac8a6b18028db64c57de1f7cf",
+          "lookup_diagnostics.csv": "1c46756c5828b8af5394d4b4ddfcdde3a5076fdf0a34f1c42fa247f4f1a28a7c"
+        }
+      },
+      "wind9": {
+        "duration_s": 20,
+        "byte_identical_sha256": {
+          "dynamics.csv": "1fd72279b0d48ee0a1d5d4a75c6f4f653809554589220b5fef5eb7d884b8d161",
+          "IEA_LB_RWT-AeroAcoustics_1.mask": "da67d06df7d4fb4bacb2d7017ebc95f588ababeb1d5154d70bc38765eb2674a8",
+          "IEA_LB_RWT-AeroAcoustics_1.out": "db411889f5e4f8406aca8dd3a79c17b8676ff979552f55a4c4210765ba0df028",
+          "IEA_LB_RWT-AeroAcoustics_2.mask": "00a4891f2d4c7a26f1427e96ee85abc8ba2b8278585c9bea336a046449467aef",
+          "IEA_LB_RWT-AeroAcoustics_2.out": "2c0f994ddcc7af79fb8581db7e8d4971877feb6fcf4a7ff69013a10b124881d1",
+          "IEA_LB_RWT-AeroAcoustics_3.mask": "f7b1a2ba1b693372ab20664545c8c56b24696d71345b2773bb8ff3d683b29592",
+          "IEA_LB_RWT-AeroAcoustics_3.out": "e944bb54d1158adb4700108b2c833d1003387a0674f2af5fe2af905f63600f38",
+          "IEA_LB_RWT-AeroAcoustics_4.mask": "5e85fd5400a5749b5877e0521e263bcde462d4487956f0f11fba42fe859ce546",
+          "IEA_LB_RWT-AeroAcoustics_4.out": "639cff8c3c6f96a3cf2e76dc63406ab03b4888c020b76e049850097a9629a291",
+          "lookup_diagnostics.csv": "1c46756c5828b8af5394d4b4ddfcdde3a5076fdf0a34f1c42fa247f4f1a28a7c"
+        }
+      },
+      "table_bl2": {
+        "duration_s": 20,
+        "byte_identical_sha256": {
+          "dynamics.csv": "8adaef87cc858f4e4b781f84cf70f62abc8fdbbab4d3597d85833707fa063594",
+          "IEA_LB_RWT-AeroAcoustics_1.mask": "da67d06df7d4fb4bacb2d7017ebc95f588ababeb1d5154d70bc38765eb2674a8",
+          "IEA_LB_RWT-AeroAcoustics_1.out": "62996e77d32b4c0de306286f183db06b8ab9886e746132415f82d53ccd1a9f6e",
+          "IEA_LB_RWT-AeroAcoustics_2.mask": "00a4891f2d4c7a26f1427e96ee85abc8ba2b8278585c9bea336a046449467aef",
+          "IEA_LB_RWT-AeroAcoustics_2.out": "09edca6adef965b70a5c2ef2b9b9d308dedc2f72ee2e83c87289875d0bcee41d",
+          "IEA_LB_RWT-AeroAcoustics_3.mask": "f7b1a2ba1b693372ab20664545c8c56b24696d71345b2773bb8ff3d683b29592",
+          "IEA_LB_RWT-AeroAcoustics_3.out": "d9e6868887c60445da57edc9a16fdb99ab7025fa4a368ee0f70cdeee0456f573",
+          "IEA_LB_RWT-AeroAcoustics_4.mask": "5e85fd5400a5749b5877e0521e263bcde462d4487956f0f11fba42fe859ce546",
+          "IEA_LB_RWT-AeroAcoustics_4.out": "21ea3433ae32a4777c533aee29fa86e357013b8f0f998e7b722777b799a032a4",
+          "lookup_diagnostics.csv": "1c46756c5828b8af5394d4b4ddfcdde3a5076fdf0a34f1c42fa247f4f1a28a7c"
+        }
+      },
+      "tno": {
+        "duration_s": 0.1,
+        "byte_identical_sha256": {
+          "dynamics.csv": "7e884882e242203b3fe7424206b6b173ce4e3aa51d9e021fb6c1788f066f231d",
+          "IEA_LB_RWT-AeroAcoustics_1.mask": "af96b8e42d3e8e06cb6a0bfb3b7129761d7e75573c8264c452ce3f53f1e9e49b",
+          "IEA_LB_RWT-AeroAcoustics_1.out": "3e759077b180d8fd33210e0b880f1d78e5211703a3bfb5d2eec15e3bae7327c8",
+          "IEA_LB_RWT-AeroAcoustics_2.mask": "7a69f12fae022ff5f1fc60d09b7b6c3e75a9048e58cfb0d29a67bc87edb71952",
+          "IEA_LB_RWT-AeroAcoustics_2.out": "72f9fb702a4e57be25892e5bbda9d6bd063be9c9aad96fbbc979c510abf796b1",
+          "IEA_LB_RWT-AeroAcoustics_3.mask": "c42718b9eb74111ffc43bd27a9545f2685c644eeeec3b797ea333dad409c3fc0",
+          "IEA_LB_RWT-AeroAcoustics_3.out": "dc661119f36054edcf696b5891446492553d4d29eb911eda68d9a90f1235d93b",
+          "IEA_LB_RWT-AeroAcoustics_4.mask": "8eab88b67fb1874bbfd3b90967254e586ad9781f6b44ebb7829b0fc26d38f213",
+          "IEA_LB_RWT-AeroAcoustics_4.out": "df0f1ca9313bbe51322b8fd5f1b2a83abc518c6e7d3d9ab3485e080142272216",
+          "lookup_diagnostics.csv": "1c46756c5828b8af5394d4b4ddfcdde3a5076fdf0a34f1c42fa247f4f1a28a7c"
+        }
+      }
+    }
+  },
+  "generic_integrator_analytic_tests": {
+    "coupled_block_sizes": [
+      1,
+      2,
+      3,
+      4,
+      6
+    ],
+    "reference": "analytic inverse of diagonal plus rank-one system at first step",
+    "acceleration_absolute_tolerance": 1e-11,
+    "state_absolute_tolerance": 1e-12,
+    "history_checks": "copy/replay, reset, failed correction recovery, pending-step guards"
+  },
+  "performance_claim": "No speedup claimed for this interface refactor; warmed structural steps remain allocation-free."
+}

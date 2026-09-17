@@ -4,7 +4,7 @@
 #include "turbine/model.hpp"
 #include "turbine/unsteady.hpp"
 namespace turbine {
-using RotorState = std::array<ModalState, 3>;
+using RotorState = std::array<ModalState, FixedBaseBladeBackend::blades>;
 struct AeroStation {
     Motion motion;
     Vec3 wind;
@@ -15,7 +15,7 @@ struct AeroStation {
     PointLoad load;
 };
 struct RotorOutput {
-    std::array<std::vector<AeroStation>, 3> blades;
+    std::array<std::vector<AeroStation>, FixedBaseBladeBackend::blades> blades;
     Vec3 average_velocity{};
     double skew = 0;
 };
@@ -58,7 +58,7 @@ class Rotor {
     std::vector<double> tip_constant_, hub_constant_;
     std::vector<MotionMap> motion_maps_;
     std::vector<LoadMap> load_maps_;
-    std::array<std::vector<UnsteadyAirfoil>, 3> airfoils_;
-    std::array<std::vector<double>, 3> previous_phi_;
+    std::array<std::vector<UnsteadyAirfoil>, FixedBaseBladeBackend::blades> airfoils_;
+    std::array<std::vector<double>, FixedBaseBladeBackend::blades> previous_phi_;
 };
 } // namespace turbine

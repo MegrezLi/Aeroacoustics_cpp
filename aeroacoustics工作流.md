@@ -130,17 +130,17 @@ AeroDyn 文件中的 `AirDens`、`KinVisc`、`SpdSound` 当前为 `default`，�
 ```text
 main() → run_case(input, output, options)
 ├─ Case(input)：解析主文件、结构、气动、翼型及风场配置
-├─ TurbineModel：复制并冻结 Case，供求解器共享
+├─ TurbineModel：复制并冻结 Case，configure_modules() 检查支持组合
 ├─ FileOutput(output)：创建目录，清空旧 run.json 成功记录
 ├─ Simulation(model, options)
 │  ├─ AcousticConfiguration：读取声学参数、观察点，保存具名采样配置
-│  ├─ OutputLayout：根据机制描述表生成标准输出列
+│  ├─ OutputLayout：生成输出列，保存频带/计权元数据与具名自由度布局
 │  ├─ AcousticInputAdapter：建立 Node 数组，按需读取边界层表和尾缘几何
 │  ├─ AcousticDriver：建立频谱工作区、采样范围及初始 TI
 │  ├─ AcousticAggregator：预分配总量、频带、机制、节点的声能数组
 │  └─ Solver(model)
 │     ├─ Rotor → BladeStructure、UnsteadyAirfoil、MotionMap、LoadMap
-│     ├─ 计算广义 α 积分系数
+│     ├─ structural_dof_layout() → GeneralizedAlpha：建立积分系数、状态与耦合块工作区
 │     └─ Rotor::evaluate_into(0, state, aerodynamic, workspace)
 └─ run(simulation, sink)
    ├─ FileOutput::begin()：写通道标题，打开输出文件
@@ -168,20 +168,21 @@ main() → run_case(input, output, options)
 
 ```text
 Solver::step()
-├─ 根据上一时刻 q、qd、加速度和算法加速度，预测 q_pred、qd_pred
+├─ GeneralizedAlpha::predict()：根据上一时刻状态及加速度历史，预测 q_pred、qd_pred
 ├─ Rotor::advance_airfoils(上一时刻气动结果, step_number)
 │  ├─ UnsteadyAirfoil::advance()：推进翼型历史状态
 │  └─ 保存上一时刻未经偏斜修正的 BEM 根 root_phi
 ├─ Rotor::evaluate_into(t_next, predicted, aerodynamic, workspace)：复用输出，计算一次新气动状态和载荷
-├─ blade_basis(t_next, blade)：为结构迭代准备三片叶片的基底
-└─ 结构 Newton 迭代，由 SolverOptions 配置，默认最多 12 次
-   ├─ 对每片叶片调用 Rotor::structural_acceleration()
+├─ FixedBaseAcceleration：引用冻结的气动载荷，准备三片叶片的基底
+└─ GeneralizedAlpha::correct()：结构 Newton 迭代，默认最多 12 次
+   ├─ 对各耦合块调用 AccelerationOperator::evaluate()
+   │  └─ FixedBaseAcceleration::evaluate() → Rotor::structural_acceleration()
    │  ├─ BladeStructure::motions_into()：用该叶片基底重建当前状态的全部节点运动
    │  ├─ structural_loads_into() → LoadMap::transfer_into()：用这些运动更新载荷力臂
    │  └─ BladeStructure::acceleration() → solve3()：复用同一组运动，解模态质量方程
    ├─ 扰动该叶片各模态，构造数值 Jacobian
    │  └─ structural_acceleration()：对每个扰动状态重新执行上述运动、映射和加速度计算
-   ├─ solve3()：解 Newton 修正方程，修正加速度、q、qd
+   ├─ solve()：解 Newton 修正方程（当前三模态块调用 solve3），修正加速度、q、qd
    └─ 检查修正量；收敛后保存状态并更新时间
 ```
 
@@ -204,6 +205,8 @@ qd = qd_pred + gamma_prime * a
 这里的 `1e-9` 和 12 次来自 `SolverOptions` 的默认值；输入文件里的 `ConvTol`、`MaxConvIter`、`DT_UJac` 等字段并未用于设置这段 Newton 循环。
 
 固定塔架条件下，扰动一片叶片的模态不会改变另外两片的映射。因此每轮迭代逐片执行一次基础映射和三次扰动映射，三片合计 12 次。此处减少了重复计算，数值 Jacobian 的定义不变。
+
+积分与 Newton 算法位于 `coupling/integrator.cpp`，三叶片物理适配位于 `coupling/structural_adapter.cpp`。`DofLayout` 将当前九个模态划分为三个独立块。通用积分器也能求解其他尺寸的完整耦合块；增加塔架、平台等共享自由度还需实现相应物理方程和耦合关系，不能只扩展数组。
 
 ## 5. 气动求解内部调用哪些函数
 
@@ -431,6 +434,12 @@ TNO 在 `prepare_profile()` 中为当前节点、当前侧计算一次 61 点边
 批量入口 `aeroacoustics_batch` → `run_cases()` → 各线程独立 `run_case()`。各工况分别持有 `Simulation`、TNO 工作区和诊断会话；同一个工况的时间步仍依次推进。
 
 `--solver=scaled` 可选择尺度化扰动、修正量与残差共同判停，以及同一步内 Jacobian 复用；残差停滞/恶化或连续复用两次后重建。默认 `reference` 保留每轮重建与原判停条件。`Solver::diagnostics()` 与 `run.json` 给出迭代和计算次数，失败报告附带时间、叶片和残差。完整参数与验证见 [P4–P7 说明](docs/performance-p4-p7.md)。
+
+### 8.2 频带、单位和模块元数据
+
+`FrequencyBands::openfast_reference()` 为原 34 个名义中心分配不重叠的二进制三分之一倍频程边界。`AcousticAggregator` 验证中心列表，将声级转换成相对均方声压后叠加；`AcousticResult::power` 的含义是 `〈p²〉/(20 μPa)²`，并非声功率 W。结果携带频带与计权状态，`FileOutput` 检查匹配后写出 dB 或 dBA。
+
+`run.json` 保存参考声压、频带边界、TNO 参考带宽约定，以及结构自由度名称、单位、尺度和耦合块。另有 `PressurePsd`、`BandMeanSquarePressure`、`BandSoundPressureLevel`、`BandSoundPower` 等类型供库调用；PSD 要先按 Hz 带宽积分，不能直接与频带能量混用。详细公式与接口见 [S4–S5 说明](docs/semantics-modules.md)。
 
 ## 9. 按问题定位源码
 
