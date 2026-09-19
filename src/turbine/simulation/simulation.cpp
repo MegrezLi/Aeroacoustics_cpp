@@ -29,6 +29,12 @@ struct Simulation::Impl {
         solver.emplace(model, options.solver);
         layout.dofs = solver->layout().dofs();
         layout.coupling_blocks = solver->layout().blocks();
+        layout.time_dependent_wind = bool(options.solver.wind);
+        layout.controller = options.solver.controller;
+        layout.propagation = options.propagation;
+        if (options.propagation)
+            acoustic.set_propagation(std::make_shared<const aeroacoustics::OutdoorPropagation>(
+                *options.propagation, layout.acoustic_metadata->bands));
     }
 };
 Simulation::Simulation(TurbineModel m, RunOptions o) : impl_(std::make_unique<Impl>(std::move(m), o)) {}
@@ -76,7 +82,8 @@ std::optional<StepView> Simulation::next() {
             ++s.samples;
         }
         s.started = true;
-        return StepView{solver.time(), solver.state(), result, &solver.generalized_state()};
+        return StepView{solver.time(), solver.state(), result, &solver.generalized_state(),
+                        solver.operating_state()};
     } catch (...) {
         s.failed = true;
         throw;
@@ -102,6 +109,9 @@ void Simulation::reset() {
     fresh->lookup.policy = fresh->options.lookup_policy;
     diagnostics::LookupSession session(fresh->lookup);
     fresh->acoustic = fresh->config.make_driver();
+    if (fresh->options.propagation)
+        fresh->acoustic.set_propagation(std::make_shared<const aeroacoustics::OutdoorPropagation>(
+            *fresh->options.propagation, fresh->layout.acoustic_metadata->bands));
     fresh->solver.emplace(fresh->model, fresh->options.solver);
     fresh->started = fresh->finished = fresh->failed = false;
     fresh->samples = 0;

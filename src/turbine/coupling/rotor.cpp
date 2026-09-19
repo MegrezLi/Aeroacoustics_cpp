@@ -80,7 +80,7 @@ void Rotor::evaluate_into(double time, const RotorState &state, RotorOutput &y,
             auto &a = y.blades[b][j];
             const auto &s = c.stations[j];
             a.motion = aerodynamic[j];
-            a.wind = c.wind.at(a.motion.position);
+            a.wind = wind_at(time, a.motion.position);
             y.average_velocity = y.average_velocity + a.wind - a.motion.velocity;
             const auto angles = euler_angles(multiply(a.motion.orientation, transpose(unpitched)));
             a.annulus = multiply(euler_matrix({0, angles[1], 0}), unpitched);
@@ -165,6 +165,27 @@ void Rotor::advance_airfoils(const RotorOutput &y, std::size_t step) {
             airfoils_[b][j].advance(y.blades[b][j].alpha, y.blades[b][j].speed, step);
             previous_phi_[b][j] = y.blades[b][j].root_phi;
         }
+}
+double Rotor::aerodynamic_torque(const RotorOutput &y) const {
+    double torque = 0;
+    // Integrate the product of linear position and linear force exactly, as in
+    // LoadMap; a trapezoid of endpoint moments would miss the cross terms.
+    const auto &stations = model_.data().stations;
+    for (const auto &blade : y.blades) {
+        if (blade.size() != stations.size())
+            throw std::invalid_argument("Torque station count mismatch");
+        for (std::size_t j = 1; j < blade.size(); ++j) {
+            const auto &a = blade[j - 1], &b = blade[j];
+            const auto &sa = stations[j - 1], &sb = stations[j];
+            const double length = norm(Vec3{sb.curve - sa.curve, sb.sweep - sa.sweep, sb.span - sa.span});
+            const Vec3 moment =
+                (length / 6) * (cross(a.motion.position - structure_.hub, 2 * a.load.force + b.load.force) +
+                                cross(b.motion.position - structure_.hub, a.load.force + 2 * b.load.force)) +
+                (.5 * length) * (a.load.moment + b.load.moment);
+            torque += dot(moment, structure_.shaft);
+        }
+    }
+    return torque;
 }
 std::array<std::vector<PointLoad>, 3> Rotor::structural_loads(double time, const RotorState &state,
                                                               const RotorOutput &y) const {

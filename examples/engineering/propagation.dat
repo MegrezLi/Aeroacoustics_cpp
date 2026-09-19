@@ -1,0 +1,11 @@
+Straight-ray demonstration: uniform atmosphere and rigid horizontal ground.
+True AirAbsorption
+20 TemperatureC
+70 RelativeHumidity          - percent, not fraction
+101325 PressurePa
+343 SoundSpeed               - m/s for reflected-path phase
+0 GroundZ                    - global m
+rigid GroundModel            - none, rigid, impedance
+10 ImpedanceReal             - Z/(rho c), only used for impedance ground
+-10 ImpedanceImag            - exp(+i omega t) convention
+0 NumScreens                 - optional rows x1 y1 x2 y2 top_z, in global m

@@ -10,6 +10,15 @@ Solver::Solver(TurbineModel model, SolverOptions options)
                   rotor_.model().data().dt, rotor_.model().data().primary.number("RhoInf"), options),
       options_(options), dt_(rotor_.model().data().dt) {
     diagnostics_ = integrator_.diagnostics();
+    rotor_.set_wind(options.wind);
+    if (options.controller) {
+        const auto &s = rotor_.structure();
+        if (s.pitch[0] != s.pitch[1] || s.pitch[0] != s.pitch[2])
+            throw std::invalid_argument("Collective controller requires equal initial blade pitches");
+        controller_.emplace(*options.controller, s.omega, s.pitch[0],
+                            rotor_.model().data().structure.number("NacYaw") * deg);
+        rotor_.set_operation(controller_->state().motion);
+    }
     rotor_.evaluate_into(0, state_, aerodynamic_, rotor_workspace_);
     // FAST_Solver initializes its acceleration arrays to zero; Step0 solves
     // module inputs without populating these arrays for ElastoDyn.
@@ -51,6 +60,11 @@ void Solver::step() {
 void Solver::advance() {
     const double next_time = (step_number_ + 1) * dt_;
     const auto predicted = rotor_state(integrator_.predict());
+    if (controller_) {
+        const auto wind = rotor_.wind_at(time_, rotor_.structure().hub);
+        controller_->advance(dt_, rotor_.aerodynamic_torque(aerodynamic_), std::atan2(wind[1], wind[0]));
+        rotor_.set_operation(controller_->state().motion);
+    }
     // These module histories advance exactly once. Newton trial evaluations
     // only read the frozen aerodynamic output and do not advance UA or BEM.
     rotor_.advance_airfoils(aerodynamic_, step_number_);

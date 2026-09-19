@@ -26,6 +26,8 @@ BladeStructure::BladeStructure(const Case &c)
     shaft = {std::cos(tilt_) * std::cos(yaw_), std::cos(tilt_) * std::sin(yaw_), std::sin(tilt_)};
     hub = c.structure.number("OverHang") * shaft +
           Vec3{0, 0, c.structure.number("TowerHt") + c.structure.number("Twr2Shft")};
+    overhang_ = c.structure.number("OverHang");
+    yaw_pivot_ = {0, 0, c.structure.number("TowerHt") + c.structure.number("Twr2Shft")};
     for (int b = 0; b < 3; ++b) {
         const auto suffix = "(" + std::to_string(b + 1) + ")";
         cone[b] = c.structure.number("PreCone" + suffix) * deg;
@@ -139,10 +141,22 @@ BladeStructure::BladeStructure(const Case &c)
         for (int n = 0; n < 3; ++n)
             damping[m][n] = .02 * damp[n] * stiffness[m][n] / std::sqrt(stiffness[n][n] / modal_mass[n]);
 }
+void BladeStructure::set_operation(const RotorKinematics &op) {
+    for (double v : {op.azimuth, op.speed, op.acceleration, op.pitch, op.pitch_rate, op.pitch_acceleration,
+                     op.yaw, op.yaw_rate, op.yaw_acceleration})
+        if (!std::isfinite(v))
+            throw std::invalid_argument("Non-finite rotor kinematics");
+    operation_ = op;
+    omega = op.speed;
+    pitch.fill(op.pitch);
+    yaw_ = op.yaw;
+    shaft = {std::cos(tilt_) * std::cos(yaw_), std::cos(tilt_) * std::sin(yaw_), std::sin(tilt_)};
+    hub = overhang_ * shaft + yaw_pivot_;
+}
 Matrix3 BladeStructure::blade_basis(double time, std::size_t blade) const {
     const Vec3 c2{-std::sin(tilt_) * std::cos(yaw_), -std::sin(tilt_) * std::sin(yaw_), std::cos(tilt_)},
         c3{std::sin(yaw_), -std::cos(yaw_), 0};
-    const double a = initial_azimuth + omega * time + 2 * pi * blade / 3;
+    const double a = initial_azimuth + (operation_ ? operation_->azimuth : omega * time) + 2 * pi * blade / 3;
     const Vec3 g2 = std::cos(a) * c2 + std::sin(a) * c3, g3 = -std::sin(a) * c2 + std::cos(a) * c3;
     const Vec3 i1 = std::cos(cone[blade]) * shaft - std::sin(cone[blade]) * g3,
                i3 = std::sin(cone[blade]) * shaft + std::cos(cone[blade]) * g3;
@@ -173,10 +187,26 @@ Motion BladeStructure::motion(const Matrix3 &b, const ModalState &state, const S
         y.partial_angular[m] = -s.edge_slope[m] * b[0] + s.flap_slope[m] * b[1];
         flexible_velocity = flexible_velocity + qd[m] * y.partial_velocity[m];
     }
-    const Vec3 om = omega * shaft;
+    Vec3 om = omega * shaft, angular_acceleration{}, hub_velocity{}, hub_acceleration{};
+    if (operation_) {
+        const auto &op = *operation_;
+        const Vec3 z{0, 0, 1}, yaw_velocity = op.yaw_rate * z;
+        const Vec3 carrier = yaw_velocity + omega * shaft;
+        om = carrier - op.pitch_rate * b[2];
+        angular_acceleration = op.yaw_acceleration * z + op.acceleration * shaft +
+                               omega * cross(yaw_velocity, shaft) - op.pitch_acceleration * b[2] -
+                               op.pitch_rate * cross(carrier, b[2]);
+        hub_velocity = cross(yaw_velocity, hub - yaw_pivot_);
+        hub_acceleration =
+            cross(op.yaw_acceleration * z, hub - yaw_pivot_) + cross(yaw_velocity, hub_velocity);
+    }
     y.velocity = cross(om, relative) + flexible_velocity;
     y.acceleration_bias =
         cross(om, cross(om, relative)) + 2 * cross(om, flexible_velocity) - dot(qd, axialqd) * b[2];
+    if (operation_) {
+        y.velocity = y.velocity + hub_velocity;
+        y.acceleration_bias = y.acceleration_bias + hub_acceleration + cross(angular_acceleration, relative);
+    }
     y.angular_velocity = om;
     for (int m = 0; m < 3; ++m)
         y.angular_velocity = y.angular_velocity + qd[m] * y.partial_angular[m];

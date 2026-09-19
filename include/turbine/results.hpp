@@ -1,5 +1,6 @@
 #pragma once
 #include "lookup_diagnostics.hpp"
+#include "propagation.hpp"
 #include "turbine/acoustic_adapter.hpp"
 #include "turbine/solver.hpp"
 namespace turbine {
@@ -13,6 +14,9 @@ struct OutputLayout {
     std::vector<DofDescriptor> dofs;
     std::vector<DofBlock> coupling_blocks;
     std::string module_profile;
+    bool time_dependent_wind = false;
+    std::optional<ControlConfig> controller;
+    std::optional<aeroacoustics::PropagationOptions> propagation;
     aeroacoustics::Parameters parameters;
     std::shared_ptr<const aeroacoustics::AcousticMetadata> acoustic_metadata;
     std::array<std::vector<std::string>, 4> labels;
@@ -43,6 +47,7 @@ struct StepView {
     const RotorState &state;
     const AcousticResult *acoustics;               // null on non-sampling steps
     const SecondOrderState *generalized = nullptr; // borrowed; legacy state view remains available
+    const ControlState *operation = nullptr;
 };
 struct RunSummary {
     double dt, duration, elapsed_seconds;

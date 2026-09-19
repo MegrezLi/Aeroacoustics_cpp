@@ -1,4 +1,5 @@
 #pragma once
+#include "propagation.hpp"
 #include "turbine/results.hpp"
 #include "turbine/solver.hpp"
 namespace turbine {
@@ -7,6 +8,7 @@ struct RunOptions {
     diagnostics::LookupPolicy lookup_policy = diagnostics::LookupPolicy::clamp;
     std::size_t observer_block_size = 1;
     SolverOptions solver;
+    std::optional<aeroacoustics::PropagationOptions> propagation;
 };
 class Simulation {
     friend RunSummary run(Simulation &, ResultSink &);

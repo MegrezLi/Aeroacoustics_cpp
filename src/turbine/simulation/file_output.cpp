@@ -79,6 +79,14 @@ void FileOutput::begin_output(const OutputLayout &layout) {
     for (const auto &channel : layout.dynamics)
         dynamics_ << ',' << channel.name;
     dynamics_ << '\n';
+    if (layout.controller) {
+        operation_.open(directory_ / "operation.csv");
+        operation_ << std::setprecision(17)
+                   << "time,azimuth_rad,rotor_speed_rad_s,rotor_acceleration_rad_s2,generator_speed_rad_s,"
+                      "shaft_twist_rad,shaft_torque_Nm,generator_torque_Nm,electrical_power_W,aerodynamic_"
+                      "torque_Nm,pitch_rad,pitch_rate_rad_s,pitch_acceleration_rad_s2,yaw_rad,yaw_rate_rad_s,"
+                      "yaw_acceleration_rad_s2,speed_reference_rad_s,noise_mode\n";
+    }
 }
 void FileOutput::write(const StepView &frame) {
     if (failed_)
@@ -98,6 +106,18 @@ void FileOutput::write_step(const StepView &frame) {
         throw std::invalid_argument("Output times must be finite and increasing");
     const auto output_count = layout_->output_count;
     const auto &labels = layout_->labels;
+    if (layout_->controller) {
+        if (!frame.operation)
+            throw std::invalid_argument("Missing operating state");
+        const auto &s = *frame.operation;
+        const auto &m = s.motion;
+        operation_ << frame.time << ',' << m.azimuth << ',' << m.speed << ',' << m.acceleration << ','
+                   << s.generator_speed << ',' << s.shaft_twist << ',' << s.shaft_torque << ','
+                   << s.generator_torque << ',' << s.electrical_power << ',' << s.aerodynamic_torque << ','
+                   << m.pitch << ',' << m.pitch_rate << ',' << m.pitch_acceleration << ',' << m.yaw << ','
+                   << m.yaw_rate << ',' << m.yaw_acceleration << ',' << s.speed_reference << ','
+                   << s.noise_mode << '\n';
+    }
     dynamics_ << frame.time;
     if (frame.generalized) {
         if (frame.generalized->q.size() != layout_->dofs.size() ||
@@ -180,6 +200,8 @@ void FileOutput::finish_output(const RunSummary &summary) {
         masks_[k].finish();
     }
     dynamics_.finish();
+    if (layout_->controller)
+        operation_.finish();
     lookup_output_.finish();
     metadata_ << std::setprecision(17) << "{\n  \"solver\": \"standalone C++\",\n  \"dt\": " << summary.dt
               << ",\n  \"duration\": " << summary.duration << ",\n  \"steps\": " << summary.steps
@@ -235,7 +257,89 @@ void FileOutput::finish_output(const RunSummary &summary) {
         metadata_ << "{\"name\":" << json_text(b.name) << ",\"offset\":" << b.offset << ",\"size\":" << b.size
                   << '}';
     }
-    metadata_ << "]}\n}\n";
+    metadata_ << "]}";
+    if (layout_->time_dependent_wind || layout_->controller || layout_->propagation) {
+        metadata_ << ",\n  \"engineering\": {\"wind\": "
+                  << json_text(layout_->time_dependent_wind ? "time-space vector field"
+                                                            : "original steady field")
+                  << ", \"controller\": "
+                  << json_text(
+                         layout_->controller
+                             ? "two-mass drivetrain, generator lag, PI collective pitch, pitch/yaw servos"
+                             : "fixed operation")
+                  << ", \"propagation\": "
+                  << json_text(layout_->propagation
+                                   ? "straight-ray atmosphere, image ground, dominant knife-edge screen"
+                                   : "reference free field");
+        if (layout_->controller) {
+            const auto &c = *layout_->controller;
+            metadata_ << ", \"control\": {";
+            const std::vector<std::pair<const char *, double>> values{
+                {"rotor_inertia", c.rotor_inertia},
+                {"generator_inertia", c.generator_inertia},
+                {"gear_ratio", c.gear_ratio},
+                {"shaft_stiffness", c.shaft_stiffness},
+                {"shaft_damping", c.shaft_damping},
+                {"optimal_torque_gain", c.optimal_torque_gain},
+                {"rated_power", c.rated_power},
+                {"efficiency", c.efficiency},
+                {"rated_rotor_speed", c.rated_rotor_speed},
+                {"torque_limit", c.torque_limit},
+                {"torque_rate", c.torque_rate},
+                {"torque_time_constant", c.torque_time_constant},
+                {"pitch_min", c.pitch_min},
+                {"pitch_max", c.pitch_max},
+                {"pitch_kp", c.pitch_kp},
+                {"pitch_ki", c.pitch_ki},
+                {"pitch_frequency", c.pitch_frequency},
+                {"pitch_damping", c.pitch_damping},
+                {"pitch_rate", c.pitch_rate},
+                {"yaw_frequency", c.yaw_frequency},
+                {"yaw_damping", c.yaw_damping},
+                {"yaw_rate", c.yaw_rate},
+                {"yaw_deadband", c.yaw_deadband},
+                {"speed_filter_time", c.speed_filter_time},
+                {"max_step", c.max_step},
+                {"noise_start", c.noise_start},
+                {"noise_speed_ratio", c.noise_speed_ratio},
+                {"noise_power_ratio", c.noise_power_ratio},
+                {"noise_pitch", c.noise_pitch}};
+            bool separator = false;
+            for (const auto &v : values) {
+                if (separator)
+                    metadata_ << ',';
+                separator = true;
+                metadata_ << json_text(v.first) << ':' << v.second;
+            }
+            metadata_ << '}';
+        }
+        if (layout_->propagation) {
+            const auto &p = *layout_->propagation;
+            metadata_ << ", \"propagation_parameters\": {\"air_absorption\":"
+                      << (p.absorption ? "true" : "false")
+                      << ",\"temperature_K\":" << p.atmosphere.temperature_k
+                      << ",\"relative_humidity_percent\":" << p.atmosphere.relative_humidity_percent
+                      << ",\"pressure_Pa\":" << p.atmosphere.pressure_pa
+                      << ",\"sound_speed_m_s\":" << p.sound_speed << ",\"ground_z_m\":" << p.ground_z
+                      << ",\"ground\":"
+                      << json_text(p.ground == aeroacoustics::GroundModel::none    ? "none"
+                                   : p.ground == aeroacoustics::GroundModel::rigid ? "rigid"
+                                                                                   : "impedance")
+                      << ",\"normalized_impedance\":[" << p.normalized_impedance.real() << ','
+                      << p.normalized_impedance.imag() << "],\"screens\":[";
+            bool separator = false;
+            for (const auto &s : p.screens) {
+                if (separator)
+                    metadata_ << ',';
+                separator = true;
+                metadata_ << '[' << s.x1 << ',' << s.y1 << ',' << s.x2 << ',' << s.y2 << ',' << s.top_z
+                          << ']';
+            }
+            metadata_ << "]}";
+        }
+        metadata_ << '}';
+    }
+    metadata_ << "\n}\n";
     metadata_.finish();
 
     finished_ = true;

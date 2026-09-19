@@ -3,6 +3,7 @@
 #include "turbine/mesh.hpp"
 #include "turbine/model.hpp"
 #include "turbine/unsteady.hpp"
+#include "turbine/wind.hpp"
 namespace turbine {
 using RotorState = std::array<ModalState, FixedBaseBladeBackend::blades>;
 struct AeroStation {
@@ -36,6 +37,12 @@ class Rotor {
     explicit Rotor(TurbineModel);
     const TurbineModel &model() const noexcept { return model_; }
     const BladeStructure &structure() const noexcept { return structure_; }
+    void set_operation(const RotorKinematics &op) { structure_.set_operation(op); }
+    void set_wind(std::shared_ptr<const WindField> wind) { wind_ = std::move(wind); }
+    Vec3 wind_at(double time, const Vec3 &p) const {
+        return wind_ ? wind_->at(time, p) : model_.data().wind.at(p);
+    }
+    double aerodynamic_torque(const RotorOutput &) const;
     RotorOutput evaluate(double time, const RotorState &) const;
     void evaluate_into(double time, const RotorState &, RotorOutput &, RotorWorkspace &) const;
     // Reuses motions for both load mapping and acceleration in one state evaluation.
@@ -51,6 +58,7 @@ class Rotor {
     void structural_loads_into(std::size_t blade, const RotorOutput &, const std::vector<Motion> &,
                                LoadWorkspace &) const;
     BEMOptions options_;
+    std::shared_ptr<const WindField> wind_;
     struct SkewOptions {
         bool redistribute;
         double factor;

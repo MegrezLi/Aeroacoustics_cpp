@@ -40,7 +40,7 @@ cmake --build build -j 4
 
 默认计算 3,200 个时间步，步长 0.00625 s；声学输出间隔 0.1 s，共 201 个时刻。声级参考声压为 20 μPa。程序另可接受第三个参数设置运行时长，例如末尾加 `2` 运行 2 秒。
 
-非法声级和文件写入失败会使程序报错退出。`.out` 中的零声能仍使用原 `0 dB` 占位，须结合 `.mask` 与物理上的有效 `0 dB` 区分。查表默认保留端点值并汇总警告；可加 `--lookup-policy=error` 在首次超界时报错。字段、适用范围及测试说明见 [R1–R3 可靠性说明](docs/reliability.md)。
+非法声级和文件写入失败会使程序报错退出。`.out` 中的零声能仍使用原 `0 dB` 占位，须结合 `.mask` 与物理上的有效 `0 dB` 区分。查表默认保留端点值并汇总警告；可加 `--lookup-policy=error` 在首次超界时报错。字段、适用范围及测试说明见 [R1–R3 可靠性说明](docs/validation.md#reliability)。
 
 ## 模型范围
 
@@ -53,9 +53,19 @@ cmake --build build -j 4
 - **网格传递与耦合**：结构到气动节点的运动插值、气动到结构的载荷映射、广义 α 时间积分。
 - **AeroAcoustics**：BPM 尾缘噪声、钝度、层流、叶尖、Lowson 入流噪声、Simplified Guidati 厚度修正，以及 TNO 模型和 61 点积分。
 
-官方工况使用 8 m/s 风速、10.04 rpm 固定转速和 1.17° 固定桨距。塔架、传动链、平台及控制器在此算例中关闭；这些自由度和模块暂时不属于本项目的移植范围。
+官方工况使用 8 m/s 风速、10.04 rpm 固定转速和 1.17° 固定桨距。新增工程配置可启用独立的两质量传动链、发电机转矩响应和闭环变桨/偏航；塔架与平台仍固定。这些新增模型不是 ServoDyn/ROSCO 的完整移植。
 
-数值求根与结构 Newton 迭代采用 C++ 实现，收敛处理与原求解器有差别，不承诺逐位一致。具体支持项、求解顺序及输入限制见 [模块说明](docs/standalone-port.md)。默认整机算例未启用 TNO，TNO 由单独的 Fortran 对照测试覆盖。
+数值求根与结构 Newton 迭代采用 C++ 实现，收敛处理与原求解器有差别，不承诺逐位一致。具体支持项、求解顺序及输入限制见 [模块说明](docs/development.md#scope)。默认整机算例未启用 TNO，TNO 由单独的 Fortran 对照测试覆盖。
+
+## 非稳态运行与传播
+
+```sh
+./build/aeroacoustics_turbine examples/engineering/closed_loop.fst build/engineering --wind-grid=examples/engineering/gust_veer.wind --controller=examples/engineering/controller.dat --propagation=examples/engineering/propagation.dat
+```
+
+风场接口读取时间/x/y/z 网格中的三分量速度；闭环控制器计算转速、桨距、偏航及正常/降噪模式响应。传播层增加均匀空气吸收、平面地面反射和主导山脊/薄屏障衍射，保留源模型已有的距离与指向性。
+
+示例控制参数尚未针对真实机组标定，风场为确定性测试数据。新增模型已有解析和时间步收敛检查，尚无同配置 Fortran 或实测对照；传播模型不含气象梯度折射，也不等同于完整 ISO 9613-2。输入格式、参数单位、调用顺序与验证范围见 [E1–E2 工程说明](docs/engineering.md)。
 
 ## Fortran 与 C++ 对比
 
@@ -70,7 +80,7 @@ cmake --build build -j 4
 
 每个工况比较全部 145,926 个声学值，并核对 101 个输入文件的 SHA256。改变风速后，总声压级相对原工况最多改变约 1.526 dB。
 
-模块对照另覆盖 56,576 个声学数值、36,000 组非定常翼型状态、5,700 行结构状态、4,700 行网格映射和 7,200 组 BEM 诱导系数。详细误差见 [验证与复现](docs/full-case.md) 和 `docs/validation-*.json`。Windows 运行依赖检查只装入 C++ 运行库，在 PATH 仅含系统目录时完成了整机算例，见 [运行检查报告](docs/validation-runtime.json)。
+模块对照另覆盖 56,576 个声学数值、36,000 组非定常翼型状态、5,700 行结构状态、4,700 行网格映射和 7,200 组 BEM 诱导系数。详细误差见 [验证与复现](docs/validation.md#fortran) 和 `docs/validation-*.json`。Windows 运行依赖检查只装入 C++ 运行库，在 PATH 仅含系统目录时完成了整机算例，见 [运行检查报告](docs/validation-runtime.json)。
 
 ![Fortran 与独立 C++ 整机对比](docs/full-case-validation.png)
 
@@ -84,15 +94,15 @@ python tests/run_standalone.py build/aeroacoustics_turbine build/official-check 
 python tests/run_perturbation.py build/aeroacoustics_turbine build/wind9-check --report build/wind9.json
 ```
 
-Windows 将 `.so` 换成 `libaeroacoustics_shared.dll`，并给可执行文件加 `.exe`。GitHub Actions 执行 Linux 编译、这三项对比、声学与整机缓冲区检查，以及声源组合、库接口、检查点和 R1–R3 异常检查。已有 Fortran 源码与结果保存在 `reference/`。
+Windows 将 `.so` 换成 `libaeroacoustics_shared.dll`，并给可执行文件加 `.exe`。GitHub Actions 执行 Linux 编译、这三项对比、声学与整机缓冲区检查，以及声源组合、库接口、检查点、工程控制/传播、并发和异常检查。已有 Fortran 源码与结果保存在 `reference/`。
 
 ## C++ 仿真接口
 
 整机调度已独立为 `Simulation`。可以逐帧调用 `next()`，或通过 `run_case()` 运行完整工况；自定义 `ResultSink` 可直接接收内存中的结果。模型数据共享且只读，求解状态通过检查点完整保存和恢复。
 
-S1–S3 重构还集中管理了七类声源和模型替代关系。命令行及标准输出格式保持不变；原先直接读取 `solver.state`、`solver.time` 的 C++ 调用需改为 `state()`、`time()` 等只读访问器。示例、检查点范围和迁移表见 [仿真接口说明](docs/simulation-api.md)。
+声源配置集中管理了七类声源和模型替代关系。命令行及标准输出格式保持不变；旧接口中直接读取 `solver.state`、`solver.time` 的 C++ 调用需改为 `state()`、`time()` 等只读访问器。示例、检查点范围和迁移表见 [仿真接口说明](docs/development.md#simulation)。
 
-声学接口明确区分 PSD、频带均方声压、声压级与声功率，保存频带上下限和计权状态；整机聚合拒绝将任意密集频率样本作为独立频带累加。A 计权输出标题为 dBA。通用广义 α 积分器按具名自由度与耦合块求解，当前三叶片后端通过加速度接口接入。接口、频带约定和扩展边界见 [S4–S5 说明](docs/semantics-modules.md)。
+声学接口明确区分 PSD、频带均方声压、声压级与声功率，保存频带上下限和计权状态；整机聚合拒绝将任意密集频率样本作为独立频带累加。A 计权输出标题为 dBA。通用广义 α 积分器按具名自由度与耦合块求解，当前三叶片后端通过加速度接口接入。接口、频带约定和扩展边界见 [S4–S5 说明](docs/development.md#quantities-modules)。
 
 ## 批量运行与求解选项
 
@@ -102,23 +112,11 @@ S1–S3 重构还集中管理了七类声源和模型替代关系。命令行及
 ./build/aeroacoustics_batch 2 case8/IEA_LB_RWT-AeroAcoustics.fst results/wind8 case9/IEA_LB_RWT-AeroAcoustics.fst results/wind9
 ```
 
-整机默认按一个观察点一块计算，并按 `NrOutFile` 分配和聚合输出。`--observer-block-size=N` 可调整块大小。`--solver=scaled` 启用尺度化扰动、残差判停和同一步内 Jacobian 复用；默认 `reference` 保留原数值路径。参数、限制和验证见 [P4–P7 说明](docs/performance-p4-p7.md)。
+整机默认按一个观察点一块计算，并按 `NrOutFile` 分配和聚合输出。`--observer-block-size=N` 可调整块大小。`--solver=scaled` 启用尺度化扰动、残差判停和同一步内 Jacobian 复用；默认 `reference` 保留原数值路径。参数、限制和验证见 [P4–P7 说明](docs/performance.md#p4-p7)。
 
 ## 性能
 
-结构运动按叶片状态批量计算，由载荷映射和加速度装配共用；求解器复用气动、运动及载荷缓冲区。表格边界层只在声学采样时对发声节点插值，TI 仍逐步更新。
-
-P1–P3 相对包含 R1–R3 的 `e5c57ab` 基线，在 Windows / GCC 16.2.0、Release、未启用 MKL 下，同机交替运行五轮的中位数：
-
-| 20 秒整机工况 | 优化前 | 优化后 | 耗时减少 |
-| --- | ---: | ---: | ---: |
-| 官方 8 m/s | 1.985 s | 1.627 s | 18.1% |
-| 9 m/s 扰动 | 2.005 s | 1.570 s | 21.7% |
-| 8 m/s，表格边界层 | 2.188 s | 1.749 s | 20.0% |
-
-上述工况的结构、声学和掩码输出均与优化前逐字节一致。测试条件、接口变化和复现方法见 [P1–P3 优化说明](docs/coupling-optimization.md)。此前一轮优化的独立数据保留在 [原优化记录](docs/optimization.md)。
-
-P4–P7 增加了 TNO 剖面缓存、按需聚合、观察点分块、独立工况并行和可选的尺度化结构求解。本机五轮计时中，四工况采用四个工作线程的吞吐约为串行的 2.33 倍；默认单工况耗时基本持平。内存规模、完整计时和误差见 [P4–P7 说明](docs/performance-p4-p7.md)。
+时间循环复用结构、气动与声学工作区；节点声源计算在观察点间共享，输出按需聚合。已有优化的测试条件、计时与复现命令统一放在 [性能文档](docs/performance.md)。独立工况可并行运行；MKL 是否加速取决于 TNO 积分规模，不能据此推断整机一定更快。
 
 ## 截面示例与 MKL
 
@@ -128,7 +126,18 @@ P4–P7 增加了 TNO 剖面缓存、按需聚合、观察点分块、独立工�
 ./build/aeroacoustics_example spectrum.csv
 ```
 
-Intel oneMKL 是可选后端，用于 TNO 积分的向量指数和 BLAS 求和。启用时配置 `-DAEROACOUSTICS_USE_MKL=ON` 和 `MKL_DIR`，运行时提供 MKL 动态库。MinGW 使用 `mkl_rt` 单一动态接口。安装及命令见 [工具链说明](docs/toolchain.md)。
+Intel oneMKL 是可选后端，用于 TNO 积分的向量指数和 BLAS 求和。启用时配置 `-DAEROACOUSTICS_USE_MKL=ON` 和 `MKL_DIR`，运行时提供 MKL 动态库。MinGW 使用 `mkl_rt` 单一动态接口。安装及命令见 [工具链说明](docs/development.md#toolchain)。
+
+## 文档导航
+
+| 文档 | 内容 |
+| --- | --- |
+| [工作流](aeroacoustics工作流.md) | 输入参数、模块调用顺序和主要函数 |
+| [开发接口](docs/development.md) | 源码索引、支持范围、C++ API、状态与工具链 |
+| [工程模型](docs/engineering.md) | 非稳态风、闭环控制、传动链和室外传播 |
+| [验证](docs/validation.md) | Fortran 对照、解析检查、异常测试和复现命令 |
+| [性能](docs/performance.md) | 分块、并行、求解选项和历史性能数据 |
+| [待优化](待优化.md) | 已完成项、原始代码审查和后续工程需求 |
 
 ## 源码
 
@@ -136,8 +145,11 @@ Intel oneMKL 是可选后端，用于 TNO 积分的向量指数和 BLAS 求和�
 src/
 ├── acoustics/       # 经验声学模型、TNO、频谱装配、观察点几何和时间驱动
 ├── numerics/        # Gauss–Kronrod 积分、普通/MKL 数值后端
+├── propagation/     # 空气吸收、地面镜像和屏障衍射
 ├── turbine/
 │   ├── aerodynamics/ # BEM 与非定常气动
+│   ├── inflow/       # 时间/空间三分量风场
+│   ├── control/      # 两质量传动链、发电机和闭环执行器
 │   ├── structure/    # 叶片模态动力学
 │   ├── coupling/     # 网格映射、转子装配和时间积分
 │   ├── simulation/   # 仿真调度、声学适配、结果聚合与输出
@@ -146,7 +158,7 @@ src/
 └── apps/            # 截面示例、整机与批量程序入口
 ```
 
-输入参数与模块调用顺序见 [aeroacoustics 工作流](aeroacoustics工作流.md)，目录职责及源文件索引见 [src/README.md](src/README.md)。公开头文件仍位于 `include/`。
+输入参数与模块调用顺序见 [aeroacoustics 工作流](aeroacoustics工作流.md)，目录职责及源文件索引见 [源码索引](docs/development.md#source)。公开头文件仍位于 `include/`。
 
 - `include/turbine/batch.hpp`：独立工况并行与逐项运行结果。
 - `include/turbine/integrator.hpp`、`include/turbine/modules.hpp`：通用积分器、自由度布局和模块组合校验。

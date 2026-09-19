@@ -1,0 +1,30 @@
+Closed-loop demonstration parameters; not a calibrated controller for the IEA turbine.
+3.5e7 RotorInertia             - kg m2, rotor-side lumped inertia including blades
+500 GeneratorInertia          - kg m2, high-speed shaft
+90 GearRatio                  - generator / rotor speed
+8e8 ShaftStiffness            - N m/rad, rotor side
+6e6 ShaftDamping              - N m s/rad, rotor side
+2.0 OptimalTorqueGain         - generator N m/(rad/s)^2
+3.4e6 RatedPower              - electrical W
+0.95 Efficiency
+12 RatedRotorRPM
+45000 TorqueLimit            - generator-side N m
+15000 TorqueRate             - generator-side N m/s
+0.1 TorqueTimeConstant       - s
+1.17 PitchMinDeg
+85 PitchMaxDeg
+0.8 PitchKp                  - pitch rad / rotor-equivalent speed rad/s
+0.15 PitchKi                 - pitch rad / rotor-equivalent speed rad/s / s
+6 PitchFrequency             - rad/s
+0.8 PitchDamping
+8 PitchRateDeg               - deg/s
+0.4 YawFrequency             - rad/s
+1 YawDamping
+0.3 YawRateDeg               - deg/s
+2 YawDeadbandDeg
+0.5 SpeedFilterTime          - s
+0.001 MaxStep                - s, maximum controller integration step
+10 NoiseStart                - s; set beyond simulation duration for normal-only operation
+0.8 NoiseSpeedRatio          - rated speed multiplier
+0.7 NoisePowerRatio          - rated electrical power multiplier
+4 NoisePitchDeg              - minimum pitch in noise mode

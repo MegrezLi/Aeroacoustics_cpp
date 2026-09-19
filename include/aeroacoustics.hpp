@@ -12,6 +12,7 @@
 #include <vector>
 
 namespace aeroacoustics {
+class OutdoorPropagation;
 using Spectrum = std::vector<double>;
 using Mechanisms = std::array<Spectrum, mechanism_count>;
 using Vec3 = std::array<double, 3>;
@@ -80,6 +81,7 @@ class AcousticWorkspace {
 
   public:
     explicit AcousticWorkspace(Parameters);
+    void set_propagation(std::shared_ptr<const OutdoorPropagation>);
     ~AcousticWorkspace();
     AcousticWorkspace(const AcousticWorkspace &);
     AcousticWorkspace &operator=(const AcousticWorkspace &);
@@ -122,6 +124,9 @@ class AcousticDriver {
 
   public:
     const TurbulenceState &turbulence_state() const noexcept { return state_; }
+    void set_propagation(std::shared_ptr<const OutdoorPropagation> p) {
+        workspace_.set_propagation(std::move(p));
+    }
     AcousticDriver(Parameters, Spectrum span, std::size_t blades, std::vector<Vec3> observers, double dt = .1,
                    double start = 0., double percentage = 70., double hub_height = 0., int ti_method = 1);
     bool is_sample_time(double time) const;

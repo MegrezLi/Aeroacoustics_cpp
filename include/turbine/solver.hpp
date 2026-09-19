@@ -4,6 +4,8 @@ namespace turbine {
 struct SolverOptions : NewtonOptions {
     // Fixed-base backend modal scales; generic integrators use DofDescriptor scales.
     Vec3 acceleration_scale{1., 1., 1.};
+    std::shared_ptr<const WindField> wind;
+    std::optional<ControlConfig> controller;
 };
 class Solver {
   public:
@@ -21,6 +23,9 @@ class Solver {
     double time() const noexcept { return time_; }
     std::size_t step_number() const noexcept { return step_number_; }
     bool failed() const noexcept { return failed_; }
+    const ControlState *operating_state() const noexcept {
+        return controller_ ? &controller_->state() : nullptr;
+    }
     void step();
     void reset();
     class Checkpoint {
@@ -46,6 +51,7 @@ class Solver {
     double time_ = 0;
     std::size_t step_number_ = 0;
     bool failed_ = false;
+    std::optional<OperatingController> controller_;
     RotorWorkspace rotor_workspace_;
     LoadWorkspace load_workspace_;
     double dt_;

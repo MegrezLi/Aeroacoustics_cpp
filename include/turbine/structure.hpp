@@ -1,4 +1,5 @@
 #pragma once
+#include "turbine/control.hpp"
 #include "turbine/math.hpp"
 namespace turbine {
 struct ModalState {
@@ -26,6 +27,7 @@ class BladeStructure {
     double length, hub_radius, omega, initial_azimuth;
     Vec3 hub, shaft;
     std::array<double, 3> cone{}, pitch{}, tip_mass{};
+    void set_operation(const RotorKinematics &);
     Matrix3 blade_basis(double time, std::size_t blade) const;
     Motion motion(double time, std::size_t blade, const ModalState &, const StructuralStation &) const;
     // Rebuilt for each state; callers can share these motions within that evaluation.
@@ -38,5 +40,8 @@ class BladeStructure {
   private:
     Motion motion(const Matrix3 &basis, const ModalState &, const StructuralStation &) const;
     double gravity_, tilt_, yaw_;
+    std::optional<RotorKinematics> operation_;
+    Vec3 yaw_pivot_{};
+    double overhang_ = 0;
 };
 } // namespace turbine

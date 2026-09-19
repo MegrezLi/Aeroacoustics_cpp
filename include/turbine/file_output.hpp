@@ -4,7 +4,7 @@
 namespace turbine {
 class FileOutput final : public ResultSink {
     std::filesystem::path directory_;
-    diagnostics::CheckedOutput metadata_, dynamics_, lookup_output_;
+    diagnostics::CheckedOutput metadata_, dynamics_, lookup_output_, operation_;
     std::array<diagnostics::CheckedOutput, 4> outputs_, masks_;
     std::optional<OutputLayout> layout_;
     bool finished_ = false, failed_ = false;

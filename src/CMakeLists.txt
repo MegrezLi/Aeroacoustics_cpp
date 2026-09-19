@@ -9,6 +9,7 @@ set(acoustic_sources
   acoustics/kernel_compat.cpp
   acoustics/tno.cpp
   acoustics/quantities.cpp
+  propagation/outdoor.cpp
   acoustics/spectrum.cpp
   acoustics/workspace.cpp
   acoustics/geometry.cpp

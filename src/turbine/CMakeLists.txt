@@ -1,5 +1,8 @@
 set(turbine_sources
   io/case_input.cpp
+  io/engineering.cpp
+  inflow/grid_wind.cpp
+  control/controller.cpp
   aerodynamics/bem.cpp
   aerodynamics/unsteady.cpp
   structure/blade_dynamics.cpp

@@ -1,3 +1,4 @@
+#include "propagation.hpp"
 #include "source_models.hpp"
 #include <algorithm>
 #include <stdexcept>
@@ -11,6 +12,8 @@ struct AcousticWorkspace::Impl {
     detail::TnoWorkspace integration;
     std::vector<detail::PreparedSection> sources;
     Snapshot output;
+    Mechanisms reflected;
+    std::shared_ptr<const OutdoorPropagation> propagation;
 
     explicit Impl(Parameters p) : parameters(std::move(p)), models(parameters) {
         if (parameters.tbltemod == 2)
@@ -21,6 +24,11 @@ struct AcousticWorkspace::Impl {
 };
 AcousticWorkspace::AcousticWorkspace(Parameters p) : impl_(std::make_unique<Impl>(std::move(p))) {}
 AcousticWorkspace::~AcousticWorkspace() = default;
+void AcousticWorkspace::set_propagation(std::shared_ptr<const OutdoorPropagation> p) {
+    if (p && !p->bands().same_as(FrequencyBands::openfast_reference(impl_->parameters.freqlist)))
+        throw std::invalid_argument("Propagation and source frequency bands differ");
+    impl_->propagation = std::move(p);
+}
 AcousticWorkspace::AcousticWorkspace(const AcousticWorkspace &other)
     : impl_(std::make_unique<Impl>(*other.impl_)) {}
 AcousticWorkspace &AcousticWorkspace::operator=(const AcousticWorkspace &other) {
@@ -69,6 +77,19 @@ void AcousticWorkspace::evaluate_blocks(const std::vector<Node> &nodes, const st
                 try {
                     detail::emit_section(work.parameters, work.models, work.sources[n], geometry.first,
                                          geometry.second, work.weighting, output[n]);
+                    if (work.propagation) {
+                        const Mechanisms *image = nullptr;
+                        if (work.propagation->has_reflection()) {
+                            const auto reflected_geometry =
+                                observe(work.propagation->image_observer(observers[o]), node.aero_center,
+                                        node.global_to_local, node.section.chord, node.airfoil_reference);
+                            detail::emit_section(work.parameters, work.models, work.sources[n],
+                                                 reflected_geometry.first, reflected_geometry.second,
+                                                 work.weighting, work.reflected);
+                            image = &work.reflected;
+                        }
+                        work.propagation->apply(node, observers[o], output[n], image);
+                    }
                 } catch (const std::exception &e) {
                     throw std::runtime_error("observer=" + std::to_string(o + 1) +
                                              " blade=" + std::to_string(node.blade_number) +

@@ -1,11 +1,13 @@
+#include "turbine/engineering.hpp"
 #include "turbine/simulation.hpp"
 #include <iostream>
 int main(int argc, char **argv) {
     try {
         if (argc < 3)
-            throw std::runtime_error("Usage: aeroacoustics_turbine CASE.fst OUTPUT_DIRECTORY [duration] "
-                                     "[--lookup-policy=clamp|error] [--solver=reference|scaled] "
-                                     "[--observer-block-size=N]");
+            throw std::runtime_error(
+                "Usage: aeroacoustics_turbine CASE.fst OUTPUT_DIRECTORY [duration] "
+                "[--lookup-policy=clamp|error] [--solver=reference|scaled] "
+                "[--observer-block-size=N] [--wind-grid=FILE] [--controller=FILE] [--propagation=FILE]");
         turbine::RunOptions options;
         bool has_duration = false, has_policy = false, has_solver = false, has_block = false;
         for (int i = 3; i < argc; ++i) {
@@ -30,6 +32,12 @@ int main(int argc, char **argv) {
                     throw std::invalid_argument("Observer block size must be a positive integer");
                 options.observer_block_size = std::stoull(count);
                 has_block = true;
+            } else if (option.rfind("--wind-grid=", 0) == 0 && !options.solver.wind) {
+                options.solver.wind = turbine::GridWind::read(option.substr(12));
+            } else if (option.rfind("--controller=", 0) == 0 && !options.solver.controller) {
+                options.solver.controller = turbine::ControlConfig::read(option.substr(13));
+            } else if (option.rfind("--propagation=", 0) == 0 && !options.propagation) {
+                options.propagation = turbine::read_propagation(option.substr(14));
             } else if (!has_duration && option.rfind("--", 0) != 0) {
                 std::size_t used = 0;
                 options.duration = std::stod(option, &used);
