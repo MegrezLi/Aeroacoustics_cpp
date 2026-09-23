@@ -7,7 +7,8 @@ int main(int argc, char **argv) {
             throw std::runtime_error(
                 "Usage: aeroacoustics_turbine CASE.fst OUTPUT_DIRECTORY [duration] "
                 "[--lookup-policy=clamp|error] [--solver=reference|scaled] "
-                "[--observer-block-size=N] [--wind-grid=FILE] [--controller=FILE] [--propagation=FILE]");
+                "[--observer-block-size=N] [--wind-grid=FILE] [--controller=FILE] [--propagation=FILE] "
+                "[--surfaces=FILE] [--metrics=FILE]");
         turbine::RunOptions options;
         bool has_duration = false, has_policy = false, has_solver = false, has_block = false;
         for (int i = 3; i < argc; ++i) {
@@ -38,6 +39,10 @@ int main(int argc, char **argv) {
                 options.solver.controller = turbine::ControlConfig::read(option.substr(13));
             } else if (option.rfind("--propagation=", 0) == 0 && !options.propagation) {
                 options.propagation = turbine::read_propagation(option.substr(14));
+            } else if (option.rfind("--surfaces=", 0) == 0 && !options.surfaces) {
+                options.surfaces = turbine::SurfaceSet::read(option.substr(11));
+            } else if (option.rfind("--metrics=", 0) == 0 && !options.metrics) {
+                options.metrics = turbine::MetricsOptions::read(option.substr(10));
             } else if (!has_duration && option.rfind("--", 0) != 0) {
                 std::size_t used = 0;
                 options.duration = std::stod(option, &used);

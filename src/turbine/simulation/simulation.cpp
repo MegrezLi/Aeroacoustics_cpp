@@ -2,6 +2,14 @@
 #include "turbine/file_output.hpp"
 #include <chrono>
 namespace turbine {
+namespace {
+AcousticConfiguration configuration(const Case &c, const RunOptions &options) {
+    AcousticConfiguration result(c);
+    if (options.metrics && !options.metrics->observers.empty())
+        result.observers = options.metrics->observers;
+    return result;
+}
+} // namespace
 struct Simulation::Impl {
     std::chrono::steady_clock::time_point began = std::chrono::steady_clock::now();
     TurbineModel model;
@@ -13,12 +21,14 @@ struct Simulation::Impl {
     aeroacoustics::AcousticDriver acoustic;
     AcousticAggregator aggregator;
     std::optional<Solver> solver;
+    std::optional<EngineeringMetrics> metrics;
     double duration;
     bool started = false, finished = false, failed = false;
     std::size_t samples = 0;
     Impl(TurbineModel m, RunOptions o)
-        : model(std::move(m)), options(o), config(model.data()), layout(model.data(), config),
-          adapter(model.data(), config), acoustic(config.make_driver()), aggregator(layout),
+        : model(o.surfaces ? TurbineModel(o.surfaces->apply(m.data())) : std::move(m)), options(o),
+          config(configuration(model.data(), o)), layout(model.data(), config),
+          adapter(model.data(), config, o.surfaces), acoustic(config.make_driver()), aggregator(layout),
           duration(o.duration.value_or(model.data().duration)) {
         if (!options.observer_block_size)
             throw std::invalid_argument("Observer block size must be positive");
@@ -32,6 +42,11 @@ struct Simulation::Impl {
         layout.time_dependent_wind = bool(options.solver.wind);
         layout.controller = options.solver.controller;
         layout.propagation = options.propagation;
+        layout.surfaces = options.surfaces;
+        if (options.metrics)
+            metrics.emplace(*options.metrics, config.parameters, config.observers,
+                            config.blades * (config.span.size() - acoustic.first_node()),
+                            solver->rotor().structure().hub, options.propagation);
         if (options.propagation)
             acoustic.set_propagation(std::make_shared<const aeroacoustics::OutdoorPropagation>(
                 *options.propagation, layout.acoustic_metadata->bands));
@@ -74,6 +89,12 @@ std::optional<StepView> Simulation::next() {
             solver.time(), nodes,
             [&](std::size_t first, const aeroacoustics::Snapshot &block) {
                 s.aggregator.append(solver.time(), first, block);
+                if (s.metrics) {
+                    const auto &rotor = solver.rotor();
+                    const auto wind = rotor.wind_at(solver.time(), rotor.structure().hub);
+                    s.metrics->append(solver.time(), std::hypot(wind[0], wind[1]), rotor.structure().omega,
+                                      nodes, s.acoustic.first_node(), first, block);
+                }
             },
             s.options.observer_block_size);
         const AcousticResult *result = nullptr;
@@ -99,7 +120,8 @@ RunSummary Simulation::summary() const {
             s.solver->step_number(),
             s.samples,
             s.lookup,
-            s.solver->diagnostics()};
+            s.solver->diagnostics(),
+            s.metrics ? std::make_shared<const EngineeringMetrics>(*s.metrics) : nullptr};
 }
 void Simulation::reset() {
     // Reset from the loaded configuration and tables; do not reopen input files.
@@ -113,6 +135,11 @@ void Simulation::reset() {
         fresh->acoustic.set_propagation(std::make_shared<const aeroacoustics::OutdoorPropagation>(
             *fresh->options.propagation, fresh->layout.acoustic_metadata->bands));
     fresh->solver.emplace(fresh->model, fresh->options.solver);
+    if (fresh->options.metrics)
+        fresh->metrics.emplace(*fresh->options.metrics, fresh->config.parameters, fresh->config.observers,
+                               fresh->config.blades *
+                                   (fresh->config.span.size() - fresh->acoustic.first_node()),
+                               fresh->solver->rotor().structure().hub, fresh->options.propagation);
     fresh->started = fresh->finished = fresh->failed = false;
     fresh->samples = 0;
     impl_ = std::move(fresh);

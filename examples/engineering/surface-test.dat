@@ -1,0 +1,18 @@
+! Synthetic boundary-layer sensitivity fixture. Geometry labels do not generate corrections.
+30 AirfoilID
+"synthetic BL sensitivity state" State
+"Synthetic affine table for software verification; not measured erosion data" Provenance
+"0.10 is a declared input sensitivity range, not a statistical confidence interval" UncertaintyNote
+"surface-test-bl.dat" BoundaryLayer
+"none" Polar
+-170 AlphaMinDeg
+170 AlphaMaxDeg
+1000 ReMin
+100000000 ReMax
+0.1 TransitionSuction
+0.2 TransitionPressure
+0.0001 RoughnessM
+0.0002 ErosionM
+0.1 RelativeUncertainty
+0.003 TEThicknessM
+10 TEAngleDeg

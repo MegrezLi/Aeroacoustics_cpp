@@ -1,0 +1,440 @@
+{
+  "date": "2026-09-23",
+  "baseline_commit": "640f00a3d25b809f820eb835566c6236cb09c6dd",
+  "environment": {
+    "os": "Windows",
+    "compiler": "GCC 16.2.0",
+    "configuration": "Release",
+    "mkl": "2025.2, sequential"
+  },
+  "scope": [
+    "E3 supplied surface BL/polar state, provenance, applicability and input uncertainty",
+    "E5 receiver-time broadband envelopes, prescribed moving tone Doppler and descriptive harmonic AM",
+    "E7 LAeq, duration percentiles, wind bins, receiver map, independent background addition and conditional free-field apparent power"
+  ],
+  "not_implemented": [
+    "automatic erosion/roughness-to-noise prediction",
+    "full broadband Doppler remapping or audio waveforms",
+    "retarded coherent ground-image paths",
+    "IEC/IOA complete ratings, measured background subtraction or standardized wind speed",
+    "field validation or output uncertainty propagation"
+  ],
+  "fixtures_sha256": {
+    "examples/engineering/closed_loop.fst": "1e387fd09a1418d08475b6875f77d28b34899e34fd8e9783fcfc7c2d0c37f548",
+    "examples/engineering/controller.dat": "a844dd3d0c5ddd5e531a3f54a8f3f2733f1f6273f314973f1e12b5968cd8a2b5",
+    "examples/engineering/gust_veer.wind": "f91e825405459485d1ec418770fcbfc563659c6b6b0a21511cea7fc1f5fbf4e7",
+    "examples/engineering/metrics.dat": "463ccdf2ef5a6e721069cc45301ae0093ad9350acbfe2ed4e1487c5d1d3bed79",
+    "examples/engineering/propagation.dat": "9900af39542fa0dcc73673b48bccc104ed6936c25fa5e37ecf4966008a3cbb86",
+    "examples/engineering/receiver-map.dat": "8456bcbe434e8a3c00a37b20ed2c96ccd825c83176d6035b1c34624047f79b09",
+    "examples/engineering/surface-test-bl.dat": "5f83c5b55d9d340c5081f512581f764462adeaa48825c8d4a3486583f64f1350",
+    "examples/engineering/surface-test.dat": "46824647ebf6a67eb36f78fbc7bae0020a3d36ea5f018fec372604fe060d93c5",
+    "examples/engineering/surfaces.dat": "2ca7121b7ca8a3c51d64447173fdef47dee8cc67cccbfc3414e6483f7238411b",
+    "examples/engineering/tone-test.dat": "8581297909ed87c54ed57a82ffd06eed28bdd861c3179379211f208f0b483e2d"
+  },
+  "backends": {
+    "build-e12": {
+      "executable_sha256": "72e42ed5f516f87f8f0ac20d927ab854f74e8ec93264999de74ae0b4d4e6d581",
+      "acoustic_library_sha256": "c811aa8d948a8e35623865a7a9af06b8a2a64fa92388aa9a14979f8aeb5b681b",
+      "metrics_probe": "E3/E5/E7 analytic, surface, checkpoint and concurrent checks passed",
+      "metrics_cli": {
+        "surface_sensitivity": "BL-only input changes noise and preserves dynamics byte-for-byte",
+        "full_polar_input": "supplied original polar/UA/coordinates reproduces BL-only state exactly",
+        "weighting_background": "A-weighted and unweighted source runs yield the same LAeq; background energy addition verified",
+        "moving_tone_frequency_range_Hz": [
+          893.4400047682449,
+          1135.200165143325
+        ],
+        "receiver_map": [
+          {
+            "observer": "1",
+            "x_m": "-200",
+            "y_m": "-100",
+            "z_m": "2",
+            "start_receiver_s": "2",
+            "end_receiver_s": "20",
+            "duration_s": "18",
+            "LAeq_turbine_dB": "53.447289293684292",
+            "LAeq_with_background_dB": "53.447289293684292",
+            "L5_dBA": "54.353683665347518",
+            "L50_dBA": "53.397855763478262",
+            "L95_dBA": "52.401816058384973",
+            "apparent_LWA_freefield_dB": ""
+          },
+          {
+            "observer": "2",
+            "x_m": "-200",
+            "y_m": "100",
+            "z_m": "2",
+            "start_receiver_s": "2",
+            "end_receiver_s": "20",
+            "duration_s": "18",
+            "LAeq_turbine_dB": "52.966385090051475",
+            "LAeq_with_background_dB": "52.966385090051475",
+            "L5_dBA": "53.781918920918187",
+            "L50_dBA": "52.908574173874428",
+            "L95_dBA": "52.079303938493204",
+            "apparent_LWA_freefield_dB": ""
+          },
+          {
+            "observer": "3",
+            "x_m": "200",
+            "y_m": "-100",
+            "z_m": "2",
+            "start_receiver_s": "2",
+            "end_receiver_s": "20",
+            "duration_s": "18",
+            "LAeq_turbine_dB": "53.952390050737471",
+            "LAeq_with_background_dB": "53.952390050737471",
+            "L5_dBA": "54.421926104915912",
+            "L50_dBA": "53.927182110104816",
+            "L95_dBA": "53.437743173555504",
+            "apparent_LWA_freefield_dB": ""
+          },
+          {
+            "observer": "4",
+            "x_m": "200",
+            "y_m": "100",
+            "z_m": "2",
+            "start_receiver_s": "2",
+            "end_receiver_s": "20",
+            "duration_s": "18",
+            "LAeq_turbine_dB": "53.728429431538288",
+            "LAeq_with_background_dB": "53.728429431538288",
+            "L5_dBA": "54.118738222784721",
+            "L50_dBA": "53.71734941991059",
+            "L95_dBA": "53.312587769230475",
+            "apparent_LWA_freefield_dB": ""
+          }
+        ],
+        "DT_AA_0p1_vs_0p05_LAeq_max_abs_dB": 0.0010759128432979992,
+        "closed_loop_wind_absorption": "surface datasets, variable-speed tones, retarded metrics and wind bins completed together",
+        "guards": "duplicate flags, incompatible ground delay, memory cap, empty window, surface validity interval rejected",
+        "field_validated": false
+      },
+      "existing_regression_suite": "passed",
+      "fortran_kernels": {
+        "backend": "Portable C++17",
+        "cases": 204,
+        "TNO_cases": 16,
+        "evaluated_values": 56576,
+        "values_by_operation": {
+          "1": 6936,
+          "2": 20808,
+          "3": 6936,
+          "4": 6936,
+          "5": 6936,
+          "6": 6936,
+          "7": 1088
+        },
+        "fortran_max_abs_error_dB": {
+          "1": 2.842170943040401e-14,
+          "2": 4.547473508864641e-13,
+          "3": 1.4210854715202004e-14,
+          "4": 2.842170943040401e-14,
+          "5": 4.263256414560601e-14,
+          "6": 0.0,
+          "7": 5.684341886080802e-14
+        },
+        "fortran_literal_precision": "promoted to double",
+        "tolerance_dB": 2e-08,
+        "kernel_calls": 1240
+      },
+      "full-case": {
+        "compared_values": 145926,
+        "identical_input_files": 101,
+        "files": {
+          "IEA_LB_RWT-AeroAcoustics_1.out": {
+            "rows": 201,
+            "channels": 2,
+            "compared_values": 402,
+            "max_abs_error_dB": 7.817849999725013e-05,
+            "mean_abs_error_dB": 4.05659005013196e-06,
+            "worst_time_s": 16.6,
+            "worst_channel": 2,
+            "tolerance_dB": 0.001
+          },
+          "IEA_LB_RWT-AeroAcoustics_2.out": {
+            "rows": 201,
+            "channels": 68,
+            "compared_values": 13668,
+            "max_abs_error_dB": 0.00020574810000084653,
+            "mean_abs_error_dB": 5.309601761069335e-06,
+            "worst_time_s": 16.6,
+            "worst_channel": 53,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_3.out": {
+            "rows": 201,
+            "channels": 476,
+            "compared_values": 95676,
+            "max_abs_error_dB": 0.0008517038999968918,
+            "mean_abs_error_dB": 6.7941629877470794e-06,
+            "worst_time_s": 17.0,
+            "worst_channel": 243,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_4.out": {
+            "rows": 201,
+            "channels": 180,
+            "compared_values": 36180,
+            "max_abs_error_dB": 0.0007665902999995922,
+            "mean_abs_error_dB": 5.640247710449697e-06,
+            "worst_time_s": 18.5,
+            "worst_channel": 170,
+            "tolerance_dB": 0.05
+          }
+        },
+        "cpp_executable_sha256": "72e42ed5f516f87f8f0ac20d927ab854f74e8ec93264999de74ae0b4d4e6d581"
+      },
+      "wind9": {
+        "compared_values": 145926,
+        "identical_input_files": 101,
+        "files": {
+          "IEA_LB_RWT-AeroAcoustics_1.out": {
+            "rows": 201,
+            "channels": 2,
+            "compared_values": 402,
+            "max_abs_error_dB": 1.5829100000530616e-05,
+            "mean_abs_error_dB": 3.0547644278445306e-06,
+            "worst_time_s": 18.5,
+            "worst_channel": 2,
+            "tolerance_dB": 0.001
+          },
+          "IEA_LB_RWT-AeroAcoustics_2.out": {
+            "rows": 201,
+            "channels": 68,
+            "compared_values": 13668,
+            "max_abs_error_dB": 8.222400000335028e-05,
+            "mean_abs_error_dB": 3.694354420776131e-06,
+            "worst_time_s": 0.6,
+            "worst_channel": 46,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_3.out": {
+            "rows": 201,
+            "channels": 476,
+            "compared_values": 95676,
+            "max_abs_error_dB": 0.00017699829999884287,
+            "mean_abs_error_dB": 3.490456752766962e-06,
+            "worst_time_s": 0.2,
+            "worst_channel": 243,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_4.out": {
+            "rows": 201,
+            "channels": 180,
+            "compared_values": 36180,
+            "max_abs_error_dB": 0.005636691599999466,
+            "mean_abs_error_dB": 3.7928332384903334e-06,
+            "worst_time_s": 1.0,
+            "worst_channel": 116,
+            "tolerance_dB": 0.05
+          }
+        },
+        "cpp_executable_sha256": "72e42ed5f516f87f8f0ac20d927ab854f74e8ec93264999de74ae0b4d4e6d581"
+      }
+    },
+    "build-e12-mkl": {
+      "executable_sha256": "b0a2d86b9275c4fc85e6e536762fa6cd778068ead507df462fd061da2a2a8e3a",
+      "acoustic_library_sha256": "05f7bcac7041e8cd7b313eeb1817072e9e7fe08f85c602d8cd5960801e165aba",
+      "metrics_probe": "E3/E5/E7 analytic, surface, checkpoint and concurrent checks passed",
+      "metrics_cli": {
+        "surface_sensitivity": "BL-only input changes noise and preserves dynamics byte-for-byte",
+        "full_polar_input": "supplied original polar/UA/coordinates reproduces BL-only state exactly",
+        "weighting_background": "A-weighted and unweighted source runs yield the same LAeq; background energy addition verified",
+        "moving_tone_frequency_range_Hz": [
+          893.4400047682449,
+          1135.200165143325
+        ],
+        "receiver_map": [
+          {
+            "observer": "1",
+            "x_m": "-200",
+            "y_m": "-100",
+            "z_m": "2",
+            "start_receiver_s": "2",
+            "end_receiver_s": "20",
+            "duration_s": "18",
+            "LAeq_turbine_dB": "53.447289293684292",
+            "LAeq_with_background_dB": "53.447289293684292",
+            "L5_dBA": "54.353683665347518",
+            "L50_dBA": "53.397855763478262",
+            "L95_dBA": "52.401816058384973",
+            "apparent_LWA_freefield_dB": ""
+          },
+          {
+            "observer": "2",
+            "x_m": "-200",
+            "y_m": "100",
+            "z_m": "2",
+            "start_receiver_s": "2",
+            "end_receiver_s": "20",
+            "duration_s": "18",
+            "LAeq_turbine_dB": "52.966385090051475",
+            "LAeq_with_background_dB": "52.966385090051475",
+            "L5_dBA": "53.781918920918187",
+            "L50_dBA": "52.908574173874428",
+            "L95_dBA": "52.079303938493204",
+            "apparent_LWA_freefield_dB": ""
+          },
+          {
+            "observer": "3",
+            "x_m": "200",
+            "y_m": "-100",
+            "z_m": "2",
+            "start_receiver_s": "2",
+            "end_receiver_s": "20",
+            "duration_s": "18",
+            "LAeq_turbine_dB": "53.952390050737471",
+            "LAeq_with_background_dB": "53.952390050737471",
+            "L5_dBA": "54.421926104915912",
+            "L50_dBA": "53.927182110104816",
+            "L95_dBA": "53.437743173555504",
+            "apparent_LWA_freefield_dB": ""
+          },
+          {
+            "observer": "4",
+            "x_m": "200",
+            "y_m": "100",
+            "z_m": "2",
+            "start_receiver_s": "2",
+            "end_receiver_s": "20",
+            "duration_s": "18",
+            "LAeq_turbine_dB": "53.728429431538288",
+            "LAeq_with_background_dB": "53.728429431538288",
+            "L5_dBA": "54.118738222784721",
+            "L50_dBA": "53.71734941991059",
+            "L95_dBA": "53.312587769230475",
+            "apparent_LWA_freefield_dB": ""
+          }
+        ],
+        "DT_AA_0p1_vs_0p05_LAeq_max_abs_dB": 0.0010759128432979992,
+        "closed_loop_wind_absorption": "surface datasets, variable-speed tones, retarded metrics and wind bins completed together",
+        "guards": "duplicate flags, incompatible ground delay, memory cap, empty window, surface validity interval rejected",
+        "field_validated": false
+      },
+      "existing_regression_suite": "passed",
+      "fortran_kernels": {
+        "backend": "Intel oneMKL: Intel(R) oneAPI Math Kernel Library Version 2025.2-Product Build 20250620 for Intel(R) 64 architecture applications",
+        "cases": 204,
+        "TNO_cases": 16,
+        "evaluated_values": 56576,
+        "values_by_operation": {
+          "1": 6936,
+          "2": 20808,
+          "3": 6936,
+          "4": 6936,
+          "5": 6936,
+          "6": 6936,
+          "7": 1088
+        },
+        "fortran_max_abs_error_dB": {
+          "1": 2.842170943040401e-14,
+          "2": 4.547473508864641e-13,
+          "3": 1.4210854715202004e-14,
+          "4": 2.842170943040401e-14,
+          "5": 4.263256414560601e-14,
+          "6": 0.0,
+          "7": 5.684341886080802e-14
+        },
+        "fortran_literal_precision": "promoted to double",
+        "tolerance_dB": 2e-08,
+        "kernel_calls": 1240
+      },
+      "full-case": {
+        "compared_values": 145926,
+        "identical_input_files": 101,
+        "files": {
+          "IEA_LB_RWT-AeroAcoustics_1.out": {
+            "rows": 201,
+            "channels": 2,
+            "compared_values": 402,
+            "max_abs_error_dB": 7.817849999725013e-05,
+            "mean_abs_error_dB": 4.05659005013196e-06,
+            "worst_time_s": 16.6,
+            "worst_channel": 2,
+            "tolerance_dB": 0.001
+          },
+          "IEA_LB_RWT-AeroAcoustics_2.out": {
+            "rows": 201,
+            "channels": 68,
+            "compared_values": 13668,
+            "max_abs_error_dB": 0.00020574810000084653,
+            "mean_abs_error_dB": 5.309601761069335e-06,
+            "worst_time_s": 16.6,
+            "worst_channel": 53,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_3.out": {
+            "rows": 201,
+            "channels": 476,
+            "compared_values": 95676,
+            "max_abs_error_dB": 0.0008517038999968918,
+            "mean_abs_error_dB": 6.7941629877470794e-06,
+            "worst_time_s": 17.0,
+            "worst_channel": 243,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_4.out": {
+            "rows": 201,
+            "channels": 180,
+            "compared_values": 36180,
+            "max_abs_error_dB": 0.0007665902999995922,
+            "mean_abs_error_dB": 5.640247710449697e-06,
+            "worst_time_s": 18.5,
+            "worst_channel": 170,
+            "tolerance_dB": 0.05
+          }
+        },
+        "cpp_executable_sha256": "b0a2d86b9275c4fc85e6e536762fa6cd778068ead507df462fd061da2a2a8e3a"
+      },
+      "wind9": {
+        "compared_values": 145926,
+        "identical_input_files": 101,
+        "files": {
+          "IEA_LB_RWT-AeroAcoustics_1.out": {
+            "rows": 201,
+            "channels": 2,
+            "compared_values": 402,
+            "max_abs_error_dB": 1.5829100000530616e-05,
+            "mean_abs_error_dB": 3.0547644278445306e-06,
+            "worst_time_s": 18.5,
+            "worst_channel": 2,
+            "tolerance_dB": 0.001
+          },
+          "IEA_LB_RWT-AeroAcoustics_2.out": {
+            "rows": 201,
+            "channels": 68,
+            "compared_values": 13668,
+            "max_abs_error_dB": 8.222400000335028e-05,
+            "mean_abs_error_dB": 3.694354420776131e-06,
+            "worst_time_s": 0.6,
+            "worst_channel": 46,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_3.out": {
+            "rows": 201,
+            "channels": 476,
+            "compared_values": 95676,
+            "max_abs_error_dB": 0.00017699829999884287,
+            "mean_abs_error_dB": 3.490456752766962e-06,
+            "worst_time_s": 0.2,
+            "worst_channel": 243,
+            "tolerance_dB": 0.01
+          },
+          "IEA_LB_RWT-AeroAcoustics_4.out": {
+            "rows": 201,
+            "channels": 180,
+            "compared_values": 36180,
+            "max_abs_error_dB": 0.005636691599999466,
+            "mean_abs_error_dB": 3.7928332384903334e-06,
+            "worst_time_s": 1.0,
+            "worst_channel": 116,
+            "tolerance_dB": 0.05
+          }
+        },
+        "cpp_executable_sha256": "b0a2d86b9275c4fc85e6e536762fa6cd778068ead507df462fd061da2a2a8e3a"
+      }
+    }
+  }
+}

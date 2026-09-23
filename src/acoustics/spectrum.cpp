@@ -77,7 +77,7 @@ void prepare_section(const Parameters &p, const SourceSelection &models, const S
             throw std::invalid_argument("Section inputs must be finite");
     if (input.speed < 0 || input.speed >= p.spdsound || input.chord <= 0 || input.span <= 0)
         throw std::invalid_argument("Invalid section speed or geometry");
-    if (p.x_blmethod == 2 &&
+    if ((p.x_blmethod == 2 || input.tabulated_boundary_layer) &&
         (input.bl.dstar[0] <= 0 || input.bl.dstar[1] <= 0 || input.bl.d99[0] <= 0 || input.bl.d99[1] <= 0))
         throw std::invalid_argument("Tabulated BL/TNO needs dimensional boundary-layer data");
     out.section = input;

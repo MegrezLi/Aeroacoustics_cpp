@@ -203,6 +203,25 @@ void FileOutput::finish_output(const RunSummary &summary) {
     if (layout_->controller)
         operation_.finish();
     lookup_output_.finish();
+    if (summary.metrics)
+        summary.metrics->write(directory_);
+    if (layout_->surfaces) {
+        diagnostics::CheckedOutput surface;
+        surface.open(directory_ / "surface_datasets.csv");
+        surface << std::setprecision(17)
+                << "airfoil_id,state,provenance,uncertainty_note,alpha_min_deg,alpha_max_deg,Re_min,Re_max,"
+                   "transition_suction_x_c,transition_pressure_x_c,roughness_m,erosion_m,relative_input_"
+                   "uncertainty,"
+                   "TE_thickness_m,TE_angle_deg,polar_replaced,boundary_layer_file\n";
+        for (const auto &d : layout_->surfaces->data())
+            surface << d.airfoil + 1 << ',' << csv_text(d.name) << ',' << csv_text(d.provenance) << ','
+                    << csv_text(d.uncertainty_note) << ',' << d.alpha_min << ',' << d.alpha_max << ','
+                    << d.re_min << ',' << d.re_max << ',' << d.transition_suction << ','
+                    << d.transition_pressure << ',' << d.roughness_m << ',' << d.erosion_m << ','
+                    << d.relative_uncertainty << ',' << d.te_thickness_m << ',' << d.te_angle_deg << ','
+                    << bool(d.polar) << ',' << csv_text(d.boundary_layer.source_name) << '\n';
+        surface.finish();
+    }
     metadata_ << std::setprecision(17) << "{\n  \"solver\": \"standalone C++\",\n  \"dt\": " << summary.dt
               << ",\n  \"duration\": " << summary.duration << ",\n  \"steps\": " << summary.steps
               << ",\n  \"acoustic_samples\": " << summary.acoustic_samples
@@ -339,6 +358,10 @@ void FileOutput::finish_output(const RunSummary &summary) {
         }
         metadata_ << '}';
     }
+    if (summary.metrics)
+        metadata_ << ",\n  \"receiver_metrics\": \"metrics.json\"";
+    if (layout_->surfaces)
+        metadata_ << ",\n  \"surface_datasets\": \"surface_datasets.csv\"";
     metadata_ << "\n}\n";
     metadata_.finish();
 

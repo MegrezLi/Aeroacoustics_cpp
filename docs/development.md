@@ -29,6 +29,8 @@
 | `propagation/` | [outdoor.cpp](../src/propagation/outdoor.cpp) | 空气吸收、镜像地面反射、主导薄屏障衍射与频带干涉 |
 | `turbine/inflow/` | [grid_wind.cpp](../src/turbine/inflow/grid_wind.cpp) | 时间/x/y/z 网格的三分量速度插值，拒绝越界 |
 | `turbine/control/` | [controller.cpp](../src/turbine/control/controller.cpp) | 两质量传动链、发电机转矩、PI 变桨与偏航伺服 |
+| `turbine/analysis/` | [statistics.cpp](../src/turbine/analysis/statistics.cpp) | 接收时间序列、声能积分、时间百分位、调制分析和声功率几何换算 |
+| | [metrics.cpp](../src/turbine/analysis/metrics.cpp) | 节点历史、音调输运、受声点统计、风速分箱和报告输出 |
 | `turbine/aerodynamics/` | [bem.cpp](../src/turbine/aerodynamics/bem.cpp)、[unsteady.cpp](../src/turbine/aerodynamics/unsteady.cpp) | BEM 诱导求解、偏斜修正和非定常翼型状态 |
 | `turbine/structure/` | [blade_dynamics.cpp](../src/turbine/structure/blade_dynamics.cpp) | 叶片模态、运动学、广义载荷与加速度 |
 | `turbine/coupling/` | [mesh.cpp](../src/turbine/coupling/mesh.cpp) | 气动和结构网格的运动、载荷传递 |
@@ -39,6 +41,7 @@
 | | [modules.cpp](../src/turbine/coupling/modules.cpp) | 模块能力表、组合校验和结构布局工厂 |
 | `turbine/io/` | [case_input.cpp](../src/turbine/io/case_input.cpp) | 输入解析、配置检查、翼型表及稳态风场 |
 | | [engineering.cpp](../src/turbine/io/engineering.cpp) | 独立传播配置与屏障表读取 |
+| | [surface.cpp](../src/turbine/io/surface.cpp)、[metrics_input.cpp](../src/turbine/io/metrics_input.cpp) | 表面数据及工程统计配置读取、来源和范围检查 |
 | `interfaces/` | [c_api.cpp](../src/interfaces/c_api.cpp) | 对外 C ABI、错误与调用状态 |
 | `turbine/simulation/` | [simulation.cpp](../src/turbine/simulation/simulation.cpp) | 完整仿真调度、重置和检查点 |
 | | [acoustic_adapter.cpp](../src/turbine/simulation/acoustic_adapter.cpp) | 声学配置装配、气动状态到声学节点的转换 |
@@ -254,6 +257,23 @@ simulation.restore(saved);      // 恢复完整状态
 `SolverOptions::wind` 可注入共享只读 `WindField`，`controller` 可提供 `ControlConfig`；`RunOptions::propagation` 提供传播参数。风场实现的 const 查询必须线程安全，不得隐藏演化状态。默认均为空，保留参考工况。
 
 `StepView::operation` 在启用控制器时借用其 `ControlState`，包含方位角、转速、发电机转矩、轴扭转、桨距与偏航等；有效期同其他帧引用。完整检查点复制所有控制状态；共享风场与传播配置保持只读。九个叶片模态的 `generalized_state()` 不包含独立传动链/执行器的一阶状态。配置例子及耦合近似见 [E1–E2](engineering.md)。
+
+### 表面数据与工程统计接口（E3、E5、E7）
+
+```cpp
+turbine::RunOptions options;
+options.surfaces = turbine::SurfaceSet::read("surfaces.dat");
+options.metrics = turbine::MetricsOptions::read("metrics.dat");
+auto result = turbine::run_case("case.fst", "results", options);
+```
+
+`SurfaceSet` 只读共享，包含已加载的完整数据。`Simulation` 初始化时应用极曲线覆盖并建立独立的冻结模型；叶素适配器只对有状态数据的截面使用指定边界层。原未覆盖截面的设置不变。
+
+`EngineeringMetrics` 独立于原四类聚合结果，在声学分块回调中记录每个节点的接收历史。历史随仿真复制/检查点深复制，`reset()` 清空；失败后禁止继续追加或导出，须恢复有效副本或重新构造。`RunSummary::metrics` 在启用时提供独立只读历史快照，可调用 `write(directory)` 输出报告；目录须已存在。默认文件接收器自动完成此步，并在所有文件成功关闭后写入 `run.json`。
+
+历史内存按观察点、节点、频带和采样数增长；`MaxValues` 限制数值载荷个数，不包括容器容量与对象开销。仿真复制、检查点及结果快照也会复制历史，不能把这个上限当作进程 RSS 上限。长时间/大地图任务应明确选择采样间隔与数据量预算。
+
+`ArrivalSeries`、`level_statistics()`、`modulation()` 和 `apparent_sound_power()` 可单独用于分析。它们接收具名输入并检查范围，具体时间、量纲和简化假设见 [工程模型](engineering.md#receiver-metrics)。原七类 `.out` 不包含外部音调，接收统计文件单独包含这些输入声源。
 
 <a id="quantities-modules"></a>
 

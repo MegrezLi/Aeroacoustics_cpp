@@ -1,0 +1,3 @@
+! Explicitly synthetic test dataset; no field or wind-tunnel calibration.
+1 NumStates
+"surface-test.dat" StateFiles

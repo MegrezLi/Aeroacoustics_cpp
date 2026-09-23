@@ -1,0 +1,8 @@
+"synthetic moving line" Name
+"Prescribed isotropic 1000 Hz line for transport verification; not a mechanical-noise prediction" Provenance
+1 Blade
+28 Node
+1000 FrequencyHz
+0 RotorOrder
+80 ReferenceSPL
+1 ReferenceDistance

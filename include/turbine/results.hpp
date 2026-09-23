@@ -3,6 +3,7 @@
 #include "propagation.hpp"
 #include "turbine/acoustic_adapter.hpp"
 #include "turbine/solver.hpp"
+#include "turbine/metrics.hpp"
 namespace turbine {
 struct DynamicsChannel {
     std::size_t dof;
@@ -17,6 +18,7 @@ struct OutputLayout {
     bool time_dependent_wind = false;
     std::optional<ControlConfig> controller;
     std::optional<aeroacoustics::PropagationOptions> propagation;
+    std::shared_ptr<const SurfaceSet> surfaces;
     aeroacoustics::Parameters parameters;
     std::shared_ptr<const aeroacoustics::AcousticMetadata> acoustic_metadata;
     std::array<std::vector<std::string>, 4> labels;
@@ -54,6 +56,7 @@ struct RunSummary {
     std::size_t steps, acoustic_samples;
     diagnostics::LookupReport lookup;
     SolverDiagnostics structure;
+    std::shared_ptr<const EngineeringMetrics> metrics;
 };
 class ResultSink {
   public:

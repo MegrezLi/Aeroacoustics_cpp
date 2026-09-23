@@ -218,3 +218,18 @@ C++ 探针检查四维风场插值、两质量传动链解析响应、变转速/
 CLI 检查正常与降噪模式、状态/执行器约束、四档主步长和风场越界拒绝。示例使用 `DT=0.0015625 s`；在 2 秒步长检查中，它相对 `0.00078125 s` 的最大总声级差为约 0.0211 dB，不能外推为所有控制参数及长时间工况的精度保证。
 
 2026-09-19 的普通与 MKL 结果、程序哈希和默认工况回归见 [validation-engineering.json](validation-engineering.json)。新增模型尚无同配置 Fortran 或实测对照，控制器参数未作机型标定。模型方程、输入和适用范围见 [工程模型](engineering.md)。
+
+<a id="surface-metrics"></a>
+
+## 表面数据、接收时间与统计（E3、E5、E7）
+
+```sh
+./build/metrics_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst examples/engineering/surfaces.dat build/metrics-probe
+python tests/check_metrics.py build/aeroacoustics_turbine build/metrics-cli
+```
+
+C++ 解析测试检查非均匀时间积分、持续时间百分位、恒定声能、静音、正弦调制、匀速接近与静止音调、跨风速箱积分、边界层量纲/两侧顺序、有效范围和表观声功率几何关系。状态测试检查工程历史重放、重置、共享只读表面输入下的并行运行及内存上限。
+
+整机 CLI 检查：仅替换边界层时动力学逐字节保持一致而声学发生变化；提供原完整翼型文件时重现同一状态；未计权与已 A 计权输入得到相同 LAeq；减少普通输出数量不改变统计；风速箱时间与能量之和回到总体统计；独立音调产生可解析的接收频率变化。另检查四点地图、背景声能相加、时间窗和不兼容配置拒绝，以及 E1 闭环风场/E2 空气吸收的联合运行。
+
+在固定测试工况中，`DT_AA/ReceiverDT` 从 0.1 s 缩小到 0.05 s 后，四点 LAeq 最大差约 0.00108 dB。这是对该区间的采样敏感性检查，不是长时间统计稳定性或所有风况的收敛保证。结果及程序哈希见 [validation-metrics.json](validation-metrics.json)。原 Fortran/C++ 对照继续用于默认声源与整机路径；新增表面数据和指标尚无实测标定。

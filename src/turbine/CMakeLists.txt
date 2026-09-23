@@ -1,6 +1,10 @@
 set(turbine_sources
   io/case_input.cpp
   io/engineering.cpp
+  io/surface.cpp
+  io/metrics_input.cpp
+  analysis/statistics.cpp
+  analysis/metrics.cpp
   inflow/grid_wind.cpp
   control/controller.cpp
   aerodynamics/bem.cpp

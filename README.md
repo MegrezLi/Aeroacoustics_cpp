@@ -67,6 +67,16 @@ cmake --build build -j 4
 
 示例控制参数尚未针对真实机组标定，风场为确定性测试数据。新增模型已有解析和时间步收敛检查，尚无同配置 Fortran 或实测对照；传播模型不含气象梯度折射，也不等同于完整 ISO 9613-2。输入格式、参数单位、调用顺序与验证范围见 [E1–E2 工程说明](docs/engineering.md)。
 
+## 表面状态与接收点统计
+
+```sh
+./build/aeroacoustics_turbine examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst build/metrics --surfaces=examples/engineering/surfaces.dat --metrics=examples/engineering/metrics.dat
+```
+
+`--surfaces` 接入有来源、有效攻角/Re 范围及不确定度说明的翼型/边界层数据；粗糙度、侵蚀和转捩标签不自动生成声级修正。`--metrics` 输出接收时间历程、LAeq、时间百分位、风速分箱、AM 描述指标和受声点地图，并可加入外部指定的运动音调。
+
+示例数据仅用于测试。新增统计不等同于 IEC/IOA 完整测量流程；接收时延暂不与相干地面反射组合，窄带音调也不由现有宽带模型自动预测。参数与输出见 [工程模型](docs/engineering.md#surface-data)。
+
 ## Fortran 与 C++ 对比
 
 参考源码固定为 OpenFAST [`2895884`](https://github.com/OpenFAST/openfast/tree/2895884d2be01862173c88d70f86b358d2f1a50a)，输入固定为 r-test [`dd5feaa`](https://github.com/OpenFAST/r-test/tree/dd5feaaaa500ba7283140107806300d551cff0a7/glue-codes/openfast/IEA_LB_RWT-AeroAcoustics)。原 Fortran 以双精度编译。
@@ -150,6 +160,7 @@ src/
 │   ├── aerodynamics/ # BEM 与非定常气动
 │   ├── inflow/       # 时间/空间三分量风场
 │   ├── control/      # 两质量传动链、发电机和闭环执行器
+│   ├── analysis/     # 接收时间、窄带线声源输运和工程统计
 │   ├── structure/    # 叶片模态动力学
 │   ├── coupling/     # 网格映射、转子装配和时间积分
 │   ├── simulation/   # 仿真调度、声学适配、结果聚合与输出

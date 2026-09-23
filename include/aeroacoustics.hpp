@@ -44,6 +44,7 @@ struct Section {
     BoundaryLayer bl{};
     double ti_section = -1., te_thickness = .001, te_angle = 14., thickness_1p = .02, thickness_10p = .12;
     bool is_tip = true;
+    bool tabulated_boundary_layer = false; // explicit per-section surface dataset
 };
 class PreparedBLTable;
 struct BLTable {

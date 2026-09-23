@@ -9,6 +9,8 @@ struct RunOptions {
     std::size_t observer_block_size = 1;
     SolverOptions solver;
     std::optional<aeroacoustics::PropagationOptions> propagation;
+    std::shared_ptr<const SurfaceSet> surfaces;
+    std::optional<MetricsOptions> metrics;
 };
 class Simulation {
     friend RunSummary run(Simulation &, ResultSink &);

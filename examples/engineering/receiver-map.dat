@@ -1,0 +1,6 @@
+4
+! Synthetic receiver map: x y z in global metres
+-200 -100 2
+-200 100 2
+200 -100 2
+200 100 2

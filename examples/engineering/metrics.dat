@@ -1,0 +1,15 @@
+! Receiver-time engineering statistics. These are descriptive metrics, not certified measurement ratings.
+2 Start
+20 End
+0.1 ReceiverDT
+10 AMWindow
+0.2 AMMinHz
+1.0 AMMaxHz
+1 WindBinWidth
+true RetardedTime
+false ApparentPower
+none BackgroundLAeq
+"receiver-map.dat" ObserverFile
+32000000 MaxValues
+1 NumTones
+"tone-test.dat" ToneFiles

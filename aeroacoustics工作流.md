@@ -493,3 +493,47 @@ Solver::advance()
 ```
 
 新增传动链/执行器是与叶片模态分步交换数据的独立状态系统；主时间步内其气动输入冻结。传播使用均匀介质直线路径，已有 `1/r²` 不会重复计算。新示例、单位、控制参数和数值收敛结果见 [E1–E2 工程说明](docs/engineering.md)。
+
+## 11. E3、E5、E7：表面数据与接收点工程统计
+
+```text
+main()
+  SurfaceSet::read(--surfaces)             清单 → SurfaceData → 极曲线/UA/坐标、边界层、来源与适用范围
+  MetricsOptions::read(--metrics)          分析时段、接收网格、AM、风速箱、测点、独立音调
+  Simulation::Impl()
+    SurfaceSet::apply()                    按 AirfoilID 替换指定翼型，随后冻结 TurbineModel
+    configuration()                       可替换观察点地图，其余声源输入保持原定义
+    AcousticInputAdapter                  保存只读 SurfaceSet 与普通边界层表
+    EngineeringMetrics                    分配节点接收历史；配置不兼容时拒绝
+
+每个结构步
+  Solver → Rotor → BEM/UA/结构              新极曲线进入气动计算；边界层单独替换不改变动力学
+  AcousticInputAdapter::update()
+    SurfaceData::at()                     检查实际攻角/Re，插值 dstar/d99/Cf/Ue
+    Section::tabulated_boundary_layer      仅指定截面切换为数据表边界层
+
+每个声学采样时刻
+  AcousticDriver::step_blocks()
+    prepare_section() → boundary_layer() → emit_section() → 可选传播
+    回调 AcousticAggregator::append()       原源时间七类通道
+    回调 EngineeringMetrics::append()       前缘/尾缘分别确定接收时刻，保存各频带声能
+      ArrivalSeries::append()              检查时间单调性、数据量上限
+      独立音调                            给定参考 SPL、频率/阶次、附着节点 → 几何衰减与时延
+
+运行完成
+  Simulation::summary()                    包含独立的只读工程历史快照
+  FileOutput::finish()
+    EngineeringMetrics::write()
+      求所有路径和观察点的公共接收区间
+      ArrivalSeries::at()                  在接收时间上插值均方声压，合成受声点总量
+      ArrivalSeries::doppler()             独立音调的接收频率与频带归属
+      level_statistics()                  时间积分 LAeq；时间加权 L5/L50/L95
+      风速分箱                            跨箱间隔切分，再累计时长与声能
+      modulation()                        完整窗口的描述性谐波调制指标
+      apparent_sound_power()              仅显式启用且满足自由场条件时换算
+      写 receiver_history/map、wind_bins、am_windows、receiver_tones、metrics.json
+    写 surface_datasets.csv
+    全部输出成功后写 run.json
+```
+
+检查点和重置包含新增接收历史，表面数据保持只读。宽带时延是声级包络处理，音调来自外部输入；它们不产生音频波形，也不代替完整 IEC/IOA 评价流程。详细单位、数据来源与组合限制见 [工程模型](docs/engineering.md#receiver-metrics)。

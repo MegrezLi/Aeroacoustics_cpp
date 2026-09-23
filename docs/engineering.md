@@ -1,5 +1,7 @@
 # 工程模型：非稳态运行与室外传播
 
+[风场与闭环运行](#e1风场与闭环运行) · [传播](#e2传播接口) · [表面状态数据](#surface-data) · [接收时间与统计](#receiver-metrics)
+
 新增功能由独立 C++ 模块执行：时间与空间变化的三分量风场、两质量传动链、发电机转矩响应、闭环变桨与偏航，以及空气吸收、地面反射和屏障衍射。原官方算例的固定转速路径仍保留。
 
 ## 运行示例
@@ -111,3 +113,97 @@ Pe = η Tg ωg
 两质量传动链的数据组织参考 [NREL：Dynamic Models for Wind Turbines and Wind Power Plants](https://nrel.gov/docs/fy12osti/52780.pdf)。转矩、变桨、执行器和运行降额的工程背景见 [ROSCO 参数说明](https://rosco.readthedocs.io/en/latest/source/rosco_toolbox.html) 与 [功率控制示例](https://rosco.readthedocs.io/en/latest/source/examples.html)。风场坐标和输入组织参见 [OpenFAST InflowWind](https://openfast.readthedocs.io/en/dev/source/user/inflowwind/driver.html)。
 
 空气吸收范围见 [ISO 9613-1](https://www.iso.org/standard/17426.html)；计算关系另可核对 [Acoustic Toolbox 的公式文档](https://acoustic-toolbox.readthedocs.io/en/latest/standards/iso_9613_1_1993/)。刀刃标量波近似见 [ITU-R P.526-14，单刃衍射](https://www.itu.int/dms_pubrec/itu-r/rec/p/R-REC-P.526-14-201801-I!!PDF-E.pdf)，此处使用声速计算声波波长，不采用无线电地球曲率模型。ISO 9613-2 工程方法的完整适用范围见 [ISO 官方说明](https://committee.iso.org/standard/74047.html)。
+
+<a id="surface-data"></a>
+
+## E3：翼型、转捩与表面状态数据
+
+```sh
+./build/aeroacoustics_turbine examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst build/surface --surfaces=examples/engineering/surfaces.dat
+```
+
+`SurfaceSet` 在仿真初始化时读入并冻结数据。清单用 `NumStates` 指定数量，`StateFiles` 起逐行列出状态文件；文件中的相对路径按其自身所在目录解析。一个状态绑定一个从 1 开始的 `AirfoilID`，作用于使用该翼型的所有叶素和三片叶片。重复编号或超出当前机型的编号报错。当前不表示同一翼型在三片叶片上的不同劣化分布。
+
+每个状态文件的字段如下，完整例子见 [surface-test.dat](../examples/engineering/surface-test.dat)。
+
+| 字段 | 含义 |
+| --- | --- |
+| `State`、`Provenance`、`UncertaintyNote` | 状态名称、数据出处和不确定度的定义，均必填 |
+| `BoundaryLayer` | 使用现有 OpenFAST 格式的边界层表 |
+| `Polar` | 完整翼型文件，或 `none`；完整文件包括极曲线、UA 参数和坐标引用 |
+| `AlphaMinDeg/AlphaMaxDeg`、`ReMin/ReMax` | 数据已验证的有效区间，必须落在所提供表格内 |
+| `TransitionSuction/TransitionPressure` | 吸力面、压力面的转捩位置 `x/c`，范围 0–1 |
+| `RoughnessM`、`ErosionM` | 表面状态的粗糙度/侵蚀几何标签，单位 m |
+| `RelativeUncertainty` | 0–1 的相对输入不确定度声明；其统计含义由说明字段给出 |
+| `TEThicknessM`、`TEAngleDeg` | 钝度模型使用的尾缘厚度和夹角，单位 m、度 |
+
+边界层表每行依次为攻角、两侧 `Ue/Uinf`、两侧 `δ*/c`、两侧 `δ99/c`、两侧 `Cf`；每一对均为**吸力面在前、压力面在后**。Re 按旧文件格式以百万为单位，状态文件中的 Re 则是无量纲实际数值。插值后厚度乘当地弦长，转换为米。要求 `Ue/Uinf>0`、`0<δ*≤δ99`、`Cf≥0`，表格坐标递增且数据有限。
+
+指定状态的截面使用其边界层表，其余截面保持原 `BLMod/TripMod` 配置。提供 `Polar` 时，BEM 与 UA 一并使用新翼型；仅提供边界层时，气动力学保持原翼型。有效范围检查针对实际声学查询和提供新极曲线时的实际气动状态，越界即失败，不使用默认端点钳制掩盖超范围数据。BEM 求根试探仍可查询所提供的完整极曲线。
+
+转捩、粗糙度与侵蚀字段用于说明数据对应的表面状态，**不会自行生成经验声级修正**。它们的影响需要体现在配套的极曲线、UA 参数和边界层中。当前也不将输入不确定度自动转换成噪声置信区间；这属于 E8。TNO 截面主路径仍使用参考外缘速度比约定，E9 尚未改变。
+
+每次运行输出 `surface_datasets.csv`，保存数据出处、有效范围、表面标签、不确定度及是否替换极曲线。随仓库的 `surface-test-bl.dat` 是插值和输入敏感性测试数据，不能作为真实侵蚀叶片的数据使用。输入格式背景见 [OpenFAST 边界层说明](https://openfast.readthedocs.io/en/main/source/user/aerodyn-aeroacoustics/App-usage.html)。
+
+<a id="receiver-metrics"></a>
+
+## E5、E7：接收时间、音调输入与工程统计
+
+```sh
+./build/aeroacoustics_turbine examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst build/metrics --surfaces=examples/engineering/surfaces.dat --metrics=examples/engineering/metrics.dat
+```
+
+两项开关可独立使用。`--metrics` 的 `ObserverFile` 可替换整机观察点列表，示例提供四个受声点。坐标与原模型一样采用全局 m；文件第一行为点数，第二行为说明，之后每行 `x y z`。这些点都由声源模型重新计算，不对已有两点结果进行空间插值。
+
+### 配置与输出
+
+| 配置 | 作用 |
+| --- | --- |
+| `Start/End` | 请求的接收时间区间，单位 s；用于剔除初始过程、选择分析时段 |
+| `ReceiverDT` | 接收时间网格间隔；减小它不能补回原 `DT_AA` 丢失的变化 |
+| `RetardedTime` | 是否按各节点的实际源位置建立接收时间；关闭时使用原源时间 |
+| `AMWindow`、`AMMinHz/AMMaxHz` | AM 完整窗口长度及基频搜索范围；窗口须至少覆盖最低频率的两周期 |
+| `WindBinWidth` | 水平轮毂风速分箱宽度，m/s；区间为 `[kΔU,(k+1)ΔU)` |
+| `BackgroundLAeq` | `none` 或给定的恒定 A 计权背景声级，与预测风机声能相加 |
+| `ApparentPower` | 是否给出自由场条件下的方向性等效表观声功率 |
+| `NumTones`、`ToneFiles` | 独立窄带线声源数量及输入文件；0 表示不添加 |
+| `MaxValues` | 历史数据数值个数上限；超限报错，不静默截断 |
+
+| 输出 | 内容 |
+| --- | --- |
+| `receiver_history.csv` | 接收时间、轮毂风速、风机 A 声级、含背景总声级和频带结果 |
+| `receiver_map.csv` | 每个坐标点的实际统计时段、LAeq、L5/L50/L95 和可选表观声功率 |
+| `wind_bins.csv` | 每个观察点、风速区间的有效持续时间和 LAeq |
+| `am_windows.csv` | 完整窗口的主调制频率、重构峰峰值及重构 P95−P5 |
+| `receiver_tones.csv` | 各独立音调的接收频率、未计权声级和相对所在宽带频带的能量比 |
+| `metrics.json` | 时间基准、频带计权、背景、统计口径、简化假设及音调出处 |
+
+原 `.out` 文件继续表示源时刻的七类叶片声源；独立输入音调加入新增接收结果，未塞入原七个通道。`NrOutFile=1` 时也能输出完整统计。CSV 用 `-inf` 表示零声能；音调所在频带没有宽带能量时，能量比留空。
+
+### 接收时间与运动音调
+
+`ArrivalSeries` 使用 `t_receive=t_emit+r(t_emit)/c`，要求接收时间严格递增。宽带各节点的前缘入流贡献与尾缘贡献分开延迟，随后在共同接收时间网格上线性插值**均方声压**并累加。统计只覆盖所有声源、观察点和轮毂风速历史的公共有效区间；不把缺失历史补零，也不向历史之外外推。请求区间与实际区间分别写入元数据。
+
+宽带源模型原有的马赫数与指向性修正保留，本层不再叠加一套宽带多普勒频率或幅值修正。这是运动声源**声级包络**的延迟处理，不是复声压波形、完整可压缩运动声源求解器或音频合成。启用时延时暂不接受相干地面反射，因为两条路径需要各自的历史和相位；直接路径可以同时使用均匀空气吸收和原屏障幅值近似。源模型与传播层声速须一致。
+
+音调文件指定 `Name/Provenance`、从 1 开始的 `Blade/Node`、`FrequencyHz`、`RotorOrder`、`ReferenceSPL` 和 `ReferenceDistance`。它附着于气动节点中心，发射频率为 `FrequencyHz+RotorOrder×ω/(2π)`。输入声级是参考距离处的未计权均方声压级，采用各向同性 `1/r²` 能量衰减；它是外部给定的独立线声源，不由 BPM 频带结果反推。
+
+接收频率乘以相邻发射/接收时间增量比 `Δt_emit/Δt_receive`，因此恒速接近和静止极限均可直接核对。幅值按给定离散音调的声压包络输运，不另加运动单极子的幅值模型。音调按接收频率归入当前频带并单独施加 A 计权，彼此按不相干能量叠加；目前无相位、相干拍频或齿轮/电磁音调生成模型。音调的空气吸收使用接收频率和插值后的源—接收点距离计算；音调路径仅支持自由场和空气吸收，不支持地面/屏障组合。源线须与宽带模型代表的机制区分，避免人为重复输入同一声源。
+
+### 平均、分箱、AM 与表观声功率
+
+LAeq 对 A 计权均方声压作梯形时间积分，再除以有效时长并取对数。已有 A 计权输入不重复计权；未计权频带按原中心频率公式处理，音调使用其实际接收频率。L5/L50/L95 是按时间持续量加权的超越声级，静音不替换成 0 dB。背景是另外加入预测结果的恒定声能，未实现实测总声级的背景扣除或有效性评级。
+
+轮毂风速按初始轮毂位置到观察点的时延对齐，作为该观察点的工况标签；不是所有分布声源的唯一发射时刻。每个时间间隔在跨越风速箱边界处切分，并积分线性声能，避免按样本数量平均。该风速未折算到 10 m 高度，也未作 IEC 标准化风速处理。
+
+AM 对 A 声级序列作离散傅里叶分析，在设定范围内选取最强基频，重构基频及不超过 Nyquist 的二、三次谐波，输出峰峰值和 P95−P5。仅计算完整窗口；静音/不足样本的窗口标记为未解析。这些是描述性调制指标，不包含 IOA 方法的全部频段选择、趋势处理、显著性筛选和长期评级，不能称为 IOA/IEC 合规 AM。音调的“线声能/所在宽带频带声能”也不是临界带音调可听度或罚值。IOA 的正式方法见 [原报告](https://www.ioa.org.uk/sites/default/files/AMWG%20Final%20Report-09-08-2016_1.pdf)。
+
+`ApparentPower=true` 仅允许原自由场预测，计算 `LAeq+10log10(4πr²)`，r 为初始轮毂到受声点距离。它是指定方向上的等效表观值，不是将各方向积分得到的总辐射声功率，也不是地面测量板条件下的标准值。启用传播模型时拒绝此换算，避免把已受地面/空气/屏障影响的声压直接命名为声功率。库函数另可显式输入已知反射修正，标准测量流程仍需独立实现。
+
+[IEC 61400-11](https://webstore.iec.ch/en/publication/5428) 的发射表征与 [IEC TS 61400-11-2:2024](https://webstore.iec.ch/en/publication/62414) 的受声点测量用途不同；本模块记录计算条件，没有宣称通过这些测量标准的完整符合性验证。
+
+### 验证与后续范围
+
+解析检查覆盖非均匀时间步的声能平均、持续时间百分位、已知正弦调制、匀速运动音调多普勒、静止极限、跨风速箱积分和表观声功率几何换算。整机检查覆盖表面数据敏感性、输入范围拒绝、A 计权一致性、接收点地图、音调频率变化、闭环风场/空气吸收组合、检查点/重置及并发。结果见 [validation-metrics.json](validation-metrics.json)，命令见 [验证文档](validation.md#surface-metrics)。
+
+由于尚无用户的真实翼型或音调数据，当前算例用于软件和输入敏感性验证。数据标定、真实侵蚀预测、完整宽带运动声源频率映射、音频合成、IEC 音调/背景处理及测量标准符合性仍需后续工作。

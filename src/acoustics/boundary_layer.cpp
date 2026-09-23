@@ -42,7 +42,7 @@ std::tuple<double, double, double> thick(double chord, double re, double alpha, 
 
 namespace detail {
 BpmBoundaryLayer boundary_layer(const Parameters &p, const Section &s) {
-    if (p.x_blmethod == 2)
+    if (p.x_blmethod == 2 || s.tabulated_boundary_layer)
         return {s.bl.d99[1], s.bl.dstar[0], s.bl.dstar[1]};
     const auto [thickness, suction, pressure] =
         thick(s.chord, s.speed * s.chord / p.kinvisc, s.alpha_deg, p, s.stall_deg);
