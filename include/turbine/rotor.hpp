@@ -4,6 +4,7 @@
 #include "turbine/model.hpp"
 #include "turbine/unsteady.hpp"
 #include "turbine/wind.hpp"
+#include "turbine/tower.hpp"
 namespace turbine {
 using RotorState = std::array<ModalState, FixedBaseBladeBackend::blades>;
 struct AeroStation {
@@ -39,10 +40,12 @@ class Rotor {
     const BladeStructure &structure() const noexcept { return structure_; }
     void set_operation(const RotorKinematics &op) { structure_.set_operation(op); }
     void set_wind(std::shared_ptr<const WindField> wind) { wind_ = std::move(wind); }
+    void set_tower(std::shared_ptr<const TowerInfluence> tower) { if(tower)tower->validate(); tower_=std::move(tower); }
     Vec3 wind_at(double time, const Vec3 &p) const {
         return wind_ ? wind_->at(time, p) : model_.data().wind.at(p);
     }
     double aerodynamic_torque(const RotorOutput &) const;
+    double aerodynamic_thrust(const RotorOutput &, const Vec3 &direction) const;
     RotorOutput evaluate(double time, const RotorState &) const;
     void evaluate_into(double time, const RotorState &, RotorOutput &, RotorWorkspace &) const;
     // Reuses motions for both load mapping and acceleration in one state evaluation.
@@ -59,6 +62,7 @@ class Rotor {
                                LoadWorkspace &) const;
     BEMOptions options_;
     std::shared_ptr<const WindField> wind_;
+    std::shared_ptr<const TowerInfluence> tower_;
     struct SkewOptions {
         bool redistribute;
         double factor;

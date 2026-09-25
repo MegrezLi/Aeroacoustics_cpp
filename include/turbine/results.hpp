@@ -19,6 +19,7 @@ struct OutputLayout {
     std::optional<ControlConfig> controller;
     std::optional<aeroacoustics::PropagationOptions> propagation;
     std::shared_ptr<const SurfaceSet> surfaces;
+    std::shared_ptr<const TowerInfluence> tower;
     aeroacoustics::Parameters parameters;
     std::shared_ptr<const aeroacoustics::AcousticMetadata> acoustic_metadata;
     std::array<std::vector<std::string>, 4> labels;

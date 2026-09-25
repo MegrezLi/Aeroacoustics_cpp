@@ -77,6 +77,16 @@ cmake --build build -j 4
 
 示例数据仅用于测试。新增统计不等同于 IEC/IOA 完整测量流程；接收时延暂不与相干地面反射组合，窄带音调也不由现有宽带模型自动预测。参数与输出见 [工程模型](docs/engineering.md#surface-data)。
 
+## 多机尾流与风场声学
+
+```sh
+./build/aeroacoustics_farm examples/farm/farm.dat build/farm-results
+```
+
+`aeroacoustics_farm` 按来流顺序独立求解各机组，用气动推力更新准稳态 Jensen 尾流，并在共同受声点汇总叶片声与外部给定的机械/冷却声功率。每台风机可以分别配置闭环控制、表面数据及固定塔架势流/塔影；单机也可用 `--tower=examples/farm/tower-test.dat` 启用塔架入流影响。
+
+随附双机布局、塔架和机械声源均为测试数据。当前限于固定水平风向、对齐机组、平坦场址和远尾流，支持自由场/空气吸收；按共同源时间汇总，不含动态尾流、附加湍流和输运时延。输入格式、推力限幅诊断与适用范围见 [E6 工程说明](docs/engineering.md#farm)。
+
 ## Fortran 与 C++ 对比
 
 参考源码固定为 OpenFAST [`2895884`](https://github.com/OpenFAST/openfast/tree/2895884d2be01862173c88d70f86b358d2f1a50a)，输入固定为 r-test [`dd5feaa`](https://github.com/OpenFAST/r-test/tree/dd5feaaaa500ba7283140107806300d551cff0a7/glue-codes/openfast/IEA_LB_RWT-AeroAcoustics)。原 Fortran 以双精度编译。
@@ -154,7 +164,7 @@ Intel oneMKL 是可选后端，用于 TNO 积分的向量指数和 BLAS 求和�
 | --- | --- |
 | [工作流](aeroacoustics工作流.md) | 输入参数、模块调用顺序和主要函数 |
 | [开发接口](docs/development.md) | 源码索引、支持范围、C++ API、状态与工具链 |
-| [工程模型](docs/engineering.md) | 非稳态风、闭环控制、传动链和室外传播 |
+| [工程模型](docs/engineering.md) | 非稳态风、闭环控制、室外传播、表面数据与多机尾流 |
 | [验证](docs/validation.md) | Fortran 对照、解析检查、异常测试和复现命令 |
 | [性能](docs/performance.md) | 分块、并行、求解选项和历史性能数据 |
 | [待优化](待优化.md) | 已完成项、原始代码审查和后续工程需求 |
@@ -168,7 +178,7 @@ src/
 ├── propagation/     # 空气吸收、地面镜像和屏障衍射
 ├── turbine/
 │   ├── aerodynamics/ # BEM 与非定常气动
-│   ├── inflow/       # 时间/空间三分量风场
+│   ├── inflow/       # 网格风场、塔架入流与准稳态多机尾流
 │   ├── control/      # 两质量传动链、发电机和闭环执行器
 │   ├── analysis/     # 接收时间、窄带线声源输运和工程统计
 │   ├── structure/    # 叶片模态动力学
@@ -176,7 +186,7 @@ src/
 │   ├── simulation/   # 仿真调度、声学适配、结果聚合与输出
 │   └── io/           # 风机算例、翼型及风场输入
 ├── interfaces/      # C ABI
-└── apps/            # 截面示例、整机与批量程序入口
+└── apps/            # 截面、整机、批量、风场与验证程序入口
 ```
 
 输入参数与模块调用顺序见 [aeroacoustics 工作流](aeroacoustics工作流.md)，目录职责及源文件索引见 [源码索引](docs/development.md#source)。公开头文件仍位于 `include/`。

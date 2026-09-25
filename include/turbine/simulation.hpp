@@ -11,6 +11,7 @@ struct RunOptions {
     std::optional<aeroacoustics::PropagationOptions> propagation;
     std::shared_ptr<const SurfaceSet> surfaces;
     std::optional<MetricsOptions> metrics;
+    std::vector<Vec3> observers; // optional map without retaining receiver-time metric histories
 };
 class Simulation {
     friend RunSummary run(Simulation &, ResultSink &);

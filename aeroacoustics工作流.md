@@ -551,3 +551,31 @@ main()
 | `ensemble` | `ensemble_file()` | `ensemble_statistics()`，均值/标准差/分位数 | 等权模拟样本的分布摘要 |
 
 测量来源、数据划分、单位、适用条件、不确定度和计算来源须随输入提供。扰动计算或联合分布抽样由调用方组织；测试脚本只调度 C++，不实现物理和统计算法。详细输入格式和示例见 [E8 验证说明](docs/validation.md#independent-validation)。
+
+
+## 13. E6 多机尾流、塔架与固定声源
+
+```text
+farm_main → FarmOptions::read(farm.dat)
+  各机组：Case(.fst)、XY 位置、Controller/Tower/Surfaces 可选配置
+  公共输入：受声点、Duration/StatisticsStart、WakeExpansion/MaxCt、传播与固定声源
+  run_farm()
+    检查共同风况/介质/时间网格/频带、对齐方向、间距与内存上限
+    按轮毂沿风向投影排序
+    对每台风机：
+      FarmWind(环境风, 机位, 已完成上游的 WakeHistory)
+      Simulation(Case, 独立状态及转换为本机坐标的观察点)
+      每个结构步 Simulation::next() → Solver → Rotor
+        FarmWind::at() → WakeHistory::at() → jensen_deficit()
+        TowerInfluence::apply()          可选势流/塔影，仅改变叶素查询的入流
+        BEM / UnsteadyAero / 结构耦合     使用本机的新入流重新求解
+        Rotor::aerodynamic_thrust()      积分气动力 → CT 原值及尾流限幅值
+        WakeHistory 保存时间/轮毂风速/CT，供下游查询
+      每个声学采样时刻：原声学模型 → 频带声能 → A 计权 → 累加共同受声点
+      FileOutput 写本机状态与声学输出；冻结完成的 WakeHistory
+    StationarySource::receiver_power()  给定 Lw → 指向性/距离/吸收 → A 计权频带声能
+    level_statistics()                 源时间窗口内积分声能、计算 LAeq/L5/L50/L95
+    写风场时序、受声点、声源贡献、推力诊断和固定声源清单；最后写 farm.json
+```
+
+局部叶素坐标加机组 XY 原点得到场址坐标，公共受声点减该原点传给单机声学。风向沿用 `SteadyWind` 的 `(cos(PropagationDir), -sin(PropagationDir), 0)` 约定。所有机组使用共同源时间；这里不调用 E5 的接收时延重采样。尾流不向上游反馈，也无尾流传播时延。配置示例和适用范围见 [E6 工程说明](docs/engineering.md#farm)。

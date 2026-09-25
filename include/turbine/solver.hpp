@@ -6,6 +6,7 @@ struct SolverOptions : NewtonOptions {
     Vec3 acceleration_scale{1., 1., 1.};
     std::shared_ptr<const WindField> wind;
     std::optional<ControlConfig> controller;
+    std::shared_ptr<const TowerInfluence> tower;
 };
 class Solver {
   public:

@@ -314,3 +314,24 @@ C++ 解析检查包含已知偏差/RMSE、未知或零不确定度、相关/反�
 CSV 支持 UTF-8、可选 BOM、CRLF/LF、引号内逗号和双引号转义；不接受多行字段、空行、未知/重复列、非有限声级。每表最多 100,000 条记录，每行最多 1 MiB。静音或检出限截断数据需单独处理，目前不以任意低声级代替。
 
 E8 剩余工作是取得可追溯的风洞/实机数据，建立校准/独立验证划分，确认测量和模型不确定度预算，再评估实际预测精度。合成数据通过和 Fortran 回归通过均不能替代这一步。
+
+
+<a id="farm"></a>
+
+## E6：塔架、尾流与多机声能汇总
+
+```sh
+cmake -S . -B build -DAEROACOUSTICS_BUILD_TESTS=ON
+cmake --build build -j 4
+./build/farm_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst
+python tests/check_farm.py build build/e6-check
+./build/aeroacoustics_farm examples/farm/farm.dat build/e6-example20
+```
+
+输出目录须尚不存在。C++ 探针核对圆柱势流、Powles 塔影、Jensen 解析值、历史插值/拒绝外推、方向和平移、气动力积分、点声源距离与指向性、精确音调频率的吸收、检查点/重置及共享只读塔架下的并发。Python 仅生成输入、调用 C++ 和比较结果。
+
+CLI 检查单机退化（普通声学输出逐字节一致，LAeq 与原接收点统计一致）、下游风速与动力学反馈、上游结果不变、反转机组输入顺序后的汇总一致性、整体平移和 A 计权一致性。另检查各声源 LAeq 按声能相加回到风场总量，以及双机闭环控制、表面数据、塔架、空气吸收和固定冷却声源的联合运行。内存上限、过近尾流布局、重名和不支持的地面组合均须拒绝。
+
+普通与 MKL Release 构建均执行上述测试，并重跑默认 8 m/s、扰动 9 m/s 的 20 秒 Fortran/C++ 对照及声学公式对照。双机 20 秒示例另验证完整输出；测试报告、哈希和数值见 [validation-farm.json](validation-farm.json)。Linux CI 同时运行 E6 回归与 ThreadSanitizer 并发检查。
+
+2 秒联合测试出现 72 个 CT 限幅样本，20 秒塔架双机示例出现 73 个；这些诊断不会被隐藏。限幅仅限制尾流使用的 CT，不能证明相应高推力/启动状态下的 Jensen 模型有效。测试工况、机械谱与塔架均为合成输入；新增模型没有同配置 Fortran、FAST.Farm 或实测对照。原 Fortran 回归只覆盖原有单机默认路径，不能用来声称新增风场模型已完成实机验证。限制详见 [工程说明](engineering.md#farm)。

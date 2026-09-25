@@ -1,0 +1,14 @@
+"synthetic_mechanical_tone" Name
+"Synthetic stationary tone; not a gearbox or generator prediction" Provenance
+"tones" Kind
+800 X
+0 Y
+110 Z
+1 AxisX
+0 AxisY
+0 AxisZ
+0.4 Directivity
+1 NumFrequencies
+0 Spectrum
+! tone_hz line_Lw_dB_re_1pW_unweighted
+1050 80

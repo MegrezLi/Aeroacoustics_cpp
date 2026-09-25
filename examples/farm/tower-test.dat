@@ -1,0 +1,10 @@
+"Synthetic tapered vertical tower geometry; not calibrated" Provenance
+0 X
+0 Y
+true Potential
+true Shadow
+2 NumStations
+0 Stations
+! z_m diameter_m Cd
+0 4 0.7
+110 3 0.7

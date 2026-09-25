@@ -28,10 +28,12 @@
 | | [backend.cpp](../src/numerics/backend.cpp) | 普通/MKL 后端标识与向量点积 |
 | `propagation/` | [outdoor.cpp](../src/propagation/outdoor.cpp) | 空气吸收、镜像地面反射、主导薄屏障衍射与频带干涉 |
 | `turbine/inflow/` | [grid_wind.cpp](../src/turbine/inflow/grid_wind.cpp) | 时间/x/y/z 网格的三分量速度插值，拒绝越界 |
+| | [tower.cpp](../src/turbine/inflow/tower.cpp)、[farm_wind.cpp](../src/turbine/inflow/farm_wind.cpp) | 固定塔架势流/塔影与 Jensen 尾流、只读上游推力历史 |
 | `turbine/control/` | [controller.cpp](../src/turbine/control/controller.cpp) | 两质量传动链、发电机转矩、PI 变桨与偏航伺服 |
 | `turbine/analysis/` | [statistics.cpp](../src/turbine/analysis/statistics.cpp) | 接收时间序列、声能积分、时间百分位、调制分析和声功率几何换算 |
 | | [metrics.cpp](../src/turbine/analysis/metrics.cpp) | 节点历史、音调输运、受声点统计、风速分箱和报告输出 |
 | | [validation.cpp](../src/turbine/analysis/validation.cpp) | 配对误差、有限差分敏感性、相关不确定性与等权样本统计 |
+| | [stationary_source.cpp](../src/turbine/analysis/stationary_source.cpp) | 给定固定声源的频带/音调声功率、指向性及接收点声能 |
 | `turbine/aerodynamics/` | [bem.cpp](../src/turbine/aerodynamics/bem.cpp)、[unsteady.cpp](../src/turbine/aerodynamics/unsteady.cpp) | BEM 诱导求解、偏斜修正和非定常翼型状态 |
 | `turbine/structure/` | [blade_dynamics.cpp](../src/turbine/structure/blade_dynamics.cpp) | 叶片模态、运动学、广义载荷与加速度 |
 | `turbine/coupling/` | [mesh.cpp](../src/turbine/coupling/mesh.cpp) | 气动和结构网格的运动、载荷传递 |
@@ -44,16 +46,19 @@
 | | [engineering.cpp](../src/turbine/io/engineering.cpp) | 独立传播配置与屏障表读取 |
 | | [surface.cpp](../src/turbine/io/surface.cpp)、[metrics_input.cpp](../src/turbine/io/metrics_input.cpp) | 表面数据及工程统计配置读取、来源和范围检查 |
 | | [validation_input.cpp](../src/turbine/io/validation_input.cpp) | 独立数据 CSV、分组/上下文检查、接收点导入和验证报告 |
+| | [farm_input.cpp](../src/turbine/io/farm_input.cpp) | 风场、各机组位置与可选模块配置读取 |
 | `interfaces/` | [c_api.cpp](../src/interfaces/c_api.cpp) | 对外 C ABI、错误与调用状态 |
 | `turbine/simulation/` | [simulation.cpp](../src/turbine/simulation/simulation.cpp) | 完整仿真调度、重置和检查点 |
 | | [acoustic_adapter.cpp](../src/turbine/simulation/acoustic_adapter.cpp) | 声学配置装配、气动状态到声学节点的转换 |
 | | [results.cpp](../src/turbine/simulation/results.cpp) | 按输出需求分配通道、分块聚合声能 |
 | | [batch.cpp](../src/turbine/simulation/batch.cpp) | 独立工况线程调度、输出路径冲突检查和逐项错误 |
 | | [file_output.cpp](../src/turbine/simulation/file_output.cpp) | 标准文件输出及失败状态 |
+| | [farm.cpp](../src/turbine/simulation/farm.cpp) | 上下游排序、独立求解、推力历史和多声源汇总 |
 | `apps/` | [section_main.cpp](../src/apps/section_main.cpp) | 单截面频谱示例入口 |
 | | [turbine_main.cpp](../src/apps/turbine_main.cpp) | 整机命令行参数解析及运行入口 |
 | | [batch_main.cpp](../src/apps/batch_main.cpp) | 批量工况命令行入口 |
 | | [validation_main.cpp](../src/apps/validation_main.cpp) | 独立验证与不确定性命令行入口 |
+| | [farm_main.cpp](../src/apps/farm_main.cpp) | 风场命令行入口 |
 
 `apps/turbine_main.cpp` 调用 `run_case()`；`Simulation` 通过适配器、声学驱动及聚合器处理各时间步，结果交给 `ResultSink`。整机求解器负责协调气动、结构与网格传递；声学模型调用数值积分和后端计算。
 
@@ -66,7 +71,7 @@
 - 根目录 `CMakeLists.txt`：构建开关、编译标准、MKL 查找和输出位置。
 - [CMakeLists.txt](../src/CMakeLists.txt)：声学静态库及动态库的共用源文件清单。
 - [turbine/CMakeLists.txt](../src/turbine/CMakeLists.txt)：整机模块库。
-- [apps/CMakeLists.txt](../src/apps/CMakeLists.txt)：截面、整机、批量和独立验证四个可执行程序。
+- [apps/CMakeLists.txt](../src/apps/CMakeLists.txt)：截面、整机、批量、风场和独立验证五个可执行程序。
 - 根目录 `tests/CMakeLists.txt`：数值对照探针。
 
 公开头文件路径、构建目标名称及可执行文件位置保持兼容。原有 `section_spectrum()`、`snapshot_spectrum()` 和返回独立快照的 `AcousticDriver::step()` 仍可使用；连续计算可使用复用缓冲区的接口。构建及运行命令见根目录 README。
@@ -407,3 +412,14 @@ OpenFAST 双精度配置使用 `-fdefault-real-8 -fdefault-double-8`。原 Fortr
 
 
 E8 公开接口见 [validation.hpp](../include/turbine/validation.hpp)，位于 `turbine::validation` 命名空间。`residual/error_statistics`、`uncertainty_budget`、`ensemble_statistics` 均为不依赖求解器状态的数值函数；CSV、配对规则和文件输出在独立 IO 源文件中。所有函数按值返回结果，无全局可变状态。后续可从仿真结果或外部数据调用这些接口，保持数据准备、模型运行与统计分析分离。
+
+
+## E6 风场接口
+
+[farm.hpp](../include/turbine/farm.hpp) 提供 `FarmOptions::read()`、`run_farm()`、`FarmWind`、`WakeHistory` 和 `StationarySource`；[tower.hpp](../include/turbine/tower.hpp) 提供 `TowerInfluence`。风场调度层不复制单机声级：每台机组建立自己的 `Simulation`，气动/结构/控制状态独立，上游完成后冻结推力历史供下游查询。`batch` 的无耦合工况并行与此上下游调度是不同用途。
+
+`SolverOptions::tower` 持有共享只读塔架配置，创建求解器时验证，复制、检查点和重置沿用同一冻结模型。`RunOptions::observers` 可单独覆盖观察点，避免为了风场频带聚合而保存 E3/E5/E7 的逐节点接收历史；不能同时提供非空的 `metrics.observers`。调用方传入共享配置后不得通过其他可写别名修改它。
+
+`Rotor::aerodynamic_thrust()` 沿叶展对当前气动力作梯形积分，并投影到指定方向；风场层把推力换算成尾流所用 CT，限幅仅作用于尾流模型。塔架仅作用于叶素入流，轮毂控制风速不加入塔影或本机 BEM 诱导。原 AeroDyn 的 `TwrPotent/TwrShadow/TwrAero` 等输入约束保持不变；新增塔架由独立配置接入，不能将它解释为完整 AeroDyn 塔架模块移植。
+
+新增动态尾流时可替换 `WindField` 与风场调度方式；增加真实机械预测模型时可输出带来源的 `StationarySource` 输入。现有接口的定常源、固定方向和源时间假设不能直接用于动态尾流或相干声学。单位和运行限制见 [工程模型](engineering.md#farm)。

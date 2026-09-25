@@ -1,0 +1,16 @@
+"synthetic_cooling" Name
+"Synthetic band sound-power levels for interface tests only" Provenance
+"bands" Kind
+0 X
+0 Y
+110 Z
+1 AxisX
+0 AxisY
+0 AxisZ
+0 Directivity
+3 NumFrequencies
+0 Spectrum
+! center_hz band_Lw_dB_re_1pW_unweighted
+500 85
+1000 90
+2000 85

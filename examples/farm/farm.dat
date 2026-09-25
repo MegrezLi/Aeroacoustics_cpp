@@ -1,0 +1,15 @@
+"Synthetic two-turbine engineering test; not a real wind farm" Provenance
+20 Duration
+2 StatisticsStart
+true Wakes
+0.05 WakeExpansion
+0.95 MaxCt
+32000000 MaxValues
+"receivers.dat" ObserverFile
+"none" Propagation
+2 NumTurbines
+"upstream.dat" TurbineFiles
+"downstream.dat"
+2 NumSources
+"cooling-test.dat" SourceFiles
+"tone-test.dat"

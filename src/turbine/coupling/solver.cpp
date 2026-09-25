@@ -11,6 +11,7 @@ Solver::Solver(TurbineModel model, SolverOptions options)
       options_(options), dt_(rotor_.model().data().dt) {
     diagnostics_ = integrator_.diagnostics();
     rotor_.set_wind(options.wind);
+    rotor_.set_tower(options.tower);
     if (options.controller) {
         const auto &s = rotor_.structure();
         if (s.pitch[0] != s.pitch[1] || s.pitch[0] != s.pitch[2])

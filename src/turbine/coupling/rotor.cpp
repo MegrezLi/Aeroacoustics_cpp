@@ -81,6 +81,8 @@ void Rotor::evaluate_into(double time, const RotorState &state, RotorOutput &y,
             const auto &s = c.stations[j];
             a.motion = aerodynamic[j];
             a.wind = wind_at(time, a.motion.position);
+            if (tower_)
+                a.wind = tower_->apply(a.wind, a.motion.position);
             y.average_velocity = y.average_velocity + a.wind - a.motion.velocity;
             const auto angles = euler_angles(multiply(a.motion.orientation, transpose(unpitched)));
             a.annulus = multiply(euler_matrix({0, angles[1], 0}), unpitched);
@@ -165,6 +167,21 @@ void Rotor::advance_airfoils(const RotorOutput &y, std::size_t step) {
             airfoils_[b][j].advance(y.blades[b][j].alpha, y.blades[b][j].speed, step);
             previous_phi_[b][j] = y.blades[b][j].root_phi;
         }
+}
+double Rotor::aerodynamic_thrust(const RotorOutput &y, const Vec3 &direction) const {
+    double thrust = 0;
+    const auto &stations = model_.data().stations;
+    for (const auto &blade : y.blades) {
+        if (blade.size() != stations.size())
+            throw std::invalid_argument("Thrust station count mismatch");
+        for (std::size_t j = 1; j < blade.size(); ++j) {
+            const auto &a = stations[j - 1];
+            const auto &b = stations[j];
+            const double length = norm(Vec3{b.curve - a.curve, b.sweep - a.sweep, b.span - a.span});
+            thrust += .5 * length * dot(blade[j - 1].load.force + blade[j].load.force, direction);
+        }
+    }
+    return thrust;
 }
 double Rotor::aerodynamic_torque(const RotorOutput &y) const {
     double torque = 0;

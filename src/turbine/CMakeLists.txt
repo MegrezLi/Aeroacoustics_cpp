@@ -8,6 +8,11 @@ set(turbine_sources
   analysis/validation.cpp
   io/validation_input.cpp
   inflow/grid_wind.cpp
+  inflow/tower.cpp
+  inflow/farm_wind.cpp
+  io/farm_input.cpp
+  analysis/stationary_source.cpp
+  simulation/farm.cpp
   control/controller.cpp
   aerodynamics/bem.cpp
   aerodynamics/unsteady.cpp

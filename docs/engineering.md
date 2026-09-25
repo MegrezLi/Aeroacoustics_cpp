@@ -207,3 +207,77 @@ AM 对 A 声级序列作离散傅里叶分析，在设定范围内选取最强�
 解析检查覆盖非均匀时间步的声能平均、持续时间百分位、已知正弦调制、匀速运动音调多普勒、静止极限、跨风速箱积分和表观声功率几何换算。整机检查覆盖表面数据敏感性、输入范围拒绝、A 计权一致性、接收点地图、音调频率变化、闭环风场/空气吸收组合、检查点/重置及并发。结果见 [validation-metrics.json](validation-metrics.json)，命令见 [验证文档](validation.md#surface-metrics)。
 
 由于尚无用户的真实翼型或音调数据，当前算例用于软件和输入敏感性验证。数据标定、真实侵蚀预测、完整宽带运动声源频率映射、音频合成、IEC 音调/背景处理及测量标准符合性仍需后续工作。
+
+
+<a id="farm"></a>
+
+## E6：准稳态多机尾流与风场声学
+
+```sh
+./build/aeroacoustics_farm examples/farm/farm.dat build/farm-results
+./build/aeroacoustics_turbine examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst build/tower-results 20 --tower=examples/farm/tower-test.dat
+```
+
+风场输出目录必须不存在，父目录须已存在。Windows 添加 `.exe`。示例运行两台相距 800 m 的风机，并加入固定塔架与两个给定声功率源；布局、塔架尺寸和外部谱均为软件测试数据，不代表真实风场测量或机型标定。
+
+### 配置与坐标
+
+[farm.dat](../examples/farm/farm.dat) 的文件路径相对于所在配置文件解析，沿用“值在前、字段名在后”的格式。
+
+| 输入 | 含义 |
+| --- | --- |
+| `Provenance` | 工况及数据来源，必须填写 |
+| `Duration`、`StatisticsStart` | 运行终点和统计起点，单位 s；终点须为结构和声学时间步的整数倍，统计起点不早于声学起点 |
+| `Wakes`、`WakeExpansion`、`MaxCt` | 尾流开关、无量纲线性扩张率 k>0、尾流 CT 上限（0<MaxCt<1） |
+| `MaxValues` | 保留数值历史的标量数上限；包含上游历史、汇总频带/时序和外部源缓存，不含模型、容器和临时工作区的全部内存 |
+| `ObserverFile` | 首行观察点数量、第二行说明，后续各行全局 x/y/z，单位 m；见 [receivers.dat](../examples/farm/receivers.dat) |
+| `Propagation` | `none` 或已有传播配置；本风场入口仅接受自由场/空气吸收，拒绝地面和屏障 |
+| `NumTurbines`、`TurbineFiles` | 1–1000 台；首个路径与标签同行，其余路径逐行列出 |
+| `NumSources`、`SourceFiles` | 0–10000 个固定声源；数量非零时按同样格式提供路径 |
+
+各机组文件包含唯一 `Name`、`.fst` 的 `Case`、全局 `X/Y` 原点，以及 `Controller/Tower/Surfaces` 文件或 `none`。XY 原点是单机坐标系的平移，不是轮毂位置；轮毂高度和偏置仍来自各自机型。场址为平面，原点 z=0。公共观察点和固定声源使用全局坐标；塔架文件使用本机坐标。
+
+所有机组须有相同的稳态环境风速、参考高度、切变和水平风向，相同空气密度/声速、结构/声学步长、声学起点及频带。`NrOutFile>=2`。风向约定为 `(cos(PropagationDir), -sin(PropagationDir), 0)`；机组轴线水平投影须顺风对齐，轴倾角小于 10°，轮毂位置不移动。可以接入独立变速变桨控制，但不接受改变对齐方向的偏航运动；当前风场入口不读取网格风或时变风向。
+
+### 尾流与推力反馈
+
+程序按轮毂的沿风位置排序，每台机组独立运行 BEM、UA、结构和可选控制状态，完成后把时间、实际轮毂入流和推力系数历史冻结。下游查询同一时刻的上游历史，采用 Jensen 顶帽形尾流：尾流半径 `Rw=R+k*x`，尾流内速度亏损 `ΔU=Uhub*(1-sqrt(1-CT))*(R/Rw)^2`，上游或尾流外为零。形状关系可参照 [FLORIS 的 Jensen 实现](https://github.com/NatLabRockies/floris/blob/main/floris/core/wake_velocity/jensen.py)。本程序的叠加约定是各上游**有量纲**亏损的平方和开方，再从该点环境风扣除；不是将不同上游的无量纲亏损直接相加。
+
+推力由当前叶片气动力沿叶展积分并投影到来流方向，`CTraw=T/(0.5*rho*pi*R²*Uhub²)`。轮毂风速包含上游尾流，不含本机 BEM 诱导或塔影。尾流使用 `clamp(CTraw,0,MaxCt)`，气动力与结构求解结果不被改写。启动瞬态或高推力可能超出该尾流公式的适用域，必须查看 `wake_diagnostics.csv` 的原值、使用值和限幅标志；`farm.json` 汇总限幅次数。示例默认 `MaxCt=0.95` 是显式数值设定，不是所有机型通用的标定值。
+
+风机排除球不能相交；尾流可能覆盖下游转子的机组对，其沿风距离至少为上游直径的两倍。这只是拒绝明显近场配置的下限，不能保证任意布局精度。亏损耗尽局部入流时直接报错，不设置隐含风速下限。各叶素点分别判断是否位于尾流内，未实现平滑尾流边界或专门的重叠面积积分。
+
+此版本不含尾流附加湍流、动态摆动、输运时延、偏航偏转、阻塞/上游反馈和地形；也没有把它们折算为经验噪声增量。它不等同于 [FAST.Farm 动态尾流模型](https://openfast.readthedocs.io/en/main/source/user/fast.farm/FFarmTheory.html)。
+
+### 固定塔架入流影响
+
+[tower-test.dat](../examples/farm/tower-test.dat) 包含 `Provenance`、本机坐标 `X/Y`、`Potential/Shadow` 开关、`NumStations` 和 `0 Stations` 后的 `z diameter Cd` 三列表。至少两个按 z 递增的站位，长度单位 m，直径>0，Cd 在 [0,3]。直径和 Cd 沿塔高线性插值。
+
+势流采用圆柱公式，以塔半径归一化风向/横向距离 x、y：`du=(y²-x²)/(x²+y²)²`、`dv=-2xy/(x²+y²)²`。Powles 塔影只在下风向施加余弦平方亏损，其最大幅度限制为局部水平风速的 0.5。有限塔端在一倍半径内衰减；离塔面超过 40 倍半径或小于等于 0.02 倍半径时不施加修正，穿入排除包络时报错。公式和截断依据 [AeroDyn 塔架影响理论](https://openfast.readthedocs.io/en/dev/source/user/aerodyn/theory.html)，未实现其全部选项。
+
+这里用**叶素位置查询到的未受本塔影响的水平风**定义局部幅值与方向，保持竖向风分量；没有另外在塔节点查询入流。修正进入叶素 BEM/UA 及后续声源计算。塔架本身没有弹性自由度、阻力载荷、辐射声或声散射，亦无机舱气动。原 `.fst/AeroDyn` 塔架选项仍受原有检查约束，新增功能通过 `--tower` 或风场机组 `Tower` 文件接入。
+
+### 机械与冷却声源输入
+
+[cooling-test.dat](../examples/farm/cooling-test.dat) 与 [tone-test.dat](../examples/farm/tone-test.dat) 提供固定声源接口。文件含 `Name/Provenance`、`Kind`（`bands` 或 `tones`）、全局 `X/Y/Z`、单位方向向量 `AxisX/AxisY/AxisZ`、`Directivity`、`NumFrequencies`，以及 `0 Spectrum` 后的频率/声功率两列表。频率须为正且递增。
+
+声级是**未计权声功率 Lw，参考 1 pW**；bands 为对应频带总功率，tones 为离散谱线总功率，不是 SPL 或 PSD。bands 的频率须等于计算频带中心；tones 可在覆盖范围内任意取值，按频带边界归属。只叠加输入表中指定的贡献，缺失频带按零声能处理，不能把不完整测量谱当成完整机械总声功率。
+
+指向性 `Q=1+beta*cos(theta)`，beta=`Directivity`∈[-1,1]，球面积分为 4π。自由场远场采用 `p²=rho*c*W*Q/(4πr²)`，声压参考 20 μPa；再按路径加入可选空气吸收。频带用中心频率、音调用精确谱线频率计算吸收和 A 计权。接收点与声源不能重合，使用者还需保证测点位于点声源远场适用范围。
+
+这些源在一次运行内位置、频率和声功率均不变；不从齿轮、发电机、电磁激励或结构振动预测声级，也未按转速/负载插值。应输入对应工况的实测或可信预测谱，并避免与已有叶片机制重复。当前示例均为合成数据。
+
+### 汇总与输出
+
+每台机组的普通输出保存在 `turbine_N/`，N 对应输入清单序号；求解顺序由来流位置决定。汇总使用共同**源时间**的 A 计权频带均方声压，已经 A 计权的输入不重复计权。所有机组和固定源按不相干声能相加，没有相位或交叉项。
+
+| 输出 | 内容 |
+| --- | --- |
+| `farm_history.csv` | 源时间、观察点、总 A 声级及各 A 计权频带 |
+| `farm_receivers.csv` | 全局坐标、实际源时间窗、LAeq 和时间加权 L5/L50/L95 |
+| `source_contributions.csv` | 每台风机/固定源在各观察点的 LAeq，便于按声能核对总量 |
+| `wake_diagnostics.csv` | 每个结构步的推力、轮毂风速、原始/使用 CT 与限幅标志 |
+| `stationary_sources.csv` | 固定源位置、轴向、指向性、输入频谱及来源 |
+| `farm.json` | 尾流设定、限幅次数、介质、时间窗、时基与叠加假设、机组顺序；全部输出成功后写入 |
+
+统计对窗口端点的声能插值，再作时间积分；不会平均 dB。这里未调用 E5 接收时延重采样，因此风场时序不能用于完整的接收时间 AM、相干音调或音频评价。固定源和各机组的 LAeq 能量可相加，L5/L50/L95 不可直接相加。真实工程使用还需要输入谱、尾流扩张率与推力适用域的标定，以及足够长的统计窗口；当前测试不证明实测精度。验证证据见 [E6 验证](validation.md#farm)。

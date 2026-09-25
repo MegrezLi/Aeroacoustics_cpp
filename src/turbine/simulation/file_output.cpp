@@ -360,6 +360,20 @@ void FileOutput::finish_output(const RunSummary &summary) {
     }
     if (summary.metrics)
         metadata_ << ",\n  \"receiver_metrics\": \"metrics.json\"";
+    if (layout_->tower) {
+        const auto &t = *layout_->tower;
+        metadata_ << ",\n  \"tower_influence\": {\"provenance\":" << json_text(t.provenance)
+                  << ",\"potential\":" << (t.potential ? "true" : "false")
+                  << ",\"powles_shadow\":" << (t.shadow ? "true" : "false") << ",\"x_m\":" << t.x
+                  << ",\"y_m\":" << t.y << ",\"stations_z_diameter_cd\":[";
+        for (std::size_t i = 0; i < t.stations.size(); ++i) {
+            if (i)
+                metadata_ << ',';
+            const auto &s = t.stations[i];
+            metadata_ << '[' << s.z << ',' << s.diameter << ',' << s.cd << ']';
+        }
+        metadata_ << "]}";
+    }
     if (layout_->surfaces)
         metadata_ << ",\n  \"surface_datasets\": \"surface_datasets.csv\"";
     metadata_ << "\n}\n";

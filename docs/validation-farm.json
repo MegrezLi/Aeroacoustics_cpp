@@ -1,0 +1,395 @@
+{
+  "date": "2026-09-25",
+  "scope": "E6 engineering version: quasi-steady wake/thrust feedback, independent turbines, incoherent sound-energy aggregation",
+  "toolchain": "Windows x64 GCC/G++/GFortran 16.2.0 Release; optional oneMKL 2025.2 sequential",
+  "field_validated": false,
+  "builds": {
+    "build-e12": {
+      "farm_cli": {
+        "single_turbine": "original per-turbine outputs byte-identical; LAeq agrees with receiver metrics",
+        "wake_feedback": "downstream wind and dynamics change; upstream dynamics unchanged",
+        "downstream_hub_wind_range_m_s": [
+          6.161012516168183,
+          7.2076648775978605
+        ],
+        "ct_limited_samples": 72,
+        "order_independence": "farm history byte-identical after reversing input order",
+        "translation_max_abs_dB": 1.3589200875685492e-09,
+        "a_weighting_max_abs_dB": 0.0,
+        "combined": "two controlled turbines with surface data, tower influence, absorption and supplied cooling spectrum",
+        "tower": "leaf inflow/dynamics respond; source metadata preserved",
+        "source_energy": "separate LAeq contributions reproduce aggregate LAeq in energy",
+        "guards": "memory, near-wake spacing, duplicate names and unsupported ground rejected",
+        "field_validated": false,
+        "executable_sha256": "645ed2d26ac65c7470dfb0f85801a6c575209a4e75b48ea60dd960773ab61e5e"
+      },
+      "farm_probe": "analytic, checkpoint/reset and concurrent shared-tower checks passed",
+      "executable_sha256": {
+        "aeroacoustics_farm.exe": "645ed2d26ac65c7470dfb0f85801a6c575209a4e75b48ea60dd960773ab61e5e",
+        "aeroacoustics_turbine.exe": "67ac7ddd698e2e4fad4e10b9f3176e452741ae9cffa5b754c657b6d390cc25d1"
+      },
+      "fortran_kernels": {
+        "backend": "Portable C++17",
+        "cases": 204,
+        "TNO_cases": 16,
+        "evaluated_values": 56576,
+        "values_by_operation": {
+          "1": 6936,
+          "2": 20808,
+          "3": 6936,
+          "4": 6936,
+          "5": 6936,
+          "6": 6936,
+          "7": 1088
+        },
+        "fortran_max_abs_error_dB": {
+          "1": 2.842170943040401e-14,
+          "2": 4.547473508864641e-13,
+          "3": 1.4210854715202004e-14,
+          "4": 2.842170943040401e-14,
+          "5": 4.263256414560601e-14,
+          "6": 0.0,
+          "7": 5.684341886080802e-14
+        },
+        "fortran_literal_precision": "promoted to double",
+        "tolerance_dB": 2e-08,
+        "kernel_calls": 1240
+      },
+      "default_path_regression": {
+        "full-case": {
+          "comparison": "original Fortran versus standalone C++",
+          "compared_values": 145926,
+          "identical_input_files": 101,
+          "files": {
+            "IEA_LB_RWT-AeroAcoustics_1.out": {
+              "rows": 201,
+              "channels": 2,
+              "compared_values": 402,
+              "max_abs_error_dB": 7.817849999725013e-05,
+              "mean_abs_error_dB": 4.05659005013196e-06,
+              "worst_time_s": 16.6,
+              "worst_channel": 2,
+              "tolerance_dB": 0.001
+            },
+            "IEA_LB_RWT-AeroAcoustics_2.out": {
+              "rows": 201,
+              "channels": 68,
+              "compared_values": 13668,
+              "max_abs_error_dB": 0.00020574810000084653,
+              "mean_abs_error_dB": 5.309601761069335e-06,
+              "worst_time_s": 16.6,
+              "worst_channel": 53,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_3.out": {
+              "rows": 201,
+              "channels": 476,
+              "compared_values": 95676,
+              "max_abs_error_dB": 0.0008517038999968918,
+              "mean_abs_error_dB": 6.7941629877470794e-06,
+              "worst_time_s": 17.0,
+              "worst_channel": 243,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_4.out": {
+              "rows": 201,
+              "channels": 180,
+              "compared_values": 36180,
+              "max_abs_error_dB": 0.0007665902999995922,
+              "mean_abs_error_dB": 5.640247710449697e-06,
+              "worst_time_s": 18.5,
+              "worst_channel": 170,
+              "tolerance_dB": 0.05
+            }
+          }
+        },
+        "wind9": {
+          "comparison": "original Fortran versus standalone C++",
+          "compared_values": 145926,
+          "identical_input_files": 101,
+          "files": {
+            "IEA_LB_RWT-AeroAcoustics_1.out": {
+              "rows": 201,
+              "channels": 2,
+              "compared_values": 402,
+              "max_abs_error_dB": 1.5829100000530616e-05,
+              "mean_abs_error_dB": 3.0547644278445306e-06,
+              "worst_time_s": 18.5,
+              "worst_channel": 2,
+              "tolerance_dB": 0.001
+            },
+            "IEA_LB_RWT-AeroAcoustics_2.out": {
+              "rows": 201,
+              "channels": 68,
+              "compared_values": 13668,
+              "max_abs_error_dB": 8.222400000335028e-05,
+              "mean_abs_error_dB": 3.694354420776131e-06,
+              "worst_time_s": 0.6,
+              "worst_channel": 46,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_3.out": {
+              "rows": 201,
+              "channels": 476,
+              "compared_values": 95676,
+              "max_abs_error_dB": 0.00017699829999884287,
+              "mean_abs_error_dB": 3.490456752766962e-06,
+              "worst_time_s": 0.2,
+              "worst_channel": 243,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_4.out": {
+              "rows": 201,
+              "channels": 180,
+              "compared_values": 36180,
+              "max_abs_error_dB": 0.005636691599999466,
+              "mean_abs_error_dB": 3.7928332384903334e-06,
+              "worst_time_s": 1.0,
+              "worst_channel": 116,
+              "tolerance_dB": 0.05
+            }
+          }
+        }
+      },
+      "additional_regression": "semantics/modules, workspace, performance, Simulation API, mechanisms, reliability and CLI checks passed"
+    },
+    "build-e12-mkl": {
+      "farm_cli": {
+        "single_turbine": "original per-turbine outputs byte-identical; LAeq agrees with receiver metrics",
+        "wake_feedback": "downstream wind and dynamics change; upstream dynamics unchanged",
+        "downstream_hub_wind_range_m_s": [
+          6.161012516168183,
+          7.2076648775978605
+        ],
+        "ct_limited_samples": 72,
+        "order_independence": "farm history byte-identical after reversing input order",
+        "translation_max_abs_dB": 1.3589200875685492e-09,
+        "a_weighting_max_abs_dB": 0.0,
+        "combined": "two controlled turbines with surface data, tower influence, absorption and supplied cooling spectrum",
+        "tower": "leaf inflow/dynamics respond; source metadata preserved",
+        "source_energy": "separate LAeq contributions reproduce aggregate LAeq in energy",
+        "guards": "memory, near-wake spacing, duplicate names and unsupported ground rejected",
+        "field_validated": false,
+        "executable_sha256": "78bc2e9ccdfd1d983d619fda339921d9cf341dd12be4dbedb0b1f3d7956d932d"
+      },
+      "farm_probe": "analytic, checkpoint/reset and concurrent shared-tower checks passed",
+      "executable_sha256": {
+        "aeroacoustics_farm.exe": "78bc2e9ccdfd1d983d619fda339921d9cf341dd12be4dbedb0b1f3d7956d932d",
+        "aeroacoustics_turbine.exe": "6aa65c7cc7d8697bf32a574de49f0179aa811dc4e867f21ec2b65a5bde9d27de"
+      },
+      "fortran_kernels": {
+        "backend": "Intel oneMKL: Intel(R) oneAPI Math Kernel Library Version 2025.2-Product Build 20250620 for Intel(R) 64 architecture applications",
+        "cases": 204,
+        "TNO_cases": 16,
+        "evaluated_values": 56576,
+        "values_by_operation": {
+          "1": 6936,
+          "2": 20808,
+          "3": 6936,
+          "4": 6936,
+          "5": 6936,
+          "6": 6936,
+          "7": 1088
+        },
+        "fortran_max_abs_error_dB": {
+          "1": 2.842170943040401e-14,
+          "2": 4.547473508864641e-13,
+          "3": 1.4210854715202004e-14,
+          "4": 2.842170943040401e-14,
+          "5": 4.263256414560601e-14,
+          "6": 0.0,
+          "7": 5.684341886080802e-14
+        },
+        "fortran_literal_precision": "promoted to double",
+        "tolerance_dB": 2e-08,
+        "kernel_calls": 1240
+      },
+      "default_path_regression": {
+        "full-case": {
+          "comparison": "original Fortran versus standalone C++",
+          "compared_values": 145926,
+          "identical_input_files": 101,
+          "files": {
+            "IEA_LB_RWT-AeroAcoustics_1.out": {
+              "rows": 201,
+              "channels": 2,
+              "compared_values": 402,
+              "max_abs_error_dB": 7.817849999725013e-05,
+              "mean_abs_error_dB": 4.05659005013196e-06,
+              "worst_time_s": 16.6,
+              "worst_channel": 2,
+              "tolerance_dB": 0.001
+            },
+            "IEA_LB_RWT-AeroAcoustics_2.out": {
+              "rows": 201,
+              "channels": 68,
+              "compared_values": 13668,
+              "max_abs_error_dB": 0.00020574810000084653,
+              "mean_abs_error_dB": 5.309601761069335e-06,
+              "worst_time_s": 16.6,
+              "worst_channel": 53,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_3.out": {
+              "rows": 201,
+              "channels": 476,
+              "compared_values": 95676,
+              "max_abs_error_dB": 0.0008517038999968918,
+              "mean_abs_error_dB": 6.7941629877470794e-06,
+              "worst_time_s": 17.0,
+              "worst_channel": 243,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_4.out": {
+              "rows": 201,
+              "channels": 180,
+              "compared_values": 36180,
+              "max_abs_error_dB": 0.0007665902999995922,
+              "mean_abs_error_dB": 5.640247710449697e-06,
+              "worst_time_s": 18.5,
+              "worst_channel": 170,
+              "tolerance_dB": 0.05
+            }
+          }
+        },
+        "wind9": {
+          "comparison": "original Fortran versus standalone C++",
+          "compared_values": 145926,
+          "identical_input_files": 101,
+          "files": {
+            "IEA_LB_RWT-AeroAcoustics_1.out": {
+              "rows": 201,
+              "channels": 2,
+              "compared_values": 402,
+              "max_abs_error_dB": 1.5829100000530616e-05,
+              "mean_abs_error_dB": 3.0547644278445306e-06,
+              "worst_time_s": 18.5,
+              "worst_channel": 2,
+              "tolerance_dB": 0.001
+            },
+            "IEA_LB_RWT-AeroAcoustics_2.out": {
+              "rows": 201,
+              "channels": 68,
+              "compared_values": 13668,
+              "max_abs_error_dB": 8.222400000335028e-05,
+              "mean_abs_error_dB": 3.694354420776131e-06,
+              "worst_time_s": 0.6,
+              "worst_channel": 46,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_3.out": {
+              "rows": 201,
+              "channels": 476,
+              "compared_values": 95676,
+              "max_abs_error_dB": 0.00017699829999884287,
+              "mean_abs_error_dB": 3.490456752766962e-06,
+              "worst_time_s": 0.2,
+              "worst_channel": 243,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_4.out": {
+              "rows": 201,
+              "channels": 180,
+              "compared_values": 36180,
+              "max_abs_error_dB": 0.005636691599999466,
+              "mean_abs_error_dB": 3.7928332384903334e-06,
+              "worst_time_s": 1.0,
+              "worst_channel": 116,
+              "tolerance_dB": 0.05
+            }
+          }
+        }
+      },
+      "additional_regression": "semantics/modules, workspace, performance, Simulation API, mechanisms, reliability and CLI checks passed"
+    }
+  },
+  "example20": {
+    "input": "examples/farm/farm.dat",
+    "metadata": {
+      "solver": "independent C++ turbine ensemble",
+      "provenance": "Synthetic two-turbine engineering test; not a real wind farm",
+      "wake_model": "quasi-steady Jensen top-hat; dimensional RSS deficits",
+      "wake_expansion": 0.05,
+      "max_ct": 0.95,
+      "ct_limited_samples": 73,
+      "duration_s": 20,
+      "statistics_start_s": 2,
+      "air_density_kg_m3": 1.225,
+      "sound_speed_m_s": 335,
+      "air_absorption": false,
+      "time_basis": "common source time; no acoustic or wake transport delay",
+      "superposition": "incoherent mean-square pressure; no phase or cross terms",
+      "field_validated": false,
+      "turbines": [
+        {
+          "name": "upstream",
+          "directory": "turbine_1",
+          "origin": [
+            0,
+            0,
+            0
+          ],
+          "input": "examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst"
+        },
+        {
+          "name": "downstream",
+          "directory": "turbine_2",
+          "origin": [
+            800,
+            0,
+            0
+          ],
+          "input": "examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst"
+        }
+      ]
+    },
+    "receivers": [
+      {
+        "observer": "1",
+        "x_m": "300",
+        "y_m": "400",
+        "z_m": "2",
+        "start_source_s": "2",
+        "end_source_s": "20",
+        "LAeq_dBA": "52.683537819349652",
+        "L5_dBA": "53.564031981760813",
+        "L50_dBA": "52.571269100324727",
+        "L95_dBA": "51.744676016340975"
+      },
+      {
+        "observer": "2",
+        "x_m": "1100",
+        "y_m": "400",
+        "z_m": "2",
+        "start_source_s": "2",
+        "end_source_s": "20",
+        "LAeq_dBA": "51.431761282693891",
+        "L5_dBA": "52.366615966966926",
+        "L50_dBA": "51.298595371756832",
+        "L95_dBA": "50.467165819109383"
+      }
+    ],
+    "structural_samples_per_turbine": 3201,
+    "acoustic_samples_per_turbine": 201,
+    "downstream_hub_wind_range_m_s": [
+      6.173217538733523,
+      7.205438949414659
+    ],
+    "output_sha256": {
+      "farm_history.csv": "4f78dcb6bee69c5f97853a86a1ab347efa6eb42b213e179facc73fd3005e1495",
+      "farm_receivers.csv": "084185c3fe6b92e04e443f755f79b3aa222118f14d408bb89e2e054bc745e838",
+      "source_contributions.csv": "b79791a3794ea96222f211d8ac312261776d3c7273cc9d38900f879063434195",
+      "stationary_sources.csv": "3f9a69704941552ce3f674f2f1ac62e55db8f69ae51eb7b044ae903f3bd4730c",
+      "wake_diagnostics.csv": "c144926c15a7b470c6ab180704a4b47b4b37bb31006a438d2ef6b53755fc5f99"
+    }
+  },
+  "limits": [
+    "No real field, FAST.Farm or same-configuration Fortran validation of added models; old Fortran regression covers default single-turbine path only.",
+    "Fixed-direction steady ambient wind, aligned yaw and fixed hubs, flat site, conservative far-wake spacing; no wake transport lag, added turbulence, dynamic meander, deflection or blockage.",
+    "Common source-time aggregation; no acoustic transport lag, coherent phase, farm AM rating or waveform synthesis.",
+    "CT clipping is explicit in diagnostics; it does not make startup/high-thrust Jensen states validated.",
+    "Tower modifies blade-point horizontal wind only; no tower structural DOF, drag load, acoustic scattering or nacelle aerodynamics.",
+    "Mechanical/cooling sources require supplied unweighted band/line sound power and provenance; spectra are constant per run, fixtures synthetic.",
+    "Farm propagation limited to free field and uniform air absorption."
+  ]
+}

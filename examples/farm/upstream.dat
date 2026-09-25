@@ -1,0 +1,7 @@
+"upstream" Name
+"../IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst" Case
+0 X
+0 Y
+"none" Controller
+"tower-test.dat" Tower
+"none" Surfaces
