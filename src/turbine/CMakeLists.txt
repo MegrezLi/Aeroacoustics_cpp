@@ -5,6 +5,8 @@ set(turbine_sources
   io/metrics_input.cpp
   analysis/statistics.cpp
   analysis/metrics.cpp
+  analysis/validation.cpp
+  io/validation_input.cpp
   inflow/grid_wind.cpp
   control/controller.cpp
   aerodynamics/bem.cpp

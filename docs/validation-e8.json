@@ -1,0 +1,182 @@
+{
+  "date": "2026-09-25",
+  "baseline_commit": "8a3ed83915ea7034ed6793558c89bfcce263ea88",
+  "environment": {
+    "os": "Windows",
+    "compiler": "GCC 16.2.0",
+    "configuration": "Release",
+    "optional_backend": "oneMKL 2025.2 sequential"
+  },
+  "scope": [
+    "Independent CSV comparison with calibration/validation group separation",
+    "Receiver-map LAeq import",
+    "Symmetric finite-difference sensitivity and correlated first-order uncertainty",
+    "Equal-weight supplied-ensemble quantiles"
+  ],
+  "limits": [
+    "No measured dataset available; no field accuracy established",
+    "No automatic calibration, parameter perturbation generation or sampling",
+    "No model-form uncertainty inferred from input uncertainty",
+    "No compliance claim or automatic 95% coverage interpretation"
+  ],
+  "analytic_probe": "Passed on portable and MKL configurations",
+  "fixtures_sha256": {
+    "examples/validation/correlations.csv": "95ca8be06a59d5cd5706c84a379a3dce6c95d5d2a9f8a17d9dc79a6f83850682",
+    "examples/validation/observations.csv": "bd49fe3dc6576025f552cdf372e2ea35f31e87997733a795b183401275ebf635",
+    "examples/validation/perturbations.csv": "8d2d9dcfa4589cc2893e67c0e97fe7d6e1cca0a332d8c7b2021bc01aa6308592",
+    "examples/validation/predictions.csv": "fc2a8529aef31f873954ed2fb842a0e2aff37f015a06eec6830fe8959fdb9fd0",
+    "examples/validation/samples.csv": "60689542a92e04e90172d64f508aed0fe925291aa0162875bc429918d44561dd"
+  },
+  "backends": {
+    "build-e12": {
+      "analytic_comparison": "bias=0, RMSE=2 dB; calibration excluded",
+      "correlated_budget": "u=sqrt(13), singular and invalid matrices checked by C++ probe",
+      "ensemble": "equal-weight 2.5/50/97.5 percentiles; incomplete outputs rejected",
+      "turbine_wind_sensitivities": [
+        {
+          "output_id": "receiver1_step0.1",
+          "parameter": "HWindSpeed",
+          "unit": "m/s",
+          "derivative_db_per_unit": "0.025117859760186524",
+          "left_derivative": "0.02670775684521241",
+          "right_derivative": "0.023527962675160635",
+          "curvature_db_per_unit2": "-0.031797941700517869",
+          "individual_u_db": "0.0025117859760186525"
+        },
+        {
+          "output_id": "receiver1_step0.2",
+          "parameter": "HWindSpeed",
+          "unit": "m/s",
+          "derivative_db_per_unit": "0.02953999832877589",
+          "left_derivative": "0.02662223031226316",
+          "right_derivative": "0.032457766345288637",
+          "curvature_db_per_unit2": "0.029177680165127406",
+          "individual_u_db": "0.0029539998328775891"
+        },
+        {
+          "output_id": "receiver2_step0.1",
+          "parameter": "HWindSpeed",
+          "unit": "m/s",
+          "derivative_db_per_unit": "0.28274475401197308",
+          "left_derivative": "0.2729638690787804",
+          "right_derivative": "0.29252563894516576",
+          "curvature_db_per_unit2": "0.19561769866385387",
+          "individual_u_db": "0.028274475401197308"
+        },
+        {
+          "output_id": "receiver2_step0.2",
+          "parameter": "HWindSpeed",
+          "unit": "m/s",
+          "derivative_db_per_unit": "0.27509090670156094",
+          "left_derivative": "0.25545300289223838",
+          "right_derivative": "0.29472881051088357",
+          "curvature_db_per_unit2": "0.19637903809322618",
+          "individual_u_db": "0.027509090670156094"
+        }
+      ],
+      "guards": "split leakage, context, uncertainty, IDs, CSV, output reuse and missing draws",
+      "field_accuracy_established": false,
+      "executable_sha256": "70c745348f11378ad4530eaba1dac5d96a8f8efffafd85182d277fc7249850f0",
+      "turbine_executable_sha256": "714779894065aa97bbd8a59ae199c88b35277cd0aa0e2b2b5e80f521d1593fd4"
+    },
+    "build-e12-mkl": {
+      "analytic_comparison": "bias=0, RMSE=2 dB; calibration excluded",
+      "correlated_budget": "u=sqrt(13), singular and invalid matrices checked by C++ probe",
+      "ensemble": "equal-weight 2.5/50/97.5 percentiles; incomplete outputs rejected",
+      "turbine_wind_sensitivities": [
+        {
+          "output_id": "receiver1_step0.1",
+          "parameter": "HWindSpeed",
+          "unit": "m/s",
+          "derivative_db_per_unit": "0.025117859760186524",
+          "left_derivative": "0.02670775684521241",
+          "right_derivative": "0.023527962675160635",
+          "curvature_db_per_unit2": "-0.031797941700517869",
+          "individual_u_db": "0.0025117859760186525"
+        },
+        {
+          "output_id": "receiver1_step0.2",
+          "parameter": "HWindSpeed",
+          "unit": "m/s",
+          "derivative_db_per_unit": "0.02953999832877589",
+          "left_derivative": "0.02662223031226316",
+          "right_derivative": "0.032457766345288637",
+          "curvature_db_per_unit2": "0.029177680165127406",
+          "individual_u_db": "0.0029539998328775891"
+        },
+        {
+          "output_id": "receiver2_step0.1",
+          "parameter": "HWindSpeed",
+          "unit": "m/s",
+          "derivative_db_per_unit": "0.28274475401197308",
+          "left_derivative": "0.2729638690787804",
+          "right_derivative": "0.29252563894516576",
+          "curvature_db_per_unit2": "0.19561769866385387",
+          "individual_u_db": "0.028274475401197308"
+        },
+        {
+          "output_id": "receiver2_step0.2",
+          "parameter": "HWindSpeed",
+          "unit": "m/s",
+          "derivative_db_per_unit": "0.27509090670156094",
+          "left_derivative": "0.25545300289223838",
+          "right_derivative": "0.29472881051088357",
+          "curvature_db_per_unit2": "0.19637903809322618",
+          "individual_u_db": "0.027509090670156094"
+        }
+      ],
+      "guards": "split leakage, context, uncertainty, IDs, CSV, output reuse and missing draws",
+      "field_accuracy_established": false,
+      "executable_sha256": "70c745348f11378ad4530eaba1dac5d96a8f8efffafd85182d277fc7249850f0",
+      "turbine_executable_sha256": "6743d00884b76891d948b0497bef3a08333d52dd22bac5df3387393212b2b7d5"
+    }
+  },
+  "fortran_20s_regression": {
+    "case": "IEA_LB_RWT-AeroAcoustics",
+    "compared_values": 145926,
+    "identical_input_files": 101,
+    "files": {
+      "IEA_LB_RWT-AeroAcoustics_1.out": {
+        "rows": 201,
+        "channels": 2,
+        "compared_values": 402,
+        "max_abs_error_dB": 7.817849999725013e-05,
+        "mean_abs_error_dB": 4.05659005013196e-06,
+        "worst_time_s": 16.6,
+        "worst_channel": 2,
+        "tolerance_dB": 0.001
+      },
+      "IEA_LB_RWT-AeroAcoustics_2.out": {
+        "rows": 201,
+        "channels": 68,
+        "compared_values": 13668,
+        "max_abs_error_dB": 0.00020574810000084653,
+        "mean_abs_error_dB": 5.309601761069335e-06,
+        "worst_time_s": 16.6,
+        "worst_channel": 53,
+        "tolerance_dB": 0.01
+      },
+      "IEA_LB_RWT-AeroAcoustics_3.out": {
+        "rows": 201,
+        "channels": 476,
+        "compared_values": 95676,
+        "max_abs_error_dB": 0.0008517038999968918,
+        "mean_abs_error_dB": 6.7941629877470794e-06,
+        "worst_time_s": 17.0,
+        "worst_channel": 243,
+        "tolerance_dB": 0.01
+      },
+      "IEA_LB_RWT-AeroAcoustics_4.out": {
+        "rows": 201,
+        "channels": 180,
+        "compared_values": 36180,
+        "max_abs_error_dB": 0.0007665902999995922,
+        "mean_abs_error_dB": 5.640247710449697e-06,
+        "worst_time_s": 18.5,
+        "worst_channel": 170,
+        "tolerance_dB": 0.05
+      }
+    },
+    "cpp_executable_sha256": "714779894065aa97bbd8a59ae199c88b35277cd0aa0e2b2b5e80f521d1593fd4"
+  }
+}

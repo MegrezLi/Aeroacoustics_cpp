@@ -537,3 +537,17 @@ main()
 ```
 
 检查点和重置包含新增接收历史，表面数据保持只读。宽带时延是声级包络处理，音调来自外部输入；它们不产生音频波形，也不代替完整 IEC/IOA 评价流程。详细单位、数据来源与组合限制见 [工程模型](docs/engineering.md#receiver-metrics)。
+
+
+## 12. E8 独立数据验证与不确定性
+
+运行顺序为：准备工况与测量数据 → 运行 C++ 整机/批量算例 → 导入或整理对应预测量 → 执行 `aeroacoustics_validate`。此程序独立于整机时间积分，不改变声源模型或自动校准结果。
+
+| 命令 | 入口调用 | 数值函数 | 输出 |
+| --- | --- | --- | --- |
+| `import-map` | `import_receiver_map()` | 读取并核对接收点坐标、时间窗和 LAeq | 与测量 CSV 同格式的预测表 |
+| `compare` | `compare_files()` | `residual()` → `error_statistics()`，校准/验证和试验批次分组 | 配对残差、偏差/MAE/RMSE、归一化误差 |
+| `budget` | `budget_files()` | `uncertainty_budget()`，中心差分与相关矩阵分解 | 左右导数、曲率、标准/扩展不确定度 |
+| `ensemble` | `ensemble_file()` | `ensemble_statistics()`，均值/标准差/分位数 | 等权模拟样本的分布摘要 |
+
+测量来源、数据划分、单位、适用条件、不确定度和计算来源须随输入提供。扰动计算或联合分布抽样由调用方组织；测试脚本只调度 C++，不实现物理和统计算法。详细输入格式和示例见 [E8 验证说明](docs/validation.md#independent-validation)。

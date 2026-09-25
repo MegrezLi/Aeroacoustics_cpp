@@ -17,6 +17,7 @@ jobs:
       - run: ./build/aeroacoustics_example build/spectrum.csv
       - run: ./build/acoustic_workspace_probe verify build/workspace.csv
       - run: ./build/mechanism_probe
+      - run: ./build/validation_probe
       - run: ./build/semantics_modules_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst
       - run: ./build/engineering_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst examples/engineering/controller.dat
       - run: ./build/metrics_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst examples/engineering/surfaces.dat build/metrics-probe
@@ -32,6 +33,7 @@ jobs:
       - run: python tests/check_semantics.py build/aeroacoustics_turbine build/semantics-cli
       - run: python tests/check_engineering.py build/aeroacoustics_turbine build/engineering-cli
       - run: python tests/check_metrics.py build/aeroacoustics_turbine build/metrics-cli
+      - run: python tests/check_validation.py build build/validation-cli
   thread-sanitizer:
     runs-on: ubuntu-22.04
     steps:

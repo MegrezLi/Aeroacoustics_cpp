@@ -138,6 +138,16 @@ Windows 将 `.so` 换成 `libaeroacoustics_shared.dll`，并给可执行文件�
 
 Intel oneMKL 是可选后端，用于 TNO 积分的向量指数和 BLAS 求和。启用时配置 `-DAEROACOUSTICS_USE_MKL=ON` 和 `MKL_DIR`，运行时提供 MKL 动态库。MinGW 使用 `mkl_rt` 单一动态接口。安装及命令见 [工具链说明](docs/development.md#toolchain)。
 
+## 独立验证与不确定性
+
+`aeroacoustics_validate` 使用 C++ 计算测量对照误差、参数扰动敏感性、相关不确定性预算和等权样本分位区间；可直接导入整机 `receiver_map.csv` 的 LAeq。校准与验证批次分开统计，未知不确定度留空，不自动判定实机精度或标准符合性。
+
+```sh
+./build/aeroacoustics_validate compare examples/validation/observations.csv examples/validation/predictions.csv build/data-comparison 2
+```
+
+随附数据为合成测试数据。格式、完整命令、适用假设和真实数据接入步骤见 [E8 验证说明](docs/validation.md#independent-validation)。
+
 ## 文档导航
 
 | 文档 | 内容 |

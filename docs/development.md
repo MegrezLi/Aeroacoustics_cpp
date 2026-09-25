@@ -31,6 +31,7 @@
 | `turbine/control/` | [controller.cpp](../src/turbine/control/controller.cpp) | 两质量传动链、发电机转矩、PI 变桨与偏航伺服 |
 | `turbine/analysis/` | [statistics.cpp](../src/turbine/analysis/statistics.cpp) | 接收时间序列、声能积分、时间百分位、调制分析和声功率几何换算 |
 | | [metrics.cpp](../src/turbine/analysis/metrics.cpp) | 节点历史、音调输运、受声点统计、风速分箱和报告输出 |
+| | [validation.cpp](../src/turbine/analysis/validation.cpp) | 配对误差、有限差分敏感性、相关不确定性与等权样本统计 |
 | `turbine/aerodynamics/` | [bem.cpp](../src/turbine/aerodynamics/bem.cpp)、[unsteady.cpp](../src/turbine/aerodynamics/unsteady.cpp) | BEM 诱导求解、偏斜修正和非定常翼型状态 |
 | `turbine/structure/` | [blade_dynamics.cpp](../src/turbine/structure/blade_dynamics.cpp) | 叶片模态、运动学、广义载荷与加速度 |
 | `turbine/coupling/` | [mesh.cpp](../src/turbine/coupling/mesh.cpp) | 气动和结构网格的运动、载荷传递 |
@@ -42,6 +43,7 @@
 | `turbine/io/` | [case_input.cpp](../src/turbine/io/case_input.cpp) | 输入解析、配置检查、翼型表及稳态风场 |
 | | [engineering.cpp](../src/turbine/io/engineering.cpp) | 独立传播配置与屏障表读取 |
 | | [surface.cpp](../src/turbine/io/surface.cpp)、[metrics_input.cpp](../src/turbine/io/metrics_input.cpp) | 表面数据及工程统计配置读取、来源和范围检查 |
+| | [validation_input.cpp](../src/turbine/io/validation_input.cpp) | 独立数据 CSV、分组/上下文检查、接收点导入和验证报告 |
 | `interfaces/` | [c_api.cpp](../src/interfaces/c_api.cpp) | 对外 C ABI、错误与调用状态 |
 | `turbine/simulation/` | [simulation.cpp](../src/turbine/simulation/simulation.cpp) | 完整仿真调度、重置和检查点 |
 | | [acoustic_adapter.cpp](../src/turbine/simulation/acoustic_adapter.cpp) | 声学配置装配、气动状态到声学节点的转换 |
@@ -51,6 +53,7 @@
 | `apps/` | [section_main.cpp](../src/apps/section_main.cpp) | 单截面频谱示例入口 |
 | | [turbine_main.cpp](../src/apps/turbine_main.cpp) | 整机命令行参数解析及运行入口 |
 | | [batch_main.cpp](../src/apps/batch_main.cpp) | 批量工况命令行入口 |
+| | [validation_main.cpp](../src/apps/validation_main.cpp) | 独立验证与不确定性命令行入口 |
 
 `apps/turbine_main.cpp` 调用 `run_case()`；`Simulation` 通过适配器、声学驱动及聚合器处理各时间步，结果交给 `ResultSink`。整机求解器负责协调气动、结构与网格传递；声学模型调用数值积分和后端计算。
 
@@ -63,7 +66,7 @@
 - 根目录 `CMakeLists.txt`：构建开关、编译标准、MKL 查找和输出位置。
 - [CMakeLists.txt](../src/CMakeLists.txt)：声学静态库及动态库的共用源文件清单。
 - [turbine/CMakeLists.txt](../src/turbine/CMakeLists.txt)：整机模块库。
-- [apps/CMakeLists.txt](../src/apps/CMakeLists.txt)：截面、整机和批量三个可执行程序。
+- [apps/CMakeLists.txt](../src/apps/CMakeLists.txt)：截面、整机、批量和独立验证四个可执行程序。
 - 根目录 `tests/CMakeLists.txt`：数值对照探针。
 
 公开头文件路径、构建目标名称及可执行文件位置保持兼容。原有 `section_spectrum()`、`snapshot_spectrum()` 和返回独立快照的 `AcousticDriver::step()` 仍可使用；连续计算可使用复用缓冲区的接口。构建及运行命令见根目录 README。
@@ -401,3 +404,6 @@ python tools/run_full_case.py --executable _work/build-reference/glue-codes/open
 ```
 
 OpenFAST 双精度配置使用 `-fdefault-real-8 -fdefault-double-8`。原 Fortran 参考链接 MKL；独立 C++ 默认构建不链接 MKL，也不复用这个 OpenFAST 可执行文件。两者的差异保存在验证报告中。
+
+
+E8 公开接口见 [validation.hpp](../include/turbine/validation.hpp)，位于 `turbine::validation` 命名空间。`residual/error_statistics`、`uncertainty_budget`、`ensemble_statistics` 均为不依赖求解器状态的数值函数；CSV、配对规则和文件输出在独立 IO 源文件中。所有函数按值返回结果，无全局可变状态。后续可从仿真结果或外部数据调用这些接口，保持数据准备、模型运行与统计分析分离。

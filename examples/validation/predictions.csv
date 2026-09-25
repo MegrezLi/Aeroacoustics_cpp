@@ -1,0 +1,4 @@
+id,group,split,origin,provenance,receiver,quantity,weighting,frequency_hz,bandwidth_hz,signal,start_s,end_s,x_m,y_m,z_m,wind_mps,direction_deg,surface,level_db,standard_u_db
+cal1,training_fixture,calibration,simulation,Synthetic analytic prediction fixture,1,LAeq,A,0,0,turbine_only,2,20,200,100,2,8,0,clean_test,50,0
+val1,heldout_fixture,validation,simulation,Synthetic analytic prediction fixture,1,LAeq,A,0,0,turbine_only,2,20,200,100,2,8,0,clean_test,42,0
+val2,heldout_fixture,validation,simulation,Synthetic analytic prediction fixture,2,LAeq,A,0,0,turbine_only,2,20,200,-100,2,8,0,clean_test,38,0

@@ -1,6 +1,6 @@
 # 验证与复现
 
-[Fortran 对照](#fortran) · [声级、输出与查表](#reliability) · [接口与并行](#interfaces) · [工程模型](#engineering)
+[Fortran 对照](#fortran) · [声级、输出与查表](#reliability) · [接口与并行](#interfaces) · [工程模型](#engineering) · [独立数据与不确定性](#independent-validation)
 
 Fortran 对照检验移植一致性；解析测试与步长收敛检验新增模型的实现。两者都不能替代现场声学测量和机型参数标定。所有命令在仓库根目录执行，测试输出目录应使用新目录。
 
@@ -8,7 +8,7 @@ Fortran 对照检验移植一致性；解析测试与步长收敛检验新增模
 
 ## Fortran 与独立 C++ 对照
 
-所有数值对照均以原 Fortran 为参考。默认 C++ 求解器不使用 `reference/`；测试脚本在运行结束后读取参考结果并比较。
+移植算法的数值回归以原 Fortran 为参考；E8 独立数据对照另行读取测量数据。默认 C++ 求解器不使用 `reference/`；回归测试脚本在运行结束后读取参考结果并比较。
 
 ### 随仓库运行回归
 
@@ -233,3 +233,84 @@ C++ 解析测试检查非均匀时间积分、持续时间百分位、恒定声�
 整机 CLI 检查：仅替换边界层时动力学逐字节保持一致而声学发生变化；提供原完整翼型文件时重现同一状态；未计权与已 A 计权输入得到相同 LAeq；减少普通输出数量不改变统计；风速箱时间与能量之和回到总体统计；独立音调产生可解析的接收频率变化。另检查四点地图、背景声能相加、时间窗和不兼容配置拒绝，以及 E1 闭环风场/E2 空气吸收的联合运行。
 
 在固定测试工况中，`DT_AA/ReceiverDT` 从 0.1 s 缩小到 0.05 s 后，四点 LAeq 最大差约 0.00108 dB。这是对该区间的采样敏感性检查，不是长时间统计稳定性或所有风况的收敛保证。结果及程序哈希见 [validation-metrics.json](validation-metrics.json)。原 Fortran/C++ 对照继续用于默认声源与整机路径；新增表面数据和指标尚无实测标定。
+
+
+<a id="independent-validation"></a>
+
+## E8：独立数据验证、敏感性与不确定性
+
+`aeroacoustics_validate` 是独立 C++17 程序，分为测量对照、局部不确定性预算和等权样本统计。它不拟合或自动修正声学模型。当前没有实测数据，随附 CSV 均为合成测试数据；已实现验证工具，尚未完成实机精度验证。
+
+### 运行示例
+
+以下目录必须尚不存在，父目录须已存在；Windows 为程序名添加 `.exe`。
+
+```sh
+./build/aeroacoustics_validate compare examples/validation/observations.csv examples/validation/predictions.csv build/data-comparison 2
+./build/aeroacoustics_validate budget examples/validation/perturbations.csv examples/validation/correlations.csv build/uncertainty-budget 2
+./build/aeroacoustics_validate ensemble examples/validation/samples.csv build/ensemble-summary
+```
+
+比较和预算命令的末尾参数为覆盖因子 k。`k=2` 本身不保证 95% 覆盖率，需另有分布和自由度依据。三个命令都保存原输入副本；全部输出成功后写入 `report.json`。报告不自动给出“通过实测验证”或标准符合性的结论。
+
+### 测量与预测的配对
+
+两份 CSV 使用相同列名，列顺序可变，字段如下。格式示例见 [observations.csv](../examples/validation/observations.csv) 和 [predictions.csv](../examples/validation/predictions.csv)。
+
+| 列 | 定义 |
+| --- | --- |
+| `id`、`receiver` | 配对记录唯一编号、接收点编号 |
+| `group`、`split` | 独立试验/采集批次标识；`calibration` 或 `validation`。同一批次的相关时段必须使用同一 group，不能跨两种划分 |
+| `origin`、`provenance` | 测量侧为 `field`、`wind_tunnel` 或 `synthetic`；预测侧为 `simulation`。来源说明记录数据文件、仪器/处理方法或计算提交、输入与运行结果位置 |
+| `quantity`、`weighting` | `LAeq` 必须为 A；`band_Leq` 可为 A 或 Z。声压基准均为 20 μPa，不接受声功率或 PSD 混入 |
+| `frequency_hz`、`bandwidth_hz` | 频带中心和带宽；LAeq 两者填写 0，频带声级两者必须为正。两侧须采用相同频带定义、滤波方法与积分频率范围，并在来源中注明 |
+| `signal` | `turbine_only` 或 `total`，分别表示风机声或包含背景的总声；本程序不代做实测背景扣除 |
+| `start_s`、`end_s` | 对应的平均时窗。先在外部统一时间原点；窗口必须相同，不自动插值、补零或外推 |
+| `x_m`、`y_m`、`z_m` | 同一坐标系下的接收点位置 |
+| `wind_mps`、`direction_deg`、`surface` | 一致定义的代表风速、[0,360) 风向与表面状态标识；标准化风速、气象代表性和工况筛选由数据准备过程确定 |
+| `level_db`、`standard_u_db` | 声级和 dB 单位的标准不确定度。未知不确定度留空，不得用 0 代替未知；0 表示该项确实按零处理 |
+
+配对必须覆盖两侧全部 ID，无重复或缺失。上下文字符串须一致，数值容差为 `1e-8*max(1,abs(a),abs(b))`，仅用于浮点文本差异。程序不通过宽松工况匹配制造可比性。无效数据须在前处理阶段筛选，并在来源中保留筛选依据。
+
+`residuals.csv` 给出预测减测量的 dB 误差。两侧标准不确定度已知时，按模型误差与测量误差独立的假设计算 `u_diff=hypot(u_model,u_measurement)`。仅当 `u_diff>0` 时输出归一化残差及 `abs(error)<=k*u_diff` 标记；未知时相关列留空，不影响原始误差统计。
+
+`groups.csv` 按划分、来源、试验批次、量、计权、频带、信号类型、表面状态、1 m/s 风速箱和 30° 风向扇区分别输出记录数、偏差、MAE、RMSE、最大绝对误差及归一化统计。每条记录等权，误差在 dB 域统计；不是声能平均，也不把相关测点/时段当作独立样本推导均值置信区间。没有将校准组自动用于偏差修正。来源与分组由使用者声明，程序能检查标签冲突，不能核实采集独立性。
+
+### 直接导入整机接收点结果
+
+```sh
+./build/aeroacoustics_validate import-map build/run/receiver_map.csv context.csv predictions.csv "C++ commit and input/run provenance"
+```
+
+`context.csv` 使用上述预测格式，`origin=simulation`，`level_db` 可先填 0。此命令按 `receiver` 读取 `receiver_map.csv`，核对测点坐标和实际时窗，按 `signal` 选风机 LAeq 或含背景 LAeq，并写入新的预测 CSV。仅支持 A 计权 LAeq；`standard_u_db` 保留上下文中的值。风况、表面状态、频率积分范围及运行版本需由使用者对照实际算例填写，导入器不会从测量值推断这些条件。频带测量目前使用统一 CSV 接口，尚无自动频带历史导入器。
+
+### 参数敏感性和相关不确定性
+
+[perturbations.csv](../examples/validation/perturbations.csv) 每行指定一个 `output_id` 下的一项参数：`parameter,unit,x_minus,x0,x_plus,u_x,y_minus_db,y0_db,y_plus_db,provenance`。输出可以是某接收点 LAeq 或某频带声级，但同一 output_id 必须代表同一输出条件。先通过整机/批量接口运行基准与逐参数正负扰动工况；其余参数、测点和统计设置保持一致，再填入真实计算结果。程序不会自行修改输入文件或选择扰动步长。
+
+要求正负扰动对称且所有参数使用同一基准输出，最多 256 项。计算中心差分 `c_i=(y_plus-y_minus)/(x_plus-x_minus)`，另报告左右单边导数、曲率及 `abs(c_i)*u_i`。建议至少用两种扰动步长、充分长的统计时窗核对稳定性；左右导数和曲率差异大时，局部线性传播可能不适用。
+
+[correlations.csv](../examples/validation/correlations.csv) 列为 `output_id,parameter_a,parameter_b,rho`。每对参数只列一次，遗漏的对明确按不相关处理；空预算也须保留表头。相关系数必须在 [-1,1]，矩阵必须半正定（分解数值容差 1e-12），允许完全相关/反相关的奇异矩阵，拒绝不一致矩阵。相关性必须有数据或建模依据。
+
+按 `u_y² = sum(c_i*c_j*u_i*u_j*rho_ij)` 计算标准不确定度，输出 `k*u_y` 和基准值上下界。各单项贡献不是存在相关性时可直接相加的方差份额。`u_x` 是各自参数单位下的标准不确定度，不是扰动步长、上下限或扩展不确定度。本实现采用一阶传播，关系式依据 [NIST 不确定性传播说明](https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-appendix-law-propagation-uncertainty)。未列入输入预算的模型形式误差、数值误差和未建模物理不会凭空包含在输出区间内。
+
+### 等权样本结果
+
+[samples.csv](../examples/validation/samples.csv) 列为 `output_id,sample_id,level_db,provenance`。输入外部按已声明联合分布抽样、经过 C++ 求解得到的等权结果；采样分布、参数相关性、随机种子、模型/输入版本和失败工况处理应记录在来源或其指向的记录中。当前工具不自动生成蒙特卡洛参数、不支持加权样本，也不把规则参数扫描当作概率分布。
+
+同一输出内 sample_id 唯一，各输出须拥有完全相同的样本集合，至少两个样本。`ensemble.csv` 输出 dB 均值、样本标准差、线性插值的 2.5/50/97.5 百分位及稳定声能平均值。分位区间表示输入样本的离散程度，不是均值置信区间，也不是包含实测误差和模型差异的完整预测区间。有限样本下须另做样本量收敛检查。
+
+### 验证命令与当前证据
+
+```sh
+./build/validation_probe
+python tests/check_validation.py build build/e8-check
+```
+
+C++ 解析检查包含已知偏差/RMSE、未知或零不确定度、相关/反相关与非法矩阵、二次函数曲率和已知样本分位数。CLI 检查划分泄漏、量与频带不匹配、重复 ID、未知不确定度、输出复用和缺失样本的拒绝。
+
+整机接入测试实际运行 7.8、7.9、8、8.1、8.2 m/s 五个 C++ 工况，核对接收点结果导入，并计算两种扰动步长下的敏感度。2 s 测试用于软件接入检查，既非稳态统计充分性证明，也非实测验证。具体结果见 [validation-e8.json](validation-e8.json)。
+
+CSV 支持 UTF-8、可选 BOM、CRLF/LF、引号内逗号和双引号转义；不接受多行字段、空行、未知/重复列、非有限声级。每表最多 100,000 条记录，每行最多 1 MiB。静音或检出限截断数据需单独处理，目前不以任意低声级代替。
+
+E8 剩余工作是取得可追溯的风洞/实机数据，建立校准/独立验证划分，确认测量和模型不确定度预算，再评估实际预测精度。合成数据通过和 Fortran 回归通过均不能替代这一步。

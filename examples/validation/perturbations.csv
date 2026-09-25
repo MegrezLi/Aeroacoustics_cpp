@@ -1,0 +1,3 @@
+output_id,parameter,unit,x_minus,x0,x_plus,u_x,y_minus_db,y0_db,y_plus_db,provenance
+analytic,a,m,-1,0,1,2,8,10,12,Synthetic y=10+2a-3b with assumed input uncertainties
+analytic,b,s,-1,0,1,1,13,10,7,Synthetic y=10+2a-3b with assumed input uncertainties
