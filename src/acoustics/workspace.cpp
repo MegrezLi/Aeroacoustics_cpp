@@ -16,7 +16,7 @@ struct AcousticWorkspace::Impl {
     std::shared_ptr<const OutdoorPropagation> propagation;
 
     explicit Impl(Parameters p) : parameters(std::move(p)), models(parameters) {
-        if (parameters.tbltemod == 2)
+        if (parameters.tbltemod >= 2)
             parameters.x_blmethod = 2;
         if (parameters.aweighting)
             weighting = a_weighting(parameters.freqlist);

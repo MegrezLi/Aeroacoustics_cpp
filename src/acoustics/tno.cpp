@@ -46,7 +46,7 @@ void prepare_profile(bool suction, double mach, const BoundaryLayer &bl, const P
     const int side = suction ? 0 : 1;
     const double cf = bl.cf[side], delta = bl.d99[side];
     const double uo = mach * p.spdsound * std::abs(bl.edge_velocity_ratio[side]);
-    if (cf <= 0 || delta <= 0 || uo <= 0)
+    if (!std::isfinite(cf) || !std::isfinite(delta) || !std::isfinite(uo) || cf <= 0 || delta <= 0 || uo <= 0)
         throw std::invalid_argument("TNO needs positive Cf, delta and edge speed");
     const auto &nodes = quadrature_rule()[0];
     auto &x2 = work.height;
@@ -117,6 +117,14 @@ double detail::integrate_tno(double omega, double lower, double upper, bool suct
 }
 
 void detail::prepare_tno(const Parameters &p, const Section &s, TnoWorkspace &work, TnoSource &out) {
+    tno_edge_velocity_name(p.tno_edge_velocity);
+    auto bl = s.bl;
+    if (p.tno_edge_velocity == TnoEdgeVelocity::reference)
+        bl.edge_velocity_ratio = {1., 1.};
+    for (int side = 0; side < 2; ++side)
+        if (!std::isfinite(bl.cf[side]) || !std::isfinite(bl.d99[side]) ||
+            !std::isfinite(bl.edge_velocity_ratio[side]))
+            throw std::invalid_argument("Non-finite TNO boundary layer");
     out.mach = s.speed / p.spdsound;
     out.span = s.span;
     if (work.frequencies != p.freqlist) {
@@ -128,14 +136,14 @@ void detail::prepare_tno(const Parameters &p, const Section &s, TnoWorkspace &wo
     }
     out.bandwidth = work.bandwidth;
     for (int side = 0; side < 2; ++side) {
-        out.active[side] = s.bl.cf[side] > 0;
+        out.active[side] = bl.cf[side] > 0;
         out.integral[side].resize(p.freqlist.size());
         if (out.active[side])
-            prepare_profile(side == 0, out.mach, s.bl, p, work);
+            prepare_profile(side == 0, out.mach, bl, p, work);
         for (std::size_t i = 0; i < p.freqlist.size(); ++i) {
             const double omega = 2 * pi * p.freqlist[i];
             out.integral[side][i] =
-                out.active[side] ? integrate_profile(omega, 0, 10 * omega / s.speed, s.bl.d99[side], p, work)
+                out.active[side] ? integrate_profile(omega, 0, 10 * omega / s.speed, bl.d99[side], p, work)
                                  : 0.;
         }
     }
@@ -162,6 +170,19 @@ double spl_integrate(double omega, double lower, double upper, bool suction, dou
 }
 std::pair<Spectrum, Spectrum> tblte_tno(double speed, double theta, double phi, double span, double distance,
                                         const BoundaryLayer &bl, const Parameters &p) {
+    auto input = p;
+    input.tno_edge_velocity = TnoEdgeVelocity::input;
+    return configured_tblte_tno(speed, theta, phi, span, distance, bl, input);
+}
+std::pair<Spectrum, Spectrum> configured_tblte_tno(double speed, double theta, double phi, double span,
+                                                   double distance, const BoundaryLayer &bl,
+                                                   const Parameters &p) {
+    validate(p);
+    for (double x : {speed, theta, phi, span, distance})
+        if (!std::isfinite(x))
+            throw std::invalid_argument("Non-finite TNO kernel input");
+    if (speed <= 0 || speed >= p.spdsound || span <= 0 || distance <= 0)
+        throw std::invalid_argument("Invalid TNO kernel speed/geometry");
     Section s;
     s.speed = speed;
     s.span = span;

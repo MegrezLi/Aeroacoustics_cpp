@@ -73,6 +73,12 @@ double integrate_tno(double omega, double lower, double upper, bool suction, dou
 void prepare_tno(const Parameters &, const Section &, TnoWorkspace &, TnoSource &);
 void emit_tno(const TnoSource &, const Geometry &, Spectrum &pressure, Spectrum &suction);
 
+struct HoweSource {
+    std::array<Spectrum, 2> band_power_at_unit_geometry; // suction, pressure; Pa^2 at r=1, D=1
+};
+void prepare_howe(const Parameters &, const Section &, HoweSource &);
+void emit_howe(const HoweSource &, const Geometry &, Spectrum &pressure, Spectrum &suction);
+
 struct PreparedSection {
     Section section;
     TrailingEdgeSource trailing_edge;
@@ -81,6 +87,7 @@ struct PreparedSection {
     TipSource tip;
     InflowSource inflow;
     TnoSource tno;
+    HoweSource howe;
     Spectrum guidati;
 };
 void prepare_section(const Parameters &, const SourceSelection &, const Section &, TnoWorkspace &,

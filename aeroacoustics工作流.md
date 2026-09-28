@@ -579,3 +579,26 @@ farm_main → FarmOptions::read(farm.dat)
 ```
 
 局部叶素坐标加机组 XY 原点得到场址坐标，公共受声点减该原点传给单机声学。风向沿用 `SteadyWind` 的 `(cos(PropagationDir), -sin(PropagationDir), 0)` 约定。所有机组使用共同源时间；这里不调用 E5 的接收时延重采样。尾流不向上游反馈，也无尾流传播时延。配置示例和适用范围见 [E6 工程说明](docs/engineering.md#farm)。
+
+
+## 14. E4/E9 尾缘模型与外缘速度比
+
+```text
+--trailing-edge=FILE → TrailingEdgeOptions::read() → validate()
+Simulation::configuration() → TrailingEdgeOptions::apply(parameters)
+  TBLTEMod=1：原 BPM
+  TBLTEMod=2：TNO；reference 使用 {1,1}，input 使用两侧输入的绝对值
+  TBLTEMod=3：Howe–Chase；半齿高 h=0 为直尾缘，h>0 为锯齿
+AcousticInputAdapter → 读取/插值两侧边界层（Howe/TNO 需要表格输入）
+AcousticWorkspace → prepare_section()
+  TNO：prepare_tno() → 按模式解析速度比 → prepare_profile() → integrate_profile()
+  Howe：prepare_howe() → howe_chase_shape() → howe_chase_psd()
+       → 分面板 qk61()，在各频带边界间积分 Pa²/Hz → 缓存两侧 Pa²
+对每个观察点 emit_section()
+  TNO：emit_tno() 替换两侧尾缘声，保留 BPM 分离声
+  Howe：emit_howe() 施加几何并转 dB，分离通道关闭
+  原有其他机制 → A 计权 → 可选传播 → AcousticAggregator
+FileOutput → 普通声学文件、实际尾缘选择/速度比模式/参数/来源
+```
+
+旧 `tblte_tno()` 与 `spl_integrate()` 是直接使用输入速度比的原始内核接口；按模型配置调用时使用 `configured_tblte_tno()`。Howe 不改变 BEM、翼型极曲线或叶片几何，装置引起的气动/边界层变化需要另行提供数据。示例及单位见 [尾缘模型说明](docs/engineering.md#trailing-edge)。

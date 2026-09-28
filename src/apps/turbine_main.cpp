@@ -8,7 +8,7 @@ int main(int argc, char **argv) {
                 "Usage: aeroacoustics_turbine CASE.fst OUTPUT_DIRECTORY [duration] "
                 "[--lookup-policy=clamp|error] [--solver=reference|scaled] "
                 "[--observer-block-size=N] [--wind-grid=FILE] [--controller=FILE] [--propagation=FILE] "
-                "[--surfaces=FILE] [--metrics=FILE] [--tower=FILE]");
+                "[--surfaces=FILE] [--metrics=FILE] [--tower=FILE] [--trailing-edge=FILE]");
         turbine::RunOptions options;
         bool has_duration = false, has_policy = false, has_solver = false, has_block = false;
         for (int i = 3; i < argc; ++i) {
@@ -39,6 +39,8 @@ int main(int argc, char **argv) {
                 options.solver.controller = turbine::ControlConfig::read(option.substr(13));
             } else if (option.rfind("--tower=", 0) == 0 && !options.solver.tower) {
                 options.solver.tower = turbine::TowerInfluence::read(option.substr(8));
+            } else if (option.rfind("--trailing-edge=", 0) == 0 && !options.trailing_edge) {
+                options.trailing_edge = aeroacoustics::TrailingEdgeOptions::read(option.substr(16));
             } else if (option.rfind("--propagation=", 0) == 0 && !options.propagation) {
                 options.propagation = turbine::read_propagation(option.substr(14));
             } else if (option.rfind("--surfaces=", 0) == 0 && !options.surfaces) {

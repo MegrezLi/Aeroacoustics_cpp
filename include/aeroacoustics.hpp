@@ -17,13 +17,21 @@ using Spectrum = std::vector<double>;
 using Mechanisms = std::array<Spectrum, mechanism_count>;
 using Vec3 = std::array<double, 3>;
 using Mat3 = std::array<double, 9>; // row-major global-to-local
+enum class TnoEdgeVelocity { reference, input };
+const char *tno_edge_velocity_name(TnoEdgeVelocity);
+struct HoweOptions {
+    double half_height = 0, wavelength = .04; // metres; root-to-tip length is 2*h
+    double convection_ratio = .7, friction_ratio = .03;
+};
 struct Parameters {
     Spectrum freqlist{openfast_centers_hz.begin(), openfast_centers_hz.end()};
     double spdsound = 340., kinvisc = 1.48e-5, airdens = 1.225, lturb = 40., alprat = 1., ti = .1, avgv = 8.;
     int x_blmethod = 1, itrip = 1, timod = 1, tbltemod = 1, lammod = 0, tipmod = 0, bluntmod = 0;
     bool round = true, aweighting = false;
+    TnoEdgeVelocity tno_edge_velocity = TnoEdgeVelocity::reference;
+    HoweOptions howe;
 };
-enum class TrailingEdgeModel { off, bpm, tno_with_bpm_separation };
+enum class TrailingEdgeModel { off, bpm, tno_with_bpm_separation, howe_chase };
 enum class InflowModel { off, lowson, lowson_guidati };
 struct SourceSelection {
     TrailingEdgeModel trailing;
@@ -156,6 +164,9 @@ std::array<BandSoundPressureLevel, mechanism_count> band_section_spectrum(const 
                                                                           const Section &);
 std::pair<Spectrum, Spectrum> tblte_tno(double speed, double theta, double phi, double span, double distance,
                                         const BoundaryLayer &, const Parameters &);
+// Explicit configuration path; the legacy raw tblte_tno/spl_integrate kernels always use input ratios.
+std::pair<Spectrum, Spectrum> configured_tblte_tno(double speed, double theta, double phi, double span,
+                                                 double distance, const BoundaryLayer &, const Parameters &);
 double spl_integrate(double, double, double, bool, double, const BoundaryLayer &, const Parameters &);
 std::pair<Geometry, Geometry> observe(const Vec3 &, const Vec3 &, const Mat3 &, double,
                                       std::array<double, 2> reference = {{.25, 0.}});

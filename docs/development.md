@@ -17,7 +17,8 @@
 | | [bpm_other_sources.cpp](../src/acoustics/bpm_other_sources.cpp) | 层流、尾缘钝度和叶尖噪声 |
 | | [bpm_spectral_shapes.cpp](../src/acoustics/bpm_spectral_shapes.cpp)、[directivity.cpp](../src/acoustics/directivity.cpp) | BPM 分段谱形函数与声源指向性 |
 | | [inflow_noise.cpp](../src/acoustics/inflow_noise.cpp) | Lowson 入流噪声和 Simplified Guidati 修正 |
-| | [tno.cpp](../src/acoustics/tno.cpp) | TNO 尾缘噪声与模型积分装配 |
+| | [tno.cpp](../src/acoustics/tno.cpp) | TNO 尾缘噪声、显式外缘速度比模式与积分装配 |
+| | [howe_chase.cpp](../src/acoustics/howe_chase.cpp)、[trailing_edge_options.cpp](../src/acoustics/trailing_edge_options.cpp) | Howe–Chase 直尾缘/锯齿谱、SI 频带积分与尾缘模型配置 |
 | | [spectrum.cpp](../src/acoustics/spectrum.cpp) | 参数检查、声源准备与观察点频谱装配、A 计权和声能叠加工具 |
 | | [quantities.cpp](../src/acoustics/quantities.cpp) | 频带边界、PSD 积分、声压/声功率换算、计权与频带合并 |
 | | [workspace.cpp](../src/acoustics/workspace.cpp)、[source_models.hpp](../src/acoustics/source_models.hpp) | 跨观察点共享声源计算，复用频谱与 TNO 积分缓冲区；内部模型数据类型 |
@@ -423,3 +424,14 @@ E8 公开接口见 [validation.hpp](../include/turbine/validation.hpp)，位于 
 `Rotor::aerodynamic_thrust()` 沿叶展对当前气动力作梯形积分，并投影到指定方向；风场层把推力换算成尾流所用 CT，限幅仅作用于尾流模型。塔架仅作用于叶素入流，轮毂控制风速不加入塔影或本机 BEM 诱导。原 AeroDyn 的 `TwrPotent/TwrShadow/TwrAero` 等输入约束保持不变；新增塔架由独立配置接入，不能将它解释为完整 AeroDyn 塔架模块移植。
 
 新增动态尾流时可替换 `WindField` 与风场调度方式；增加真实机械预测模型时可输出带来源的 `StationarySource` 输入。现有接口的定常源、固定方向和源时间假设不能直接用于动态尾流或相干声学。单位和运行限制见 [工程模型](engineering.md#farm)。
+
+
+## E4/E9 尾缘模型扩展
+
+[trailing_edge.hpp](../include/trailing_edge.hpp) 提供 `TrailingEdgeOptions`、无量纲 `howe_chase_shape()` 和返回单边 Pa²/Hz 的 `howe_chase_psd()`。配置文件经 `RunOptions::trailing_edge` 进入 `AcousticConfiguration`；风场机组文件可另给 `TrailingEdge` 路径或 `none`。输出布局保存实际选项，复制/重置/检查点沿用该配置。
+
+`TrailingEdgeModel::howe_chase` 对应 `TBLTEMod=3`。`prepare_howe()` 分别准备两侧频带声能，`emit_howe()` 只处理距离和角度，避免在每个观察点重复积分。它替换压力/吸力侧通道，并关闭分离通道；层流、钝度、叶尖和入流开关保持原定义，不会把它们当成锯齿降噪量一起缩放。
+
+`Parameters::tno_edge_velocity` 默认 `reference`。`detail::prepare_tno()` 集中解释配置；`configured_tblte_tno()` 与 `section_spectrum()`、`AcousticWorkspace` 语义一致。旧 `tblte_tno()` 显式选 `input` 后调用配置化函数；旧 `spl_integrate()` 及 C ABI operation 7 仍为原始内核输入接口，保证历史调用方兼容。新增字段不改变 C ABI 缓冲区长度。TNO 两侧顺序始终为吸力面、压力面，返回 pair 仍为压力侧、吸力侧。
+
+Howe 使用具备定义的参考频带，按 Hz 积分 PSD；TNO 保留原 OpenFAST 频带乘数，不能将两者的中间谱量混用。下一步新增其他壁压谱/散射模型时，应扩展具名模型及独立准备/发射函数，不在已有七类通道之外重复累加尾缘声。范围与输入见 [工程说明](engineering.md#trailing-edge)。

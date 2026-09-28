@@ -32,6 +32,8 @@ FarmOptions FarmOptions::read(const std::filesystem::path &p) {
             unit.tower = TowerInfluence::read(u.file("Tower"));
         if (u.value("Surfaces") != "none")
             unit.surfaces = SurfaceSet::read(u.file("Surfaces"));
+        if (u.has("TrailingEdge") && u.value("TrailingEdge") != "none")
+            unit.trailing_edge = aeroacoustics::TrailingEdgeOptions::read(u.file("TrailingEdge").string());
         o.turbines.push_back(std::move(unit));
     }
     if (ns)

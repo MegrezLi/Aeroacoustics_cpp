@@ -5,6 +5,7 @@ namespace turbine {
 namespace {
 AcousticConfiguration configuration(const Case &c, const RunOptions &options) {
     AcousticConfiguration result(c);
+    if (options.trailing_edge) options.trailing_edge->apply(result.parameters);
     if (!options.observers.empty()) {
         if (options.metrics && !options.metrics->observers.empty())
             throw std::invalid_argument("Duplicate observer overrides");
@@ -53,6 +54,7 @@ struct Simulation::Impl {
         layout.propagation = options.propagation;
         layout.surfaces = options.surfaces;
         layout.tower = options.solver.tower;
+        layout.trailing_edge = options.trailing_edge;
         if (options.metrics)
             metrics.emplace(*options.metrics, config.parameters, config.observers,
                             config.blades * (config.span.size() - acoustic.first_node()),

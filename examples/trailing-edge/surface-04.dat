@@ -1,0 +1,17 @@
+4 AirfoilID
+"synthetic attached comparison" State
+"Synthetic constant BL table; no real turbine calibration" Provenance
+"Zero is a deterministic software-test setting, not measured uncertainty" UncertaintyNote
+"attached-test-bl.dat" BoundaryLayer
+"none" Polar
+-170 AlphaMinDeg
+170 AlphaMaxDeg
+1000 ReMin
+100000000 ReMax
+0.1 TransitionSuction
+0.1 TransitionPressure
+0 RoughnessM
+0 ErosionM
+0 RelativeUncertainty
+0.003 TEThicknessM
+10 TEAngleDeg

@@ -77,6 +77,16 @@ cmake --build build -j 4
 
 示例数据仅用于测试。新增统计不等同于 IEC/IOA 完整测量流程；接收时延暂不与相干地面反射组合，窄带音调也不由现有宽带模型自动预测。参数与输出见 [工程模型](docs/engineering.md#surface-data)。
 
+## 尾缘模型与锯齿对比
+
+```sh
+./build/aeroacoustics_turbine examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst build/howe 20 --trailing-edge=examples/trailing-edge/howe-serrated.dat --surfaces=examples/trailing-edge/surfaces.dat
+```
+
+`--trailing-edge` 可选择 BPM、TNO 或 Howe–Chase。Howe 使用频率相关锯齿模型，半齿高设为 0 即直尾缘；示例的边界层和锯齿均为合成测试输入。其适用范围为附着、低马赫数平板近似，不自动预测装置引起的气动变化或保证降噪收益。
+
+TNO 可显式选择 `reference`（默认，两侧速度比为 1）或 `input`（使用边界层表中速度比的绝对值）。旧原始内核 API 仍使用调用方输入。输入单位、接口区别及验证见 [E4/E9 工程说明](docs/engineering.md#trailing-edge)。
+
 ## 多机尾流与风场声学
 
 ```sh

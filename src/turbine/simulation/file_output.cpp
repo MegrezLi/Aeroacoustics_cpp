@@ -360,6 +360,22 @@ void FileOutput::finish_output(const RunSummary &summary) {
     }
     if (summary.metrics)
         metadata_ << ",\n  \"receiver_metrics\": \"metrics.json\"";
+    metadata_ << ",\n  \"trailing_edge_model\": {\"selection\":" << layout_->parameters.tbltemod
+              << ",\"tno_edge_velocity\":"
+              << json_text(aeroacoustics::tno_edge_velocity_name(layout_->parameters.tno_edge_velocity));
+    if (layout_->trailing_edge)
+        metadata_ << ",\"provenance\":" << json_text(layout_->trailing_edge->provenance);
+    if (layout_->parameters.tbltemod == 3) {
+        const auto &h = layout_->parameters.howe;
+        metadata_ << ",\"model\":\"Howe-Chase straight/sawtooth; attached low-Mach flat-plate approximation\""
+                  << ",\"half_height_m\":" << h.half_height << ",\"wavelength_m\":" << h.wavelength
+                  << ",\"convection_ratio\":" << h.convection_ratio << ",\"friction_velocity_ratio\":" << h.friction_ratio
+                  << ",\"spectrum\":\"one-sided Pa^2/Hz = 4*pi times two-sided angular PSD; integrated over band edges\""
+                  << ",\"separation_channel\":\"disabled; no BPM/TNO trailing-edge double counting\""
+                  << ",\"geometry_scope\":\"same sawtooth geometry at every selected acoustic section\""
+                  << ",\"field_validated\":false";
+    }
+    metadata_ << '}';
     if (layout_->tower) {
         const auto &t = *layout_->tower;
         metadata_ << ",\n  \"tower_influence\": {\"provenance\":" << json_text(t.provenance)

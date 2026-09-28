@@ -70,6 +70,15 @@ if(flags(4)==1) call TBLTE_TNO(x(3),x(4),x(5),x(6),x(7), &
   (/x(22),0.001984380_ReKi/),(/0.01105860_ReKi,x(9)/), &
   (/1.0_ReKi,1.0_ReKi/),p,y(:,9),y(:,10))
 end subroutine
+subroutine evaluate_tno(speed,theta,phi,span,distance,cf,delta,ratio,freq,n,y)
+integer :: n
+real(ReKi) :: speed,theta,phi,span,distance,cf(2),delta(2),ratio(2),freq(n),y(n,2)
+type(AA_ParameterType) :: p
+p%SpdSound=340._ReKi;p%KinVisc=1.48e-5_ReKi;p%AirDens=1.225_ReKi;p%Lturb=40._ReKi
+p%X_BLMethod=2;p%ITRIP=1;p%ROUND=.true.
+allocate(p%FreqList(n));p%FreqList=freq
+call TBLTE_TNO(speed,theta,phi,span,distance,cf,delta,ratio,p,y(:,1),y(:,2))
+end subroutine
 subroutine curves(x,y)
 real(ReKi) :: x(5),y(9)
 type(AA_ParameterType) :: p

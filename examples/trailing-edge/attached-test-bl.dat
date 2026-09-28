@@ -1,0 +1,14 @@
+! Synthetic attached boundary layers for software tests only
+! alpha Ue_s/U Ue_p/U dstar_s/c dstar_p/c d99_s/c d99_p/c Cf_s Cf_p
+2
+2
+0.001
+! Re in millions
+! dimensionless table
+-170 1.1 0.9 0.004 0.003 0.025 0.02 0.002 0.003
+170 1.1 0.9 0.004 0.003 0.025 0.02 0.002 0.003
+100
+! Re in millions
+! dimensionless table
+-170 1.1 0.9 0.004 0.003 0.025 0.02 0.002 0.003
+170 1.1 0.9 0.004 0.003 0.025 0.02 0.002 0.003

@@ -53,7 +53,7 @@ AcousticInputAdapter::AcousticInputAdapter(const Case &c, const AcousticConfigur
                 n.section.te_angle = bl.number("TEAngle");
                 n.section.te_thickness = bl.number("TEThick");
             }
-            if (!surface && (parameters.x_blmethod == 2 || parameters.tbltemod == 2) && b == 0)
+            if (!surface && (parameters.x_blmethod == 2 || parameters.tbltemod >= 2) && b == 0)
                 tables_[j].emplace(aeroacoustics::BLTable::read(af.input.file("BL_file").string()));
             nodes_[b].push_back(n);
         }

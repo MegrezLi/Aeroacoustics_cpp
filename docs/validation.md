@@ -335,3 +335,22 @@ CLI 检查单机退化（普通声学输出逐字节一致，LAeq 与原接收�
 普通与 MKL Release 构建均执行上述测试，并重跑默认 8 m/s、扰动 9 m/s 的 20 秒 Fortran/C++ 对照及声学公式对照。双机 20 秒示例另验证完整输出；测试报告、哈希和数值见 [validation-farm.json](validation-farm.json)。Linux CI 同时运行 E6 回归与 ThreadSanitizer 并发检查。
 
 2 秒联合测试出现 72 个 CT 限幅样本，20 秒塔架双机示例出现 73 个；这些诊断不会被隐藏。限幅仅限制尾流使用的 CT，不能证明相应高推力/启动状态下的 Jensen 模型有效。测试工况、机械谱与塔架均为合成输入；新增模型没有同配置 Fortran、FAST.Farm 或实测对照。原 Fortran 回归只覆盖原有单机默认路径，不能用来声称新增风场模型已完成实机验证。限制详见 [工程说明](engineering.md#farm)。
+
+
+<a id="trailing-edge"></a>
+
+## E4/E9：候选尾缘模型与外缘速度模式
+
+```sh
+./build/trailing_edge_probe
+python tests/compare_trailing_edge.py build build/te-reference --fortran-compiler gfortran
+python tests/check_trailing_edge.py build build/te-cli
+```
+
+需启用 `AEROACOUSTICS_BUILD_TESTS`。Python 只生成输入、调度和比较；物理算法分别在 C++ 与 Fortran 中运行。原 `TBLTE_TNO` 函数体保持不变，测试适配层新增入口以传入两侧非单位速度比。新 `tests/howe_reference.f90` 是独立的论文公式复步长求导对照，不是 OpenFAST 上游代码，也不是实测参考。
+
+测试覆盖：h=0 和趋零极限、直尾缘谱形、高频锯齿渐近、PSD/频带解析积分、距离及展长缩放、指向性零点、无机制重复计数；TNO reference/input、单位/非单位/带符号输入、旧内核兼容、非法输入，以及标量/工作区、检查点/重置和并发一致性。
+
+整机检查包括相同边界层下更换声学模型不改变动力学、其他机制不变、观察点分块一致，以及闭环控制、塔架、表面数据、空气吸收、统计和风场入口组合。普通/MKL 构建和原 8/9 m/s 的 20 秒 Fortran/C++ 回归分别执行。Howe 直尾缘与锯齿另运行 20 秒合成整机对比。
+
+结果、程序哈希和验证范围见 [validation-trailing-edge.json](validation-trailing-edge.json)。这些证据验证实现及连接关系，没有将合成边界层、Fortran 数值一致性或短时整机差值称为实际降噪收益。其他候选壁压谱/散射模型和装置实测验证仍见《待优化》后续范围。

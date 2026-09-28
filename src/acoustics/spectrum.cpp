@@ -3,6 +3,7 @@
 #include "acoustic_levels.hpp"
 #include "aeroacoustics.hpp"
 #include "source_models.hpp"
+#include "trailing_edge.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -28,16 +29,24 @@ void validate(const Parameters &p) {
     for (double v : {p.ti, p.avgv})
         if (!std::isfinite(v) || v < 0)
             throw std::invalid_argument("Nonnegative TI and mean speed required");
-    if (p.timod < 0 || p.timod > 2 || p.tbltemod < 0 || p.tbltemod > 2 || p.x_blmethod < 1 ||
+    if (p.timod < 0 || p.timod > 2 || p.tbltemod < 0 || p.tbltemod > 3 || p.x_blmethod < 1 ||
         p.x_blmethod > 2 || p.itrip < 0 || p.itrip > 2 || p.lammod < 0 || p.lammod > 1 || p.tipmod < 0 ||
         p.tipmod > 1 || p.bluntmod < 0 || p.bluntmod > 1)
         throw std::invalid_argument("Unsupported acoustic switch");
+    tno_edge_velocity_name(p.tno_edge_velocity);
+    for (double v : {p.howe.half_height, p.howe.wavelength, p.howe.convection_ratio, p.howe.friction_ratio})
+        if (!std::isfinite(v))
+            throw std::invalid_argument("Non-finite Howe parameter");
+    if (p.howe.half_height < 0 || p.howe.wavelength <= 0 || p.howe.convection_ratio <= 0 ||
+        p.howe.convection_ratio > 1 || p.howe.friction_ratio <= 0 || p.howe.friction_ratio >= 1)
+        throw std::invalid_argument("Invalid Howe geometry/velocity ratios");
 }
 SourceSelection::SourceSelection(const Parameters &p) {
     validate(p);
     trailing = p.tbltemod == 0   ? TrailingEdgeModel::off
                : p.tbltemod == 1 ? TrailingEdgeModel::bpm
-                                 : TrailingEdgeModel::tno_with_bpm_separation;
+               : p.tbltemod == 2 ? TrailingEdgeModel::tno_with_bpm_separation
+                                 : TrailingEdgeModel::howe_chase;
     inflow = p.timod == 0   ? InflowModel::off
              : p.timod == 1 ? InflowModel::lowson
                             : InflowModel::lowson_guidati;
@@ -89,15 +98,14 @@ void prepare_section(const Parameters &p, const SourceSelection &models, const S
         bl = boundary_layer(p, s);
     if (models.laminar)
         prepare_laminar(p, s, bl, out.laminar);
-    if (models.trailing != TrailingEdgeModel::off)
+    if (models.trailing == TrailingEdgeModel::bpm ||
+        models.trailing == TrailingEdgeModel::tno_with_bpm_separation)
         prepare_trailing_edge(p, s, bl, out.trailing_edge);
     if (models.trailing == TrailingEdgeModel::tno_with_bpm_separation) {
-        // Keep the reference section driver convention; the direct TNO kernel
-        // still accepts caller-supplied edge velocity ratios.
-        auto tno_section = s;
-        tno_section.bl.edge_velocity_ratio = {1., 1.};
-        prepare_tno(p, tno_section, work, out.tno);
+        prepare_tno(p, s, work, out.tno);
     }
+    if (models.trailing == TrailingEdgeModel::howe_chase)
+        prepare_howe(p, s, out.howe);
     if (models.bluntness) {
         if (s.te_thickness <= 0 || s.te_angle < 0 || s.te_angle > 14)
             throw std::invalid_argument("Invalid bluntness geometry");
@@ -128,13 +136,17 @@ void emit_section(const Parameters &p, const SourceSelection &models, const Prep
     }
     if (models.laminar)
         emit_laminar(s.laminar, trailing, out[index(Mechanism::laminar)]);
-    if (models.trailing != TrailingEdgeModel::off)
+    if (models.trailing == TrailingEdgeModel::bpm ||
+        models.trailing == TrailingEdgeModel::tno_with_bpm_separation)
         emit_trailing_edge(s.trailing_edge, trailing, out[index(Mechanism::trailing_pressure)],
                            out[index(Mechanism::trailing_suction)],
                            out[index(Mechanism::trailing_separation)]);
     if (models.trailing == TrailingEdgeModel::tno_with_bpm_separation)
         emit_tno(s.tno, trailing, out[index(Mechanism::trailing_pressure)],
                  out[index(Mechanism::trailing_suction)]);
+    if (models.trailing == TrailingEdgeModel::howe_chase)
+        emit_howe(s.howe, trailing, out[index(Mechanism::trailing_pressure)],
+                  out[index(Mechanism::trailing_suction)]);
     if (models.bluntness)
         emit_blunt(s.blunt, trailing, out[index(Mechanism::bluntness)]);
     if (models.tip && s.section.is_tip)
@@ -165,7 +177,7 @@ void emit_section(const Parameters &p, const SourceSelection &models, const Prep
 Mechanisms section_spectrum(const Parameters &input, const Section &s) {
     const SourceSelection models(input);
     auto parameters = input;
-    if (parameters.tbltemod == 2)
+    if (parameters.tbltemod >= 2)
         parameters.x_blmethod = 2;
     detail::TnoWorkspace work;
     detail::PreparedSection source;

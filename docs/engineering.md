@@ -281,3 +281,62 @@ AM 对 A 声级序列作离散傅里叶分析，在设定范围内选取最强�
 | `farm.json` | 尾流设定、限幅次数、介质、时间窗、时基与叠加假设、机组顺序；全部输出成功后写入 |
 
 统计对窗口端点的声能插值，再作时间积分；不会平均 dB。这里未调用 E5 接收时延重采样，因此风场时序不能用于完整的接收时间 AM、相干音调或音频评价。固定源和各机组的 LAeq 能量可相加，L5/L50/L95 不可直接相加。真实工程使用还需要输入谱、尾流扩张率与推力适用域的标定，以及足够长的统计窗口；当前测试不证明实测精度。验证证据见 [E6 验证](validation.md#farm)。
+
+
+<a id="trailing-edge"></a>
+
+## E4/E9：Howe–Chase 尾缘模型与 TNO 速度比
+
+### 运行与模型选择
+
+```sh
+./build/aeroacoustics_turbine examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst build/howe-straight 20 --trailing-edge=examples/trailing-edge/howe-straight.dat --surfaces=examples/trailing-edge/surfaces.dat
+./build/aeroacoustics_turbine examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst build/howe-serrated 20 --trailing-edge=examples/trailing-edge/howe-serrated.dat --surfaces=examples/trailing-edge/surfaces.dat
+./build/aeroacoustics_turbine examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst build/tno-input 0.2 --trailing-edge=examples/trailing-edge/tno-input.dat --surfaces=examples/trailing-edge/surfaces.dat
+```
+
+Windows 添加 `.exe`。尾缘配置采用“值 标签”，允许双引号字符串和 `!` 注释；缺失、重复、未知或不适用字段会报错。`Model` 为 `off/bpm/tno/howe-chase`，`Provenance` 必填。配置仅覆盖尾缘模型，不自动关闭其他声源。风场单机配置可增加 `"路径" TrailingEdge`；没有该字段时维持原行为。
+
+所有运行使用给定的物理输入；本例 `surfaces.dat` 为 30 个翼型指定同一合成附着边界层表，未替换气动极曲线。该表只是隔离模型和检查整机连接的测试数据，不能用于实际降噪选型。原官方表包含 Cf 非正等不满足 Howe 附着流假设的状态，因此直接套用新模型可能被拒绝。实际运行需提供可信边界层和来源，不应为通过检查而随意改写 Cf。
+
+### Howe–Chase 输入与方程
+
+| 字段 | 定义 |
+| --- | --- |
+| `HalfHeightM` | 半齿高 h，单位 m，根到尖距离为 2h；h=0 为直尾缘，h≥0，2h 不大于局部弦长 |
+| `WavelengthM` | 沿展向周期 λ，单位 m，严格为正，即使 h=0 也需填写 |
+| `ConvectionRatio` | Uc/Ue，范围 (0,1]；示例 0.7 |
+| `FrictionRatio` | u*/Ue，范围 (0,1)；示例 0.03，采用文献的简化速度比例 |
+
+几何当前统一应用到所有选中的声学叶段和叶片；不是仅某个半径区间的装置分布。两侧的 δ 取 `d99`，Ue 使用正的 `Ue/U` 表值乘局部相对速度。Cf 用于附着状态检查，幅值的 u* 由显式 `FrictionRatio` 给出，没有另外由 Cf 推导。两侧声能按不相干假设相加。
+
+采用 [Mayer 等（2019）第 2.2 节、式 16–19](https://benshuailyu.github.io/assets/files/REModel.pdf) 所列 Howe–Chase 形式。令 q=ωδ/Uc、χ=1.33、Cm=0.1553，谱形为 `Ψ=(1+χ/2·∂/∂χ)F`，其中 F 为文中完整锯齿函数。C++ 对 χ 解析求导，并以衰减指数计算双曲函数比值，避免大参数溢出和小参数相减。h=0 时直接使用 `Ψ=q²/(q²+χ²)²`；没有用固定 dB 衰减代替频率相关模型。
+
+Howe 原文按全角频率积分定义双边谱（[1991 原论文](https://doi.org/10.1121/1.401273)）。实现显式转换为单边 Hz 谱：`G(f)=4πΦ(2πf)`，单位 Pa²/Hz，再在每个参考频带的上下边界间积分为 Pa²。61 点 Gauss–Kronrod 积分按锯齿相位分段，每频带最多 1024 段，累计误差估计超过相对 1e−8 时拒绝；A 计权沿用频带中心近似。
+
+模型原有角度因子为 `sin²(theta/2)*|sin(phi)|`，结合距离平方反比；没有再叠加 BPM 的马赫数指向性。谱积分在节点准备阶段完成，供所有观察点复用。切换时只使用 Howe 的压力/吸力侧尾缘贡献，分离通道为零声能，不与 BPM/TNO 尾缘声叠加。
+
+### 适用范围
+
+这是低马赫数、附着湍流、平板与冻结湍流假设下的锯齿模型。程序检查相对速度及两侧 Ue 的马赫数≤0.3、两侧 Cf>0、δ>0、Ue>0，并使用现有 `stall_deg`（整机来自翼型 `alpha1`）作为保守攻角门限；该门限不是独立的流动分离判定或适用性认证。
+
+尚无有限弦长/前缘回散射、逆压梯度专用壁压谱、Lyu 高阶散射、锯齿引起的气动与边界层反馈，也不预测装置附加涡脱落或自噪声。波长、齿高、来流和观察距离须满足远场及局部平板近似；通过数值检查并不保证这些物理条件成立。Howe 可能高估实际锯齿降噪量，计算差值需经过真实数据检验。
+
+`run.json` 保存模型名称、几何、速度比例、谱单位转换、机制互斥和数据来源。新增模型没有同配置 OpenFAST 原模型可对照，数值正确性通过独立 Fortran 方程实现及解析极限核对，实测精度仍待验证。
+
+### E9：TNO 的两种外缘速度比模式
+
+TNO 配置文件包含 `Model=tno` 和 `TNOEdgeVelocity=reference/input`：
+
+| 模式/API | 速度比含义 |
+| --- | --- |
+| `reference`（默认） | 把两侧 Ue/U 设为 1，保留原整机/截面驱动的参考约定 |
+| `input` | 使用输入表的绝对值，即 Ue=U·abs(Ue/U)；负号按原 Fortran 表的表面方向约定处理，不表示反向流模型 |
+| `configured_tblte_tno()`、截面及工作区 | 遵守 `Parameters::tno_edge_velocity` |
+| 旧 `tblte_tno()`、`spl_integrate()`、C ABI operation 7 | 保留原始内核语义，始终使用输入速度比；不会因新增默认值而被改成 1 |
+
+原声学 AA 文件也可添加 `"input" TNOEdgeVelocity`。若同时提供 `--trailing-edge`，独立配置的明确选择优先，最终值写入元数据。配置化模式在同一准备函数中解析，不在各入口重复覆盖。
+
+参数数组按吸力侧、压力侧排列，底层输出 pair 仍为压力侧、吸力侧。有效侧的外缘速度必须非零且有限，Cf/δ 等非有限值报错；原 TNO 对 Cf≤0 的侧保持停用及原输出下限约定。`reference` 明确忽略表中速度比，不改写原输入数据。两侧速度比均为 1 时两个模式一致；`input` 只改变 TNO 两侧贡献，不改变 BPM 分离声或动力学。
+
+此次没有修改 TNO 的波数积分上限、经验常数、速度下限处理、原频带乘数或底层积分公式。选择真实速度比是物理输入选择，不代表已经纠正或标定了 TNO 模型的其他假设。完整验证记录见 [E4/E9 测试](validation.md#trailing-edge)。

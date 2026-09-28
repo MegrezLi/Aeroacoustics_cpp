@@ -22,8 +22,13 @@ original Fortran only. The standalone C++ turbine implements the active
 nine blade modes, aerodynamics, mesh transfers and acoustic driver of the
 bundled case. It uses its own reduced Newton solve and Brent-Dekker root
 implementation; it does not include the upstream mod_root1dim.f90 helper.
-The empirical noise models are unchanged; this work does not introduce a
-new noise model.
+The original OpenFAST empirical formulas remain available. The E4 extension
+independently implements the published Howe-Chase straight/sawtooth model
+(M. S. Howe, JASA 90, 1991, DOI 10.1121/1.401273; equations 16-19 as
+presented in Mayer et al., Renewable Energy 143, 2019, DOI
+10.1016/j.renene.2019.04.132). It is not a new physical theory or an
+OpenFAST routine. tests/howe_reference.f90 is a new independent numerical
+validation oracle, not upstream reference code.
 
 reference/fortran/dqk61.f contains SLATEC/QUADPACK's 61-point Gauss-Kronrod
 routine for developer validation; its provenance comments are preserved.

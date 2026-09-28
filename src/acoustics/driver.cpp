@@ -319,6 +319,11 @@ std::pair<Parameters, std::map<std::string, std::string>> read_aa_input(const st
         fields[lower(match[2])] = value;
     }
     Parameters p;
+    if (fields.count("tnoedgevelocity")) {
+        const auto &mode = fields.at("tnoedgevelocity");
+        require(mode == "reference" || mode == "input", "TNOEdgeVelocity must be reference or input");
+        p.tno_edge_velocity = mode == "reference" ? TnoEdgeVelocity::reference : TnoEdgeVelocity::input;
+    }
     for (auto [key, member] :
          std::vector<std::pair<std::string, double Parameters::*>>{{"spdsound", &Parameters::spdsound},
                                                                    {"kinvisc", &Parameters::kinvisc},

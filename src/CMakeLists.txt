@@ -8,6 +8,8 @@ set(acoustic_sources
   acoustics/inflow_noise.cpp
   acoustics/kernel_compat.cpp
   acoustics/tno.cpp
+  acoustics/howe_chase.cpp
+  acoustics/trailing_edge_options.cpp
   acoustics/quantities.cpp
   propagation/outdoor.cpp
   acoustics/spectrum.cpp

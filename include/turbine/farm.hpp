@@ -46,6 +46,7 @@ struct FarmUnit {
     std::optional<ControlConfig> controller;
     std::shared_ptr<const TowerInfluence> tower;
     std::shared_ptr<const SurfaceSet> surfaces;
+    std::optional<aeroacoustics::TrailingEdgeOptions> trailing_edge;
 };
 struct FarmOptions {
     std::string provenance;

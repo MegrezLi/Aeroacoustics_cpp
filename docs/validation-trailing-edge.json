@@ -1,0 +1,407 @@
+{
+  "date": "2026-09-27",
+  "scope": "E4 Howe-Chase straight/sawtooth trailing edges; E9 explicit TNO edge-velocity modes",
+  "toolchain": "Windows x64 GCC/G++/GFortran 16.2.0 Release; optional oneMKL 2025.2 sequential",
+  "field_validated": false,
+  "builds": {
+    "build-e12": {
+      "executable_sha256": {
+        "aeroacoustics_turbine.exe": "ee091212f8b87f613272d0592ae4773befde308560c8d9f48e9e1877994ef15c",
+        "aeroacoustics_farm.exe": "9c136a8e16209cc0b6b12037319cc5fce30decaca1a7df9e2f16ada770881aab",
+        "trailing_edge_probe.exe": "db4573bad2d6a6c97253146bdaaec379d3cbf9270398a7e22c10716f3c42bae6"
+      },
+      "trailing_edge_numerical": {
+        "TNO": {
+          "values": 408,
+          "max_abs_error_dB": 1.4210854715202004e-14,
+          "reference": "untouched OpenFAST TBLTE_TNO body; new shim supplies both side velocity ratios",
+          "modes": "reference/input; unit, unequal and signed input ratios"
+        },
+        "Howe": {
+          "cases": 90,
+          "max_relative_shape_error": 3.686232512897019e-12,
+          "reference": "new independent Fortran complex-step differentiation of published f; not OpenFAST"
+        },
+        "physical_validation": "not field or wind-tunnel validation"
+      },
+      "trailing_edge_cli": {
+        "howe_dynamics": "byte-identical to the same supplied-BL BPM case",
+        "unrelated_sources": "unchanged; no BPM separation in Howe channels",
+        "observer_blocks": "byte-identical",
+        "serration_total_change_dB_range": [
+          -0.24106799419999447,
+          -0.001964815999997427
+        ],
+        "tno": "default/reference identical; input changes spectra; AA field and CLI agree; dynamics unchanged",
+        "integration": "controller, tower, surface, absorption, metrics and farm entry passed",
+        "guards": "missing attached BL, invalid geometry/mode and duplicate CLI rejected",
+        "field_validated": false,
+        "executable_sha256": "ee091212f8b87f613272d0592ae4773befde308560c8d9f48e9e1877994ef15c"
+      },
+      "cpp_probe": "zero-height and high-frequency limits; closed-form straight-edge band integral; geometry; validity guards; scalar/workspace; checkpoint/reset; independent concurrent configurations passed",
+      "fortran_kernels": {
+        "backend": "Portable C++17",
+        "cases": 204,
+        "TNO_cases": 16,
+        "evaluated_values": 56576,
+        "values_by_operation": {
+          "1": 6936,
+          "2": 20808,
+          "3": 6936,
+          "4": 6936,
+          "5": 6936,
+          "6": 6936,
+          "7": 1088
+        },
+        "fortran_max_abs_error_dB": {
+          "1": 2.842170943040401e-14,
+          "2": 4.547473508864641e-13,
+          "3": 1.4210854715202004e-14,
+          "4": 2.842170943040401e-14,
+          "5": 4.263256414560601e-14,
+          "6": 0.0,
+          "7": 5.684341886080802e-14
+        },
+        "fortran_literal_precision": "promoted to double",
+        "tolerance_dB": 2e-08,
+        "kernel_calls": 1240
+      },
+      "default_path_regression": {
+        "full-case": {
+          "comparison": "original Fortran versus standalone C++",
+          "compared_values": 145926,
+          "identical_input_files": 101,
+          "files": {
+            "IEA_LB_RWT-AeroAcoustics_1.out": {
+              "rows": 201,
+              "channels": 2,
+              "compared_values": 402,
+              "max_abs_error_dB": 7.817849999725013e-05,
+              "mean_abs_error_dB": 4.05659005013196e-06,
+              "worst_time_s": 16.6,
+              "worst_channel": 2,
+              "tolerance_dB": 0.001
+            },
+            "IEA_LB_RWT-AeroAcoustics_2.out": {
+              "rows": 201,
+              "channels": 68,
+              "compared_values": 13668,
+              "max_abs_error_dB": 0.00020574810000084653,
+              "mean_abs_error_dB": 5.309601761069335e-06,
+              "worst_time_s": 16.6,
+              "worst_channel": 53,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_3.out": {
+              "rows": 201,
+              "channels": 476,
+              "compared_values": 95676,
+              "max_abs_error_dB": 0.0008517038999968918,
+              "mean_abs_error_dB": 6.7941629877470794e-06,
+              "worst_time_s": 17.0,
+              "worst_channel": 243,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_4.out": {
+              "rows": 201,
+              "channels": 180,
+              "compared_values": 36180,
+              "max_abs_error_dB": 0.0007665902999995922,
+              "mean_abs_error_dB": 5.640247710449697e-06,
+              "worst_time_s": 18.5,
+              "worst_channel": 170,
+              "tolerance_dB": 0.05
+            }
+          }
+        },
+        "wind9": {
+          "comparison": "original Fortran versus standalone C++",
+          "compared_values": 145926,
+          "identical_input_files": 101,
+          "files": {
+            "IEA_LB_RWT-AeroAcoustics_1.out": {
+              "rows": 201,
+              "channels": 2,
+              "compared_values": 402,
+              "max_abs_error_dB": 1.5829100000530616e-05,
+              "mean_abs_error_dB": 3.0547644278445306e-06,
+              "worst_time_s": 18.5,
+              "worst_channel": 2,
+              "tolerance_dB": 0.001
+            },
+            "IEA_LB_RWT-AeroAcoustics_2.out": {
+              "rows": 201,
+              "channels": 68,
+              "compared_values": 13668,
+              "max_abs_error_dB": 8.222400000335028e-05,
+              "mean_abs_error_dB": 3.694354420776131e-06,
+              "worst_time_s": 0.6,
+              "worst_channel": 46,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_3.out": {
+              "rows": 201,
+              "channels": 476,
+              "compared_values": 95676,
+              "max_abs_error_dB": 0.00017699829999884287,
+              "mean_abs_error_dB": 3.490456752766962e-06,
+              "worst_time_s": 0.2,
+              "worst_channel": 243,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_4.out": {
+              "rows": 201,
+              "channels": 180,
+              "compared_values": 36180,
+              "max_abs_error_dB": 0.005636691599999466,
+              "mean_abs_error_dB": 3.7928332384903334e-06,
+              "worst_time_s": 1.0,
+              "worst_channel": 116,
+              "tolerance_dB": 0.05
+            }
+          }
+        }
+      },
+      "additional_regression": "semantics/modules, workspace, performance, Simulation API, mechanisms, reliability and CLI checks passed"
+    },
+    "build-e12-mkl": {
+      "executable_sha256": {
+        "aeroacoustics_turbine.exe": "f836bd8087940f4303f70a2a80ab00d388686755ad94ebace1703b6c7cd37dec",
+        "aeroacoustics_farm.exe": "bd32acd6538e8aa011d184b07dbc5fadb8b60f2575cfe90fe03d6a806f020ca8",
+        "trailing_edge_probe.exe": "e4e6c9f8c4a168fda4a6099cfee538102f764874b70d72b67989dbada78a8ac9"
+      },
+      "trailing_edge_numerical": {
+        "TNO": {
+          "values": 408,
+          "max_abs_error_dB": 1.4210854715202004e-14,
+          "reference": "untouched OpenFAST TBLTE_TNO body; new shim supplies both side velocity ratios",
+          "modes": "reference/input; unit, unequal and signed input ratios"
+        },
+        "Howe": {
+          "cases": 90,
+          "max_relative_shape_error": 3.686232512897019e-12,
+          "reference": "new independent Fortran complex-step differentiation of published f; not OpenFAST"
+        },
+        "physical_validation": "not field or wind-tunnel validation"
+      },
+      "trailing_edge_cli": {
+        "howe_dynamics": "byte-identical to the same supplied-BL BPM case",
+        "unrelated_sources": "unchanged; no BPM separation in Howe channels",
+        "observer_blocks": "byte-identical",
+        "serration_total_change_dB_range": [
+          -0.24106799419999447,
+          -0.001964815999997427
+        ],
+        "tno": "default/reference identical; input changes spectra; AA field and CLI agree; dynamics unchanged",
+        "integration": "controller, tower, surface, absorption, metrics and farm entry passed",
+        "guards": "missing attached BL, invalid geometry/mode and duplicate CLI rejected",
+        "field_validated": false,
+        "executable_sha256": "f836bd8087940f4303f70a2a80ab00d388686755ad94ebace1703b6c7cd37dec"
+      },
+      "cpp_probe": "zero-height and high-frequency limits; closed-form straight-edge band integral; geometry; validity guards; scalar/workspace; checkpoint/reset; independent concurrent configurations passed",
+      "fortran_kernels": {
+        "backend": "Intel oneMKL: Intel(R) oneAPI Math Kernel Library Version 2025.2-Product Build 20250620 for Intel(R) 64 architecture applications",
+        "cases": 204,
+        "TNO_cases": 16,
+        "evaluated_values": 56576,
+        "values_by_operation": {
+          "1": 6936,
+          "2": 20808,
+          "3": 6936,
+          "4": 6936,
+          "5": 6936,
+          "6": 6936,
+          "7": 1088
+        },
+        "fortran_max_abs_error_dB": {
+          "1": 2.842170943040401e-14,
+          "2": 4.547473508864641e-13,
+          "3": 1.4210854715202004e-14,
+          "4": 2.842170943040401e-14,
+          "5": 4.263256414560601e-14,
+          "6": 0.0,
+          "7": 5.684341886080802e-14
+        },
+        "fortran_literal_precision": "promoted to double",
+        "tolerance_dB": 2e-08,
+        "kernel_calls": 1240
+      },
+      "default_path_regression": {
+        "full-case": {
+          "comparison": "original Fortran versus standalone C++",
+          "compared_values": 145926,
+          "identical_input_files": 101,
+          "files": {
+            "IEA_LB_RWT-AeroAcoustics_1.out": {
+              "rows": 201,
+              "channels": 2,
+              "compared_values": 402,
+              "max_abs_error_dB": 7.817849999725013e-05,
+              "mean_abs_error_dB": 4.05659005013196e-06,
+              "worst_time_s": 16.6,
+              "worst_channel": 2,
+              "tolerance_dB": 0.001
+            },
+            "IEA_LB_RWT-AeroAcoustics_2.out": {
+              "rows": 201,
+              "channels": 68,
+              "compared_values": 13668,
+              "max_abs_error_dB": 0.00020574810000084653,
+              "mean_abs_error_dB": 5.309601761069335e-06,
+              "worst_time_s": 16.6,
+              "worst_channel": 53,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_3.out": {
+              "rows": 201,
+              "channels": 476,
+              "compared_values": 95676,
+              "max_abs_error_dB": 0.0008517038999968918,
+              "mean_abs_error_dB": 6.7941629877470794e-06,
+              "worst_time_s": 17.0,
+              "worst_channel": 243,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_4.out": {
+              "rows": 201,
+              "channels": 180,
+              "compared_values": 36180,
+              "max_abs_error_dB": 0.0007665902999995922,
+              "mean_abs_error_dB": 5.640247710449697e-06,
+              "worst_time_s": 18.5,
+              "worst_channel": 170,
+              "tolerance_dB": 0.05
+            }
+          }
+        },
+        "wind9": {
+          "comparison": "original Fortran versus standalone C++",
+          "compared_values": 145926,
+          "identical_input_files": 101,
+          "files": {
+            "IEA_LB_RWT-AeroAcoustics_1.out": {
+              "rows": 201,
+              "channels": 2,
+              "compared_values": 402,
+              "max_abs_error_dB": 1.5829100000530616e-05,
+              "mean_abs_error_dB": 3.0547644278445306e-06,
+              "worst_time_s": 18.5,
+              "worst_channel": 2,
+              "tolerance_dB": 0.001
+            },
+            "IEA_LB_RWT-AeroAcoustics_2.out": {
+              "rows": 201,
+              "channels": 68,
+              "compared_values": 13668,
+              "max_abs_error_dB": 8.222400000335028e-05,
+              "mean_abs_error_dB": 3.694354420776131e-06,
+              "worst_time_s": 0.6,
+              "worst_channel": 46,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_3.out": {
+              "rows": 201,
+              "channels": 476,
+              "compared_values": 95676,
+              "max_abs_error_dB": 0.00017699829999884287,
+              "mean_abs_error_dB": 3.490456752766962e-06,
+              "worst_time_s": 0.2,
+              "worst_channel": 243,
+              "tolerance_dB": 0.01
+            },
+            "IEA_LB_RWT-AeroAcoustics_4.out": {
+              "rows": 201,
+              "channels": 180,
+              "compared_values": 36180,
+              "max_abs_error_dB": 0.005636691599999466,
+              "mean_abs_error_dB": 3.7928332384903334e-06,
+              "worst_time_s": 1.0,
+              "worst_channel": 116,
+              "tolerance_dB": 0.05
+            }
+          }
+        }
+      },
+      "additional_regression": "semantics/modules, workspace, performance, Simulation API, mechanisms, reliability and CLI checks passed"
+    }
+  },
+  "synthetic_20s_integration": {
+    "input": "examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst",
+    "surfaces": "examples/trailing-edge/surfaces.dat",
+    "boundary_layer_provenance": "constant synthetic attached-flow table for software verification, not measured or CFD data",
+    "configurations": [
+      "examples/trailing-edge/howe-straight.dat",
+      "examples/trailing-edge/howe-serrated.dat"
+    ],
+    "dynamics": "byte-identical",
+    "total_unweighted_serrated_minus_straight_dB_range": [
+      -0.24106799419999447,
+      -0.001964815999997427
+    ],
+    "interpretation": "Synthetic total-level difference includes other active noise mechanisms; not an engineering reduction prediction",
+    "runs": {
+      "straight": {
+        "steps": 3200,
+        "acoustic_samples": 201,
+        "model": {
+          "selection": 3,
+          "tno_edge_velocity": "reference",
+          "provenance": "Howe-Chase straight-edge baseline; synthetic engineering comparison",
+          "model": "Howe-Chase straight/sawtooth; attached low-Mach flat-plate approximation",
+          "half_height_m": 0,
+          "wavelength_m": 0.04,
+          "convection_ratio": 0.7,
+          "friction_velocity_ratio": 0.03,
+          "spectrum": "one-sided Pa^2/Hz = 4*pi times two-sided angular PSD; integrated over band edges",
+          "separation_channel": "disabled; no BPM/TNO trailing-edge double counting",
+          "geometry_scope": "same sawtooth geometry at every selected acoustic section",
+          "field_validated": false
+        },
+        "acoustic_output_sha256": {
+          "IEA_LB_RWT-AeroAcoustics_1.out": "9b04ce5c37a497f845aba9a26fa1e1290882569d655cde4d1c771ce39830e214",
+          "IEA_LB_RWT-AeroAcoustics_2.out": "34f4af51e5a2a3bba736b03ec3add2c34a01b436482462bbe7d664057337d7f4",
+          "IEA_LB_RWT-AeroAcoustics_3.out": "e2bebf4d0cf8610f22ba3b96c7e6ff9e18b476812d58883791a0e1e3afc36351",
+          "IEA_LB_RWT-AeroAcoustics_4.out": "b9d39a1e990d328ff5474b3a94b5059ac45f2e075f2c71bd4aeba4b5f00648e7"
+        },
+        "dynamics_sha256": "8adaef87cc858f4e4b781f84cf70f62abc8fdbbab4d3597d85833707fa063594"
+      },
+      "serrated": {
+        "steps": 3200,
+        "acoustic_samples": 201,
+        "model": {
+          "selection": 3,
+          "tno_edge_velocity": "reference",
+          "provenance": "Synthetic sawtooth geometry; not a calibrated turbine treatment",
+          "model": "Howe-Chase straight/sawtooth; attached low-Mach flat-plate approximation",
+          "half_height_m": 0.02,
+          "wavelength_m": 0.04,
+          "convection_ratio": 0.7,
+          "friction_velocity_ratio": 0.03,
+          "spectrum": "one-sided Pa^2/Hz = 4*pi times two-sided angular PSD; integrated over band edges",
+          "separation_channel": "disabled; no BPM/TNO trailing-edge double counting",
+          "geometry_scope": "same sawtooth geometry at every selected acoustic section",
+          "field_validated": false
+        },
+        "acoustic_output_sha256": {
+          "IEA_LB_RWT-AeroAcoustics_1.out": "3414706c1985b03da35a591b9a0bccaf391e3509d77e629a379ce025a81548e2",
+          "IEA_LB_RWT-AeroAcoustics_2.out": "9ddf9245332802792fe19fc600781bee3c77837bd015ee06bee054eea9bf59c6",
+          "IEA_LB_RWT-AeroAcoustics_3.out": "cbf71dd80f3826e0e9e18e8615b3bafb822fcf64aca5a78ef2ec65ef2b8153c5",
+          "IEA_LB_RWT-AeroAcoustics_4.out": "eaf5decaa61e59f1f445ff2f5cff9d41beb48b59d2fdb304f3bda153625df7a2"
+        },
+        "dynamics_sha256": "8adaef87cc858f4e4b781f84cf70f62abc8fdbbab4d3597d85833707fa063594"
+      }
+    }
+  },
+  "model_sources": [
+    "https://doi.org/10.1016/j.renene.2019.04.132 (section 2.2, equations 16-19)",
+    "https://doi.org/10.1121/1.401273 (two-sided angular-frequency spectral convention)"
+  ],
+  "limits": [
+    "No field or wind-tunnel validation. New Howe oracle is an independent Fortran equation implementation, not an OpenFAST model.",
+    "Howe assumes attached turbulent low-Mach flat-plate flow; current official BL tables can fail these checks. Synthetic overrides do not establish applicability to the real turbine.",
+    "One common serration geometry for selected acoustic sections; no aerodynamic feedback, finite-chord/back-scattering, adverse-pressure-gradient wall-pressure model, higher-order Lyu scattering or device self-noise.",
+    "Howe amplitude uses the supplied u*/Ue ratio; Cf is only an attached-flow guard. The existing alpha1-derived stall angle is a conservative gate, not validated separation detection.",
+    "TNO reference mode keeps unit Ue/U. Input mode retains signed-table absolute-value handling of the original Fortran kernel; integration constants and legacy bandwidth are unchanged.",
+    "Original Fortran whole-turbine regressions exercise the default path; they do not validate the new Howe physics or the real-world suitability of TNO input ratios."
+  ]
+}

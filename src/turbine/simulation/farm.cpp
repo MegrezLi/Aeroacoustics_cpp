@@ -189,6 +189,7 @@ void run_farm(const FarmOptions &o, const std::filesystem::path &output) {
         options.solver.tower = u.tower;
         options.solver.controller = u.controller;
         options.surfaces = u.surfaces;
+        options.trailing_edge = u.trailing_edge;
         options.propagation = o.propagation;
         for (const auto &r : o.observers)
             options.observers.push_back(r - u.origin);

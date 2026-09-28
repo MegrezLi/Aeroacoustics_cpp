@@ -1,4 +1,5 @@
 #pragma once
+#include "trailing_edge.hpp"
 #include "lookup_diagnostics.hpp"
 #include "propagation.hpp"
 #include "turbine/acoustic_adapter.hpp"
@@ -20,6 +21,7 @@ struct OutputLayout {
     std::optional<aeroacoustics::PropagationOptions> propagation;
     std::shared_ptr<const SurfaceSet> surfaces;
     std::shared_ptr<const TowerInfluence> tower;
+    std::optional<aeroacoustics::TrailingEdgeOptions> trailing_edge;
     aeroacoustics::Parameters parameters;
     std::shared_ptr<const aeroacoustics::AcousticMetadata> acoustic_metadata;
     std::array<std::vector<std::string>, 4> labels;

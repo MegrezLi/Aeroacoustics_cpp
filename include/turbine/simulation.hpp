@@ -1,4 +1,5 @@
 #pragma once
+#include "trailing_edge.hpp"
 #include "propagation.hpp"
 #include "turbine/results.hpp"
 #include "turbine/solver.hpp"
@@ -12,6 +13,7 @@ struct RunOptions {
     std::shared_ptr<const SurfaceSet> surfaces;
     std::optional<MetricsOptions> metrics;
     std::vector<Vec3> observers; // optional map without retaining receiver-time metric histories
+    std::optional<aeroacoustics::TrailingEdgeOptions> trailing_edge;
 };
 class Simulation {
     friend RunSummary run(Simulation &, ResultSink &);
