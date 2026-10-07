@@ -206,8 +206,75 @@ void EngineeringMetrics::write(const std::filesystem::path &directory) const {
     const auto weights = aeroacoustics::a_weighting(s.parameters.freqlist);
     const double background =
         opt.background_laeq_db ? aeroacoustics::relative_power(*opt.background_laeq_db) : 0.;
+    struct ToneValue {
+        double frequency, power, gain;
+        std::size_t band;
+    };
+    auto tone_at = [&](const ArrivalSeries &path, double t) {
+        const auto sample = path.at(t);
+        const double frequency = sample.frequency_hz * path.doppler(t);
+        double power = sample.power[0];
+        if (s.propagation && s.propagation->absorption)
+            power *= aeroacoustics::relative_power(
+                -s.propagation->atmosphere.absorption_db_per_m(frequency) * sample.distance_m);
+        std::size_t band = 0;
+        while (band < nf && !(frequency >= s.bands.values()[band].lower_hz &&
+                              frequency < s.bands.values()[band].upper_hz))
+            ++band;
+        if (band == nf)
+            throw std::out_of_range("Received tone falls outside selected acoustic bands");
+        return ToneValue{frequency, power,
+                         aeroacoustics::relative_power(aeroacoustics::a_weighting({frequency})[0]), band};
+    };
     for (std::size_t o = 0; o < s.observers.size(); ++o) {
-        std::vector<double> energies, wind, levels;
+        // ReceiverDT controls CSV/AM sampling only. Statistics retain every source
+        // and wind knot, so resampling cannot remove a known broadband energy peak.
+        std::vector<double> statistics_time{begin, end};
+        auto knots = [&](const ArrivalSeries &path) {
+            for (const auto &sample : path.samples())
+                if (sample.reception > begin && sample.reception < end)
+                    statistics_time.push_back(sample.reception);
+        };
+        for (const auto &path : s.paths[o])
+            knots(path);
+        for (const auto &path : s.tones[o])
+            knots(path);
+        knots(s.wind[o]);
+        std::sort(statistics_time.begin(), statistics_time.end());
+        statistics_time.erase(std::unique(statistics_time.begin(), statistics_time.end()),
+                              statistics_time.end());
+        std::vector<double> energies(statistics_time.size(), 0.), wind, levels;
+        // Project each spectrum to A-weighted energy once per source sample.
+        // Walking scalar intervals avoids repeating all frequency sums at the union knots.
+        for (const auto &path : s.paths[o]) {
+            const auto &samples = path.samples();
+            std::vector<double> power;
+            power.reserve(samples.size());
+            for (const auto &sample : samples) {
+                double total = 0;
+                for (std::size_t f = 0; f < nf; ++f)
+                    total += sample.power[f] *
+                             (s.parameters.aweighting ? 1 : aeroacoustics::relative_power(weights[f]));
+                power.push_back(total);
+            }
+            std::size_t j = 1;
+            for (std::size_t i = 0; i < statistics_time.size(); ++i) {
+                const double t = statistics_time[i];
+                while (j + 1 < samples.size() && samples[j].reception < t)
+                    ++j;
+                const double q = (t - samples[j - 1].reception) /
+                                 (samples[j].reception - samples[j - 1].reception);
+                energies[i] += (1 - q) * power[j - 1] + q * power[j];
+            }
+        }
+        for (std::size_t i = 0; i < statistics_time.size(); ++i) {
+            const double t = statistics_time[i];
+            for (const auto &path : s.tones[o]) {
+                const auto tone = tone_at(path, t);
+                energies[i] += tone.power * tone.gain;
+            }
+            wind.push_back(s.wind[o].at(t).wind);
+        }
         for (double t : time) {
             std::vector<double> bands(nf, 0.);
             for (const auto &p : s.paths[o]) {
@@ -220,19 +287,9 @@ void EngineeringMetrics::write(const std::filesystem::path &directory) const {
                 total += bands[f] * (s.parameters.aweighting ? 1 : aeroacoustics::relative_power(weights[f]));
             const auto broadband = bands;
             for (std::size_t k = 0; k < s.tones[o].size(); ++k) {
-                const auto sample = s.tones[o][k].at(t);
-                const double frequency = sample.frequency_hz * s.tones[o][k].doppler(t);
-                double p = sample.power[0];
-                if (s.propagation && s.propagation->absorption)
-                    p *= aeroacoustics::relative_power(
-                        -s.propagation->atmosphere.absorption_db_per_m(frequency) * sample.distance_m);
-                std::size_t band = 0;
-                while (band < nf && !(frequency >= s.bands.values()[band].lower_hz &&
-                                      frequency < s.bands.values()[band].upper_hz))
-                    ++band;
-                if (band == nf)
-                    throw std::out_of_range("Received tone falls outside selected acoustic bands");
-                const double gain = aeroacoustics::relative_power(aeroacoustics::a_weighting({frequency})[0]);
+                const auto tone = tone_at(s.tones[o][k], t);
+                const double frequency = tone.frequency, p = tone.power, gain = tone.gain;
+                const auto band = tone.band;
                 const double broad =
                     broadband[band] /
                     (s.parameters.aweighting ? aeroacoustics::relative_power(weights[band]) : 1.);
@@ -244,8 +301,6 @@ void EngineeringMetrics::write(const std::filesystem::path &directory) const {
                 bands[band] += p * (s.parameters.aweighting ? gain : 1.);
             }
             const double w = s.wind[o].at(t).wind;
-            wind.push_back(w);
-            energies.push_back(total);
             levels.push_back(level(total));
             history << o + 1 << ',' << t << ',' << w << ',' << level(total) << ','
                     << level(total + background);
@@ -253,21 +308,21 @@ void EngineeringMetrics::write(const std::filesystem::path &directory) const {
                 history << ',' << level(p);
             history << '\n';
         }
-        auto stats = level_statistics(time, energies);
+        auto stats = level_statistics(statistics_time, energies);
         auto with_background = energies;
         for (auto &p : with_background)
             p += background;
         const auto &position = s.observers[o];
         map << o + 1 << ',' << position[0] << ',' << position[1] << ',' << position[2] << ',' << begin << ','
             << end << ',' << stats.duration << ',' << stats.leq_db << ','
-            << level_statistics(time, with_background).leq_db << ',' << stats.l5_db << ',' << stats.l50_db
+            << level_statistics(statistics_time, with_background).leq_db << ',' << stats.l5_db << ',' << stats.l50_db
             << ',' << stats.l95_db << ',';
         if (opt.apparent_power)
             map << apparent_sound_power(stats.leq_db, distance(s.hub, position));
         map << '\n';
         // Split every time interval at wind-bin boundaries; integrate the linear energy exactly.
         std::map<long long, std::pair<double, double>> accumulated;
-        for (std::size_t i = 1; i < time.size(); ++i) {
+        for (std::size_t i = 1; i < statistics_time.size(); ++i) {
             std::vector<double> cuts{0, 1};
             double w0 = wind[i - 1], w1 = wind[i], delta = w1 - w0;
             if (delta != 0) {
@@ -284,7 +339,8 @@ void EngineeringMetrics::write(const std::filesystem::path &directory) const {
             }
             std::sort(cuts.begin(), cuts.end());
             for (std::size_t j = 1; j < cuts.size(); ++j) {
-                double a = cuts[j - 1], b = cuts[j], dt = (b - a) * (time[i] - time[i - 1]);
+                double a = cuts[j - 1], b = cuts[j],
+                       dt = (b - a) * (statistics_time[i] - statistics_time[i - 1]);
                 auto bin =
                     static_cast<long long>(std::floor((w0 + .5 * (a + b) * delta) / opt.wind_bin_width));
                 auto &v = accumulated[bin];
@@ -316,7 +372,8 @@ void EngineeringMetrics::write(const std::filesystem::path &directory) const {
          << ",\n  \"retarded_time\":" << (opt.retarded_time ? "true" : "false")
          << ",\n  \"band_weighting\":" << quote(s.parameters.aweighting ? "A" : "unweighted")
          << ",\n  \"statistics_weighting\":\"A\",\n  \"reference_pressure_Pa\":0.00002,\n  "
-            "\"time_average\":\"piecewise-linear mean-square pressure; exact trapezoidal integral\",\n  "
+            "\"statistics_grid\":\"union of source arrival and hub-wind knots plus window endpoints; independent of ReceiverDT\",\n  "
+            "\"time_average\":\"piecewise-linear mean-square pressure on statistics grid; exact for broadband; transformed tone energy interpolated between knots\",\n  "
             "\"percentiles\":\"duration-weighted exceedance levels of interpolated energy\",\n"
          << "  \"wind_binning\":\"horizontal hub speed at source time delayed from initial hub position; "
             "exact interval splitting\",\n  \"background\":\"independent constant A-weighted background "

@@ -13,7 +13,12 @@ extern "C" {
  * Alpha is radians ONLY for op 4, degrees otherwise.
  * flags[3]: BL method, trip, rounded tip. Outputs concatenated by mechanism:
  * op2 [pressure,suction,separation], op7 [pressure,suction]; each n frequencies.
- * Returns 0 on success; caller allocates 3*n doubles. Errors never cross the ABI.
+ * Returns 0 on success; caller allocates 3*n doubles. Frequencies must be finite
+ * and positive; each operation validates the physical fields it uses. Unused x
+ * slots are ignored. Speed must be positive (and subsonic except for op 6).
+ * On error returns nonzero, preserves output and the successful-call counter,
+ * and sets last_error. NaN/+Inf results are errors; -Inf remains legal silence.
+ * Errors never cross the ABI. Buffer lengths remain the caller's responsibility.
  */
 AERO_EXPORT int aeroacoustics_kernel(int op,int n,const double* freq,const double* x,const int* flags,double* output);
 AERO_EXPORT const char* aeroacoustics_last_error(void);

@@ -68,6 +68,8 @@ Spectrum a_weighting(const Spectrum &frequencies) {
     return result;
 }
 double db_sum(const Spectrum &levels) {
+    for (double value : levels)
+        validate_level(value);
     if (levels.empty())
         return silence;
     const double maximum = *std::max_element(levels.begin(), levels.end());
