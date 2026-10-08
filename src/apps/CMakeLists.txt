@@ -1,6 +1,8 @@
 if(AEROACOUSTICS_BUILD_EXAMPLES)
   add_executable(aeroacoustics_example section_main.cpp)
   target_link_libraries(aeroacoustics_example PRIVATE aeroacoustics)
+  add_executable(aeroacoustics_bpm1989 ${PROJECT_SOURCE_DIR}/examples/bpm1989/main.cpp)
+  target_link_libraries(aeroacoustics_bpm1989 PRIVATE aeroacoustics)
 endif()
 if(AEROACOUSTICS_BUILD_TURBINE)
   add_executable(aeroacoustics_farm farm_main.cpp)

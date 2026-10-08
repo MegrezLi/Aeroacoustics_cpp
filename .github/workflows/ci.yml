@@ -15,6 +15,8 @@ jobs:
       - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DAEROACOUSTICS_BUILD_TESTS=ON
       - run: cmake --build build -j 2
       - run: ./build/aeroacoustics_example build/spectrum.csv
+      - run: ./build/aeroacoustics_bpm1989 build/bpm1989.csv --check
+      - run: python examples/bpm1989/analyze.py build/bpm1989.csv --output-dir build/bpm1989-report
       - run: ./build/acoustic_workspace_probe verify build/workspace.csv
       - run: ./build/mechanism_probe
       - run: ./build/validation_probe

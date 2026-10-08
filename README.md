@@ -150,6 +150,15 @@ Windows 将 `.so` 换成 `libaeroacoustics_shared.dll`，并给可执行文件�
 
 ## 截面示例与 MKL
 
+第一次接触声学内核，可以先运行 [BPM 1989 单翼段教程](examples/bpm1989/README.md)。它用 NACA 0012 的固定工况复现 NASA-RP-1218 表 D2，解释边界层、尾缘噪声、层流涡脱落、指向性和声能叠加，并提供逐频带对照及绘图脚本。
+
+```sh
+cmake --build build --config Release --target aeroacoustics_bpm1989 -j 4
+./build/aeroacoustics_bpm1989 build/bpm1989.csv --check
+```
+
+该目标随 `AEROACOUSTICS_BUILD_EXAMPLES=ON` 构建。Windows 请按生成器添加 `.exe` 或使用 `build/Release/`，完整配置命令见教程。
+
 `aeroacoustics_example` 保留单截面频谱示例：
 
 ```sh
@@ -173,6 +182,7 @@ Intel oneMKL 是可选后端，用于 TNO 积分的向量指数和 BLAS 求和�
 | 文档 | 内容 |
 | --- | --- |
 | [工作流](aeroacoustics工作流.md) | 输入参数、模块调用顺序和主要函数 |
+| [BPM 入门教程](examples/bpm1989/README.md) | 文献算例、物理原理、源码调用链、运行与结果分析 |
 | [开发接口](docs/development.md) | 源码索引、支持范围、C++ API、状态与工具链 |
 | [工程模型](docs/engineering.md) | 非稳态风、闭环控制、室外传播、表面数据与多机尾流 |
 | [验证](docs/validation.md) | Fortran 对照、解析检查、异常测试和复现命令 |

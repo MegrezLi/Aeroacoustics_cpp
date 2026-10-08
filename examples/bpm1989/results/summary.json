@@ -1,0 +1,25 @@
+{
+  "reference": "NASA-RP-1218, Appendix D, Table D2 (published model output)",
+  "reference_url": "https://ntrs.nasa.gov/citations/19890016302",
+  "band_count": 27,
+  "frequency_range_Hz": [
+    100,
+    40000
+  ],
+  "max_absolute_difference_dB": 0.00620026825018,
+  "max_difference_frequency_Hz": 16000.0,
+  "rmse_dB": 0.005593086563949913,
+  "mean_difference_dB": -0.005585495971608519,
+  "peak_frequency_Hz": 3150.0,
+  "peak_total_dB": 60.4904113609,
+  "regression_tolerance_dB": 0.01,
+  "checks": [
+    "Table D2 frequencies",
+    "finite active sources and totals",
+    "silent disabled sources",
+    "energy sum",
+    "reported differences",
+    "0.01 dB comparison"
+  ],
+  "limitation": "One published-model case; not experimental validation."
+}
