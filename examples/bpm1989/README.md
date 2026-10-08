@@ -97,57 +97,57 @@ p.aweighting = false;
 
 由这些参数可以得到两个基本量：
 
-$$
-M=\frac{U}{c_0}\approx0.2094,\qquad Re_c=\frac{Uc}{\nu}\approx1.496\times10^6.
-$$
+```math
+M=\frac{U}{c_{0}}\approx0.2094,\qquad Re_{c}=\frac{Uc}{\nu}\approx1.496\times10^6.
+```
 
 前者进入声源尺度和指向性修正，后者用于边界层及谱形的经验关系。
 
 ## 声压级是怎样一步步算出来的
 
-先估计边界层。`thick()` 根据弦长、雷诺数、迎角和转捩条件，计算压力面的边界层厚度 δp，以及压力面、吸力面的位移厚度 δ*p、δ*s。层流模型使用前者；本例的湍流尾缘模型使用后两者。边界层厚度与位移厚度不是同一个量，接外部数据时尤其不能互换。
+先估计边界层。`thick()` 根据弦长、雷诺数、迎角和转捩条件，计算压力面的边界层厚度 $\delta_{p}$，以及压力面、吸力面的位移厚度 $\delta_{p}^{\ast}$、$\delta_{s}^{\ast}$。层流模型使用前者；本例的湍流尾缘模型使用后两者。边界层厚度与位移厚度不是同一个量，接外部数据时尤其不能互换。
 
 接着把频率写成无量纲的 Strouhal 数。尾缘模型使用
 
-$$
-St_p=\frac{f\delta_p^*}{U},\qquad St_s=\frac{f\delta_s^*}{U},
-$$
+```math
+St_{p}=\frac{f\delta_{p}^{\ast}}{U},\qquad St_{s}=\frac{f\delta_{s}^{\ast}}{U},
+```
 
-层流模型则使用压力面的边界层厚度 δp 构造频率尺度。这样的处理把不同速度、边界层厚度对应的谱形联系起来：特征长度或速度改变，谱峰的位置也会变化。
+层流模型则使用压力面的边界层厚度 $\delta_{p}$ 构造频率尺度。这样的处理把不同速度、边界层厚度对应的谱形联系起来：特征长度或速度改变，谱峰的位置也会变化。
 
 在当前未进入大分离分支的条件下，尾缘噪声的计算结构可概括为：
 
-$$
+```math
 \begin{aligned}
-L_p &= 10\log_{10}\left(\frac{\delta_p^*M^5LD_h}{r^2}\right)+A_p+K_1-3+\Delta K_1,\\
-L_s &= 10\log_{10}\left(\frac{\delta_s^*M^5LD_h}{r^2}\right)+A_s+K_1-3,\\
-L_\alpha &= 10\log_{10}\left(\frac{\delta_s^*M^5LD_h}{r^2}\right)+B+K_2.
+L_{p} &= 10\log_{10}\left(\frac{\delta_{p}^{\ast}M^5LD_{h}}{r^2}\right)+A_{p}+K_{1}-3+\Delta K_{1},\\
+L_{s} &= 10\log_{10}\left(\frac{\delta_{s}^{\ast}M^5LD_{h}}{r^2}\right)+A_{s}+K_{1}-3,\\
+L_{\alpha} &= 10\log_{10}\left(\frac{\delta_{s}^{\ast}M^5LD_{h}}{r^2}\right)+B+K_{2}.
 \end{aligned}
-$$
+```
 
 这里的 A、B 描述谱形，K 系列是经验幅值修正；下标 p、s 分别表示压力面和吸力面。表达式沿用 BPM 的 SI 单位经验标定，不能只留下对数项就把它当作完整的声压级公式。原始分段系数较多，阅读时直接对照 [bpm_trailing_edge.cpp](../../src/acoustics/bpm_trailing_edge.cpp) 更容易确认每一项的来源。
 
 层流涡脱落分量采用类似结构：
 
-$$
-L_{LBL}=10\log_{10}\left(\frac{\delta_p M^5LD_h}{r^2}\right)+G_1+G_2+G_3.
-$$
+```math
+L_{LBL}=10\log_{10}\left(\frac{\delta_{p} M^5LD_{h}}{r^2}\right)+G_{1}+G_{2}+G_{3}.
+```
 
 G₁ 控制相对峰值频率的谱形，G₂ 随雷诺数比变化，G₃ 包含迎角相关的幅值项。这些关系在 [bpm_other_sources.cpp](../../src/acoustics/bpm_other_sources.cpp) 的 `prepare_laminar()` 中实现。
 
 上述 Dₕ 是朝向观察点的辐射修正。当前调用的是 `directh_te()`，其关系为
 
-$$
-D_h=\frac{2\sin^2(\theta/2)\sin^2\phi}{(1+M\cos\theta)[1+(M-M_c)\cos\theta]^2},\qquad M_c=0.8M.
-$$
+```math
+D_{h}=\frac{2\sin^2(\theta/2)\sin^2\phi}{(1+M\cos\theta)[1+(M-M_{c})\cos\theta]^2},\qquad M_{c}=0.8M.
+```
 
 本例 θ=φ=90°，Dₕ 接近 1。代码为保持与参考实现一致，角度转换系数使用 `0.017453`；它不是精确的 π/180。距离衰减已经包含在声源公式的 r² 中，因此这里不用再额外叠加一次球面扩散。
 
 最后，把各分量的声能相加：
 
-$$
-L_{total}(f)=10\log_{10}\left[\sum_j10^{L_j(f)/10}\right].
-$$
+```math
+L_{total}(f)=10\log_{10}\left[\sum_{j}10^{L_{j}(f)/10}\right].
+```
 
 对应函数是 `db_sum()`。它先减去最大声级再求和，以改善数值稳定性。不要把四个 dB 数值直接相加；也要区分“同一频带内合并声源”与“跨频带求总体声级”。本例 CSV 的 `total_dB` 指前者。
 
@@ -216,9 +216,9 @@ CSV 每行对应一个频带。`LBL_dB` 是层流分量；`TBL_pressure_dB`、`T
 
 这里的 RMSE 是逐频带 dB 差值的均方根：
 
-$$
-\mathrm{RMSE}=\sqrt{\frac{1}{27}\sum_{i=1}^{27}(L_i-L_{D2,i})^2}.
-$$
+```math
+\mathrm{RMSE}=\sqrt{\frac{1}{27}\sum_{i=1}^{27}(L_{i}-L_{D2,i})^2}.
+```
 
 它描述两组谱值的数值差异，不是宽带声压误差，也不是测量不确定度。
 
