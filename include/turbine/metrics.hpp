@@ -44,6 +44,8 @@ class ArrivalSeries {
     void append(ArrivalSample);
     const std::vector<ArrivalSample> &samples() const noexcept { return samples_; }
     ArrivalSample at(double receiver_time) const;
+    // Reuses output storage; cursor is owned by the caller and permits backward queries.
+    void at_into(double receiver_time, ArrivalSample &out, std::size_t &cursor) const;
     // dt_emission/dt_reception, valid inside the sampled subsonic trajectory.
     double doppler(double receiver_time) const;
 };

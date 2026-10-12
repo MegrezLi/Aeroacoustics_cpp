@@ -107,6 +107,7 @@ Snapshot snapshot_spectrum(const Parameters &, const std::vector<Node> &, const 
 class TurbulenceState {
     Spectrum span_, buffers_;
     std::vector<std::size_t> radial_, counts_;
+    std::vector<long double> rolling_mean_, rolling_m2_;
     std::size_t samples_, blades_;
     double height_, ti_, avgv_;
     int method_;

@@ -100,24 +100,22 @@ void OutdoorPropagation::apply(const Node &node, const Vec3 &receiver, Mechanism
         throw std::invalid_argument("Receiver below ground plane");
     if (has_reflection() && !image)
         throw std::invalid_argument("Missing reflected source spectrum");
-    for (std::size_t m = 0; m < mechanism_count; ++m) {
+    for (std::size_t m = 0; m < mechanism_count; ++m)
         if (direct[m].size() != bands_.size() || (image && (*image)[m].size() != bands_.size()))
             throw std::invalid_argument("Propagation frequency shape mismatch");
-        const auto s = source(node, m == index(Mechanism::inflow));
+    // Six mechanisms share the trailing-edge path; inflow uses the leading edge.
+    // Keep all geometry local so a const propagation object remains thread-safe.
+    for (int side = 0; side < 2; ++side) {
+        const auto s = source(node, side == 1);
         if (s[2] < options_.ground_z)
             throw std::invalid_argument("Source below ground plane");
         const double rd = distance(s, receiver), rr = distance(s, image_observer(receiver));
         if (rd <= 0 || rr <= 0)
             throw std::invalid_argument("Receiver coincides with source");
-        for (std::size_t i = 0; i < bands_.size(); ++i) {
-            const auto &band = bands_.values()[i];
-            const double diffraction = screen_loss(s, receiver, band.center_hz);
-            const double direct_db = direct[m][i] - absorption_[i] * rd - diffraction;
-            if (!has_reflection()) {
-                direct[m][i] = direct_db;
-                continue;
-            }
-            std::complex<double> reflection{1, 0};
+        std::complex<double> reflection{1, 0};
+        Vec3 reflection_point{};
+        const double delay = (rr - rd) / options_.sound_speed;
+        if (has_reflection()) {
             if (options_.ground == GroundModel::impedance) {
                 const double cosine = (s[2] + receiver[2] - 2 * options_.ground_z) / rr;
                 const auto z = options_.normalized_impedance * cosine;
@@ -125,27 +123,41 @@ void OutdoorPropagation::apply(const Node &node, const Vec3 &receiver, Mechanism
             }
             const double height_sum = s[2] + receiver[2] - 2 * options_.ground_z;
             const double fraction = height_sum > 0 ? (s[2] - options_.ground_z) / height_sum : .5;
-            const Vec3 reflection_point{s[0] + fraction * (receiver[0] - s[0]),
-                                        s[1] + fraction * (receiver[1] - s[1]), options_.ground_z};
-            const double reflection_loss = std::max(screen_loss(s, reflection_point, band.center_hz),
-                                                    screen_loss(reflection_point, receiver, band.center_hz));
-            const double image_db = (*image)[m][i] - absorption_[i] * rr - reflection_loss;
-            const double maximum = std::max(direct_db, image_db);
-            if (maximum == -INFINITY) {
-                direct[m][i] = -INFINITY;
-                continue;
+            reflection_point = {s[0] + fraction * (receiver[0] - s[0]),
+                                s[1] + fraction * (receiver[1] - s[1]), options_.ground_z};
+        }
+        for (std::size_t i = 0; i < bands_.size(); ++i) {
+            const auto &band = bands_.values()[i];
+            const double diffraction = screen_loss(s, receiver, band.center_hz);
+            double reflection_loss = 0, sinc = 1;
+            std::complex<double> phase{1, 0};
+            if (has_reflection()) {
+                reflection_loss = std::max(screen_loss(s, reflection_point, band.center_hz),
+                                           screen_loss(reflection_point, receiver, band.center_hz));
+                const double x = pi * (band.upper_hz - band.lower_hz) * delay;
+                sinc = std::abs(x) < 1e-10 ? 1 : std::sin(x) / x;
+                phase = std::polar(1., -2 * pi * .5 * (band.lower_hz + band.upper_hz) * delay);
             }
-            // Stable linear sum. Flat within-band source density; integrate path
-            // phase analytically, rather than aliasing long-path interference.
-            const double d = relative_power(direct_db - maximum), r = relative_power(image_db - maximum);
-            const double delay = (rr - rd) / options_.sound_speed;
-            const double x = pi * (band.upper_hz - band.lower_hz) * delay;
-            const double sinc = std::abs(x) < 1e-10 ? 1 : std::sin(x) / x;
-            const auto phase = std::polar(1., -2 * pi * .5 * (band.lower_hz + band.upper_hz) * delay);
-            const double energy =
-                std::max(0., d + std::norm(reflection) * r +
-                                 2 * std::sqrt(d * r) * std::real(reflection * phase) * sinc);
-            direct[m][i] = energy == 0 ? -INFINITY : maximum + 10 * std::log10(energy);
+            for (std::size_t m = 0; m < mechanism_count; ++m) {
+                if ((m == index(Mechanism::inflow)) != (side == 1))
+                    continue;
+                const double direct_db = direct[m][i] - absorption_[i] * rd - diffraction;
+                if (!has_reflection()) {
+                    direct[m][i] = direct_db;
+                    continue;
+                }
+                const double image_db = (*image)[m][i] - absorption_[i] * rr - reflection_loss;
+                const double maximum = std::max(direct_db, image_db);
+                if (maximum == -INFINITY) {
+                    direct[m][i] = -INFINITY;
+                    continue;
+                }
+                // Preserve per-mechanism coherent reflection and arithmetic grouping.
+                const double d = relative_power(direct_db - maximum), r = relative_power(image_db - maximum);
+                const double energy = std::max(0., d + std::norm(reflection) * r +
+                    2 * std::sqrt(d * r) * std::real(reflection * phase) * sinc);
+                direct[m][i] = energy == 0 ? -INFINITY : maximum + 10 * std::log10(energy);
+            }
         }
     }
 }

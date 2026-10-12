@@ -22,10 +22,16 @@ void exponential(const Spectrum &x, Spectrum &y) {
 #endif
 }
 } // namespace
-detail::TnoWorkspace::TnoWorkspace()
-    : wave(61), height(61), factor(61 * 61), gauss(61 * 61), decay(61 * 61), exp_gauss(61 * 61),
-      exp_decay(61 * 61), pressure(61), ke(61), uc(61), ag(61), amplitude(61), denominator(61),
-      normalization(61) {}
+void detail::TnoWorkspace::prepare_storage() {
+    if (wave.size() == 61)
+        return;
+    // Set the readiness marker last, so allocation failure can safely be retried.
+    for (auto *v : {&factor, &gauss, &decay, &exp_gauss, &exp_decay})
+        v->resize(61 * 61);
+    for (auto *v : {&height, &pressure, &ke, &uc, &ag, &amplitude, &denominator, &normalization})
+        v->resize(61);
+    wave.resize(61);
+}
 namespace {
 const std::array<Spectrum, 2> &quadrature_rule() {
     static const auto rule = [] {
@@ -43,6 +49,7 @@ const std::array<Spectrum, 2> &quadrature_rule() {
 }
 void prepare_profile(bool suction, double mach, const BoundaryLayer &bl, const Parameters &p,
                      detail::TnoWorkspace &work) {
+    work.prepare_storage();
     const int side = suction ? 0 : 1;
     const double cf = bl.cf[side], delta = bl.d99[side];
     const double uo = mach * p.spdsound * std::abs(bl.edge_velocity_ratio[side]);

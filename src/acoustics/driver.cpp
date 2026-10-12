@@ -170,6 +170,8 @@ TurbulenceState::TurbulenceState(Spectrum span, std::size_t blades, double dt, d
         radial_.push_back(std::clamp<std::size_t>(std::ceil(r / 5), 1, regions) - 1);
     buffers_.assign(regions * 6 * samples_, 0);
     counts_.assign(regions * 6, 0);
+    rolling_mean_.assign(regions * 6, 0);
+    rolling_m2_.assign(regions * 6, 0);
     values.assign(blades * span_.size(), 0);
 }
 void TurbulenceState::update(const Spectrum &vrel, const std::vector<Vec3> &inflow,
@@ -195,12 +197,26 @@ void TurbulenceState::update(const Spectrum &vrel, const std::vector<Vec3> &infl
             begin[count - 1] = norm(inflow[k]);
             values[k] = 0;
         } else {
-            begin[count % samples_] = norm(inflow[k]);
-            double mean = std::accumulate(begin, begin + samples_, 0.) / samples_, variance = 0;
-            for (std::size_t j = 0; j < samples_; ++j)
-                variance += std::pow(begin[j] - mean, 2);
+            const double previous = begin[count % samples_], next = norm(inflow[k]);
+            begin[count % samples_] = next;
+            auto &mean = rolling_mean_[region];
+            auto &variance = rolling_m2_[region];
+            const long double old_mean = mean;
+            mean += (static_cast<long double>(next) - previous) / samples_;
+            variance += (static_cast<long double>(next) - previous) *
+                        ((static_cast<long double>(next) - mean) + (previous - old_mean));
+            // Rebase on first replacement and once per window. This bounds drift
+            // with O(1) amortized cost and avoids raw second-moment cancellation.
+            if (count == samples_ + 1 || (count - samples_ - 1) % samples_ == 0 || variance < 0) {
+                mean = std::accumulate(begin, begin + samples_, 0.L) / samples_;
+                variance = 0;
+                for (std::size_t j = 0; j < samples_; ++j) {
+                    const long double deviation = begin[j] - mean;
+                    variance += deviation * deviation;
+                }
+            }
             values[k] =
-                std::abs(mean) > std::max(std::abs(mean), 1.) * std::numeric_limits<double>::epsilon() * 50
+                std::abs(mean) > std::max(std::abs(mean), 1.L) * std::numeric_limits<double>::epsilon() * 50
                     ? std::sqrt(variance / samples_) / mean
                     : 0.;
         }

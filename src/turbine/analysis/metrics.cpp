@@ -1,6 +1,7 @@
 #include "turbine/metrics.hpp"
 #include "acoustic_levels.hpp"
 #include "checked_output.hpp"
+#include "arrival_history.hpp"
 #include <algorithm>
 #include <iomanip>
 #include <numeric>
@@ -45,16 +46,19 @@ struct EngineeringMetrics::Impl {
     std::optional<aeroacoustics::PropagationOptions> propagation;
     std::size_t nodes, values = 0;
     bool failed = false;
-    std::vector<std::vector<ArrivalSeries>> paths, tones;
+    std::vector<std::vector<detail::ArrivalHistory>> paths;
+    std::vector<std::vector<ArrivalSeries>> tones;
+    std::vector<double> power_scratch;
     std::vector<ArrivalSeries> wind;
     Impl(MetricsOptions o, aeroacoustics::Parameters p, std::vector<Vec3> receivers, std::size_t count,
          Vec3 h, std::optional<aeroacoustics::PropagationOptions> prop)
         : options(std::move(o)), parameters(std::move(p)),
           bands(aeroacoustics::FrequencyBands::openfast_reference(parameters.freqlist)),
           observers(std::move(receivers)), hub(h), propagation(std::move(prop)), nodes(count),
-          paths(observers.size(), std::vector<ArrivalSeries>(2 * count)),
+          paths(observers.size(), std::vector<detail::ArrivalHistory>(2 * count)),
           tones(observers.size(), std::vector<ArrivalSeries>(options.tones.size())), wind(observers.size()) {
         options.validate();
+        power_scratch.resize(bands.size());
         if (!nodes || observers.empty())
             throw std::invalid_argument("Metrics need sources and receivers");
         if (options.apparent_power && propagation)
@@ -114,7 +118,8 @@ void EngineeringMetrics::append(double time, double hub_wind, double rotor_speed
         for (std::size_t n = 0; n < s.nodes; ++n) {
             const auto &node = blades.at(n / per_blade).at(first_node + n % per_blade);
             for (int side = 0; side < 2; ++side) {
-                std::vector<double> power(nf, 0.);
+                auto &power = s.power_scratch;
+                std::fill(power.begin(), power.end(), 0.);
                 for (std::size_t m = 0; m < aeroacoustics::mechanism_count; ++m) {
                     if ((m == aeroacoustics::index(aeroacoustics::Mechanism::inflow)) != bool(side))
                         continue;
@@ -125,7 +130,7 @@ void EngineeringMetrics::append(double time, double hub_wind, double rotor_speed
                 }
                 double arrival =
                     time + (s.options.retarded_time ? distance(edge(node, side == 1), receiver) / c : 0.);
-                s.paths[o][2 * n + side].append({arrival, time, hub_wind, std::move(power)});
+                s.paths[o][2 * n + side].append(arrival, time, hub_wind, power);
             }
         }
         s.wind[o].append(
@@ -155,7 +160,7 @@ void EngineeringMetrics::write(const std::filesystem::path &directory) const {
     const auto &opt = s.options;
     const auto nf = s.bands.size();
     double begin = opt.start, end = opt.end, source_dt = 0;
-    auto intersect = [&](const ArrivalSeries &path) {
+    auto intersect = [&](const auto &path) {
         const auto &a = path.samples();
         if (a.size() < 2)
             throw std::runtime_error("Metrics require at least two acoustic samples");
@@ -210,9 +215,12 @@ void EngineeringMetrics::write(const std::filesystem::path &directory) const {
         double frequency, power, gain;
         std::size_t band;
     };
-    auto tone_at = [&](const ArrivalSeries &path, double t) {
-        const auto sample = path.at(t);
-        const double frequency = sample.frequency_hz * path.doppler(t);
+    ArrivalSample tone_sample;
+    auto tone_at = [&](const ArrivalSeries &path, double t, std::size_t &cursor) {
+        path.at_into(t, tone_sample, cursor);
+        const auto &sample = tone_sample;
+        const auto &a = path.samples()[cursor], &b = path.samples()[cursor + 1];
+        const double frequency = sample.frequency_hz * ((b.emission-a.emission)/(b.reception-a.reception));
         double power = sample.power[0];
         if (s.propagation && s.propagation->absorption)
             power *= aeroacoustics::relative_power(
@@ -227,10 +235,17 @@ void EngineeringMetrics::write(const std::filesystem::path &directory) const {
                          aeroacoustics::relative_power(aeroacoustics::a_weighting({frequency})[0]), band};
     };
     for (std::size_t o = 0; o < s.observers.size(); ++o) {
+        std::vector<std::size_t> tone_cursors(s.tones[o].size(), 0);
+        std::size_t wind_cursor = 0;
+        ArrivalSample wind_sample;
+        const auto wind_at = [&](double t) {
+            s.wind[o].at_into(t, wind_sample, wind_cursor);
+            return wind_sample.wind;
+        };
         // ReceiverDT controls CSV/AM sampling only. Statistics retain every source
         // and wind knot, so resampling cannot remove a known broadband energy peak.
         std::vector<double> statistics_time{begin, end};
-        auto knots = [&](const ArrivalSeries &path) {
+        auto knots = [&](const auto &path) {
             for (const auto &sample : path.samples())
                 if (sample.reception > begin && sample.reception < end)
                     statistics_time.push_back(sample.reception);
@@ -250,10 +265,10 @@ void EngineeringMetrics::write(const std::filesystem::path &directory) const {
             const auto &samples = path.samples();
             std::vector<double> power;
             power.reserve(samples.size());
-            for (const auto &sample : samples) {
+            for (std::size_t sample = 0; sample < samples.size(); ++sample) {
                 double total = 0;
                 for (std::size_t f = 0; f < nf; ++f)
-                    total += sample.power[f] *
+                    total += path.power(sample, f) *
                              (s.parameters.aweighting ? 1 : aeroacoustics::relative_power(weights[f]));
                 power.push_back(total);
             }
@@ -269,25 +284,24 @@ void EngineeringMetrics::write(const std::filesystem::path &directory) const {
         }
         for (std::size_t i = 0; i < statistics_time.size(); ++i) {
             const double t = statistics_time[i];
-            for (const auto &path : s.tones[o]) {
-                const auto tone = tone_at(path, t);
+            for (std::size_t k = 0; k < s.tones[o].size(); ++k) {
+                const auto tone = tone_at(s.tones[o][k], t, tone_cursors[k]);
                 energies[i] += tone.power * tone.gain;
             }
-            wind.push_back(s.wind[o].at(t).wind);
+            wind.push_back(wind_at(t));
         }
+        std::vector<double> bands(nf), broadband(nf);
+        std::vector<std::size_t> cursors(s.paths[o].size(), 0);
         for (double t : time) {
-            std::vector<double> bands(nf, 0.);
-            for (const auto &p : s.paths[o]) {
-                auto sample = p.at(t);
-                for (std::size_t f = 0; f < nf; ++f)
-                    bands[f] += sample.power[f];
-            }
+            std::fill(bands.begin(), bands.end(), 0.);
+            for (std::size_t path = 0; path < s.paths[o].size(); ++path)
+                s.paths[o][path].add_power(t, bands, cursors[path]);
             double total = 0;
             for (std::size_t f = 0; f < nf; ++f)
                 total += bands[f] * (s.parameters.aweighting ? 1 : aeroacoustics::relative_power(weights[f]));
-            const auto broadband = bands;
+            broadband = bands;
             for (std::size_t k = 0; k < s.tones[o].size(); ++k) {
-                const auto tone = tone_at(s.tones[o][k], t);
+                const auto tone = tone_at(s.tones[o][k], t, tone_cursors[k]);
                 const double frequency = tone.frequency, p = tone.power, gain = tone.gain;
                 const auto band = tone.band;
                 const double broad =
@@ -300,7 +314,7 @@ void EngineeringMetrics::write(const std::filesystem::path &directory) const {
                 total += p * gain;
                 bands[band] += p * (s.parameters.aweighting ? gain : 1.);
             }
-            const double w = s.wind[o].at(t).wind;
+            const double w = wind_at(t);
             levels.push_back(level(total));
             history << o + 1 << ',' << t << ',' << w << ',' << level(total) << ','
                     << level(total + background);

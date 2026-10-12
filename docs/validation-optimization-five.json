@@ -1,0 +1,881 @@
+{
+  "date": "2026-10-12",
+  "baseline_commit": "ffc85ed99b458ae3ad8ba94afd63a5385d51ccff",
+  "platform": "Windows x64, GCC 16.2.0",
+  "flags": "-O3 -DNDEBUG; portable backend; C++17",
+  "validation": [
+    {
+      "name": "optimization",
+      "exit_code": 0,
+      "seconds": 0.10868440000922419
+    },
+    {
+      "name": "bpm1989",
+      "exit_code": 0,
+      "seconds": 0.049315799988107756
+    },
+    {
+      "name": "review-regression",
+      "exit_code": 0,
+      "seconds": 0.12717810002504848
+    },
+    {
+      "name": "workspace",
+      "exit_code": 0,
+      "seconds": 0.8583877999917604
+    },
+    {
+      "name": "mechanisms",
+      "exit_code": 0,
+      "seconds": 0.20161280001048
+    },
+    {
+      "name": "engineering",
+      "exit_code": 0,
+      "seconds": 1.861170599993784
+    },
+    {
+      "name": "metrics",
+      "exit_code": 0,
+      "seconds": 0.8117822000058368
+    },
+    {
+      "name": "performance-api",
+      "exit_code": 0,
+      "seconds": 2.5123351000074763
+    },
+    {
+      "name": "simulation-api",
+      "exit_code": 0,
+      "seconds": 1.1470642999920528
+    },
+    {
+      "name": "turbine-workspace",
+      "exit_code": 0,
+      "seconds": 0.163442799996119
+    },
+    {
+      "name": "fortran",
+      "exit_code": 0,
+      "seconds": 4.18189639999764
+    },
+    {
+      "name": "before-after",
+      "exit_code": 0,
+      "seconds": 19.523958000005223
+    },
+    {
+      "name": "metrics-cli",
+      "exit_code": 0,
+      "seconds": 22.66957459997502
+    },
+    {
+      "name": "engineering-cli",
+      "exit_code": 0,
+      "seconds": 25.37420170000405
+    },
+    {
+      "name": "official8",
+      "exit_code": 0,
+      "seconds": 2.1535840000142343
+    },
+    {
+      "name": "wind9",
+      "exit_code": 0,
+      "seconds": 3.034586199995829
+    }
+  ],
+  "fortran": {
+    "backend": "Portable C++17",
+    "cases": 204,
+    "TNO_cases": 16,
+    "evaluated_values": 56576,
+    "values_by_operation": {
+      "1": 6936,
+      "2": 20808,
+      "3": 6936,
+      "4": 6936,
+      "5": 6936,
+      "6": 6936,
+      "7": 1088
+    },
+    "fortran_max_abs_error_dB": {
+      "1": 2.842170943040401e-14,
+      "2": 4.547473508864641e-13,
+      "3": 1.4210854715202004e-14,
+      "4": 2.842170943040401e-14,
+      "5": 4.263256414560601e-14,
+      "6": 0.0,
+      "7": 5.684341886080802e-14
+    },
+    "fortran_literal_precision": "promoted to double",
+    "tolerance_dB": 2e-08,
+    "kernel_calls": 1240
+  },
+  "before_after": {
+    "baseline_commit": "ffc85ed99b458ae3ad8ba94afd63a5385d51ccff",
+    "executables_sha256": {
+      "before": "5fba823a6f383bcbbb15eb8ad5e64275285e4af772e313af879ab53afff74049",
+      "after": "5a32b5cb7a5e5f063a9da9fe9f1cdf882137ca95731a157b031be836677b0942"
+    },
+    "cases": {
+      "official8": {
+        "duration_s": 20,
+        "byte_identical_sha256": {
+          "dynamics.csv": "8adaef87cc858f4e4b781f84cf70f62abc8fdbbab4d3597d85833707fa063594",
+          "IEA_LB_RWT-AeroAcoustics_1.mask": "da67d06df7d4fb4bacb2d7017ebc95f588ababeb1d5154d70bc38765eb2674a8",
+          "IEA_LB_RWT-AeroAcoustics_1.out": "7268e4cab8e68e30a5bc72ee38665f872a133d2c59347cb8b4f6e16311af71ed",
+          "IEA_LB_RWT-AeroAcoustics_2.mask": "00a4891f2d4c7a26f1427e96ee85abc8ba2b8278585c9bea336a046449467aef",
+          "IEA_LB_RWT-AeroAcoustics_2.out": "199a41014473d4efaeba4ff527cfff4e4dadb757dd1dec671884bef455e85638",
+          "IEA_LB_RWT-AeroAcoustics_3.mask": "f7b1a2ba1b693372ab20664545c8c56b24696d71345b2773bb8ff3d683b29592",
+          "IEA_LB_RWT-AeroAcoustics_3.out": "4bf3d4871a6eecc65b228f3450c3a7522255290c0002b14aa551b7900e07967e",
+          "IEA_LB_RWT-AeroAcoustics_4.mask": "5e85fd5400a5749b5877e0521e263bcde462d4487956f0f11fba42fe859ce546",
+          "IEA_LB_RWT-AeroAcoustics_4.out": "b342a402e1fdedeee1dc36e3170a715958e1a49ac8a6b18028db64c57de1f7cf",
+          "lookup_diagnostics.csv": "1c46756c5828b8af5394d4b4ddfcdde3a5076fdf0a34f1c42fa247f4f1a28a7c"
+        }
+      },
+      "wind9": {
+        "duration_s": 20,
+        "byte_identical_sha256": {
+          "dynamics.csv": "1fd72279b0d48ee0a1d5d4a75c6f4f653809554589220b5fef5eb7d884b8d161",
+          "IEA_LB_RWT-AeroAcoustics_1.mask": "da67d06df7d4fb4bacb2d7017ebc95f588ababeb1d5154d70bc38765eb2674a8",
+          "IEA_LB_RWT-AeroAcoustics_1.out": "db411889f5e4f8406aca8dd3a79c17b8676ff979552f55a4c4210765ba0df028",
+          "IEA_LB_RWT-AeroAcoustics_2.mask": "00a4891f2d4c7a26f1427e96ee85abc8ba2b8278585c9bea336a046449467aef",
+          "IEA_LB_RWT-AeroAcoustics_2.out": "2c0f994ddcc7af79fb8581db7e8d4971877feb6fcf4a7ff69013a10b124881d1",
+          "IEA_LB_RWT-AeroAcoustics_3.mask": "f7b1a2ba1b693372ab20664545c8c56b24696d71345b2773bb8ff3d683b29592",
+          "IEA_LB_RWT-AeroAcoustics_3.out": "e944bb54d1158adb4700108b2c833d1003387a0674f2af5fe2af905f63600f38",
+          "IEA_LB_RWT-AeroAcoustics_4.mask": "5e85fd5400a5749b5877e0521e263bcde462d4487956f0f11fba42fe859ce546",
+          "IEA_LB_RWT-AeroAcoustics_4.out": "639cff8c3c6f96a3cf2e76dc63406ab03b4888c020b76e049850097a9629a291",
+          "lookup_diagnostics.csv": "1c46756c5828b8af5394d4b4ddfcdde3a5076fdf0a34f1c42fa247f4f1a28a7c"
+        }
+      },
+      "table_bl2": {
+        "duration_s": 20,
+        "byte_identical_sha256": {
+          "dynamics.csv": "8adaef87cc858f4e4b781f84cf70f62abc8fdbbab4d3597d85833707fa063594",
+          "IEA_LB_RWT-AeroAcoustics_1.mask": "da67d06df7d4fb4bacb2d7017ebc95f588ababeb1d5154d70bc38765eb2674a8",
+          "IEA_LB_RWT-AeroAcoustics_1.out": "62996e77d32b4c0de306286f183db06b8ab9886e746132415f82d53ccd1a9f6e",
+          "IEA_LB_RWT-AeroAcoustics_2.mask": "00a4891f2d4c7a26f1427e96ee85abc8ba2b8278585c9bea336a046449467aef",
+          "IEA_LB_RWT-AeroAcoustics_2.out": "09edca6adef965b70a5c2ef2b9b9d308dedc2f72ee2e83c87289875d0bcee41d",
+          "IEA_LB_RWT-AeroAcoustics_3.mask": "f7b1a2ba1b693372ab20664545c8c56b24696d71345b2773bb8ff3d683b29592",
+          "IEA_LB_RWT-AeroAcoustics_3.out": "d9e6868887c60445da57edc9a16fdb99ab7025fa4a368ee0f70cdeee0456f573",
+          "IEA_LB_RWT-AeroAcoustics_4.mask": "5e85fd5400a5749b5877e0521e263bcde462d4487956f0f11fba42fe859ce546",
+          "IEA_LB_RWT-AeroAcoustics_4.out": "21ea3433ae32a4777c533aee29fa86e357013b8f0f998e7b722777b799a032a4",
+          "lookup_diagnostics.csv": "1c46756c5828b8af5394d4b4ddfcdde3a5076fdf0a34f1c42fa247f4f1a28a7c"
+        }
+      },
+      "tno": {
+        "duration_s": 0.1,
+        "byte_identical_sha256": {
+          "dynamics.csv": "7e884882e242203b3fe7424206b6b173ce4e3aa51d9e021fb6c1788f066f231d",
+          "IEA_LB_RWT-AeroAcoustics_1.mask": "af96b8e42d3e8e06cb6a0bfb3b7129761d7e75573c8264c452ce3f53f1e9e49b",
+          "IEA_LB_RWT-AeroAcoustics_1.out": "3e759077b180d8fd33210e0b880f1d78e5211703a3bfb5d2eec15e3bae7327c8",
+          "IEA_LB_RWT-AeroAcoustics_2.mask": "7a69f12fae022ff5f1fc60d09b7b6c3e75a9048e58cfb0d29a67bc87edb71952",
+          "IEA_LB_RWT-AeroAcoustics_2.out": "72f9fb702a4e57be25892e5bbda9d6bd063be9c9aad96fbbc979c510abf796b1",
+          "IEA_LB_RWT-AeroAcoustics_3.mask": "c42718b9eb74111ffc43bd27a9545f2685c644eeeec3b797ea333dad409c3fc0",
+          "IEA_LB_RWT-AeroAcoustics_3.out": "dc661119f36054edcf696b5891446492553d4d29eb911eda68d9a90f1235d93b",
+          "IEA_LB_RWT-AeroAcoustics_4.mask": "8eab88b67fb1874bbfd3b90967254e586ad9781f6b44ebb7829b0fc26d38f213",
+          "IEA_LB_RWT-AeroAcoustics_4.out": "df0f1ca9313bbe51322b8fd5f1b2a83abc518c6e7d3d9ab3485e080142272216",
+          "lookup_diagnostics.csv": "1c46756c5828b8af5394d4b4ddfcdde3a5076fdf0a34f1c42fa247f4f1a28a7c"
+        }
+      }
+    }
+  },
+  "benchmark": {
+    "baseline": "ffc85ed (four correctness fixes included)",
+    "rounds": 5,
+    "executables_sha256": {
+      "before": "d3b8a0878ad94deda19149cd767e6817278cfcd58d897d3d082351f5d5bc8d20",
+      "after": "547c151799115f37f83821eca7f3a9a1dd8cec9a61b9555b96a5b9a950754481"
+    },
+    "raw": {
+      "before": [
+        [
+          {
+            "case": "BPM_section",
+            "repeats": "1000",
+            "allocations": "26000",
+            "requested_bytes": "156496000",
+            "seconds": "0.089411699999999997",
+            "checksum": "-32666.032559523883"
+          },
+          {
+            "case": "BPM_workspace",
+            "repeats": "1000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.0106029",
+            "checksum": "-65332.065119044826"
+          },
+          {
+            "case": "17_observers_block4",
+            "repeats": "30",
+            "allocations": "41670",
+            "requested_bytes": "12307680",
+            "seconds": "0.055810400000000003",
+            "checksum": "-70390.241988900714"
+          },
+          {
+            "case": "propagation",
+            "repeats": "10000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.5945703",
+            "checksum": "537246.00247757859"
+          },
+          {
+            "case": "TI_method2",
+            "repeats": "100000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "2.1974699000000002",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_append",
+            "repeats": "201",
+            "allocations": "42000",
+            "requested_bytes": "17050688",
+            "seconds": "0.11080669999999999",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_write",
+            "repeats": "1",
+            "allocations": "111642",
+            "requested_bytes": "14141960",
+            "seconds": "0.14128260000000001",
+            "checksum": "545886.8348379283"
+          }
+        ],
+        [
+          {
+            "case": "BPM_section",
+            "repeats": "1000",
+            "allocations": "26000",
+            "requested_bytes": "156496000",
+            "seconds": "0.085173600000000002",
+            "checksum": "-32666.032559523883"
+          },
+          {
+            "case": "BPM_workspace",
+            "repeats": "1000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.011326299999999999",
+            "checksum": "-65332.065119044826"
+          },
+          {
+            "case": "17_observers_block4",
+            "repeats": "30",
+            "allocations": "41670",
+            "requested_bytes": "12307680",
+            "seconds": "0.056501299999999997",
+            "checksum": "-70390.241988900714"
+          },
+          {
+            "case": "propagation",
+            "repeats": "10000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.55373760000000005",
+            "checksum": "537246.00247757859"
+          },
+          {
+            "case": "TI_method2",
+            "repeats": "100000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "2.1922937999999998",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_append",
+            "repeats": "201",
+            "allocations": "42000",
+            "requested_bytes": "17050688",
+            "seconds": "0.1271043",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_write",
+            "repeats": "1",
+            "allocations": "111642",
+            "requested_bytes": "14141960",
+            "seconds": "0.1421849",
+            "checksum": "545886.8348379283"
+          }
+        ],
+        [
+          {
+            "case": "BPM_section",
+            "repeats": "1000",
+            "allocations": "26000",
+            "requested_bytes": "156496000",
+            "seconds": "0.092886399999999994",
+            "checksum": "-32666.032559523883"
+          },
+          {
+            "case": "BPM_workspace",
+            "repeats": "1000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.015426",
+            "checksum": "-65332.065119044826"
+          },
+          {
+            "case": "17_observers_block4",
+            "repeats": "30",
+            "allocations": "41670",
+            "requested_bytes": "12307680",
+            "seconds": "0.059131400000000001",
+            "checksum": "-70390.241988900714"
+          },
+          {
+            "case": "propagation",
+            "repeats": "10000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.55719810000000003",
+            "checksum": "537246.00247757859"
+          },
+          {
+            "case": "TI_method2",
+            "repeats": "100000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "2.3105359999999999",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_append",
+            "repeats": "201",
+            "allocations": "42000",
+            "requested_bytes": "17050688",
+            "seconds": "0.13283059999999999",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_write",
+            "repeats": "1",
+            "allocations": "111642",
+            "requested_bytes": "14141960",
+            "seconds": "0.1247181",
+            "checksum": "545886.8348379283"
+          }
+        ],
+        [
+          {
+            "case": "BPM_section",
+            "repeats": "1000",
+            "allocations": "26000",
+            "requested_bytes": "156496000",
+            "seconds": "0.092261499999999996",
+            "checksum": "-32666.032559523883"
+          },
+          {
+            "case": "BPM_workspace",
+            "repeats": "1000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.011269",
+            "checksum": "-65332.065119044826"
+          },
+          {
+            "case": "17_observers_block4",
+            "repeats": "30",
+            "allocations": "41670",
+            "requested_bytes": "12307680",
+            "seconds": "0.057151500000000001",
+            "checksum": "-70390.241988900714"
+          },
+          {
+            "case": "propagation",
+            "repeats": "10000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.55723789999999995",
+            "checksum": "537246.00247757859"
+          },
+          {
+            "case": "TI_method2",
+            "repeats": "100000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "2.2078888999999999",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_append",
+            "repeats": "201",
+            "allocations": "42000",
+            "requested_bytes": "17050688",
+            "seconds": "0.1123041",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_write",
+            "repeats": "1",
+            "allocations": "111642",
+            "requested_bytes": "14141960",
+            "seconds": "0.1261302",
+            "checksum": "545886.8348379283"
+          }
+        ],
+        [
+          {
+            "case": "BPM_section",
+            "repeats": "1000",
+            "allocations": "26000",
+            "requested_bytes": "156496000",
+            "seconds": "0.086827000000000001",
+            "checksum": "-32666.032559523883"
+          },
+          {
+            "case": "BPM_workspace",
+            "repeats": "1000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.0107341",
+            "checksum": "-65332.065119044826"
+          },
+          {
+            "case": "17_observers_block4",
+            "repeats": "30",
+            "allocations": "41670",
+            "requested_bytes": "12307680",
+            "seconds": "0.053632899999999997",
+            "checksum": "-70390.241988900714"
+          },
+          {
+            "case": "propagation",
+            "repeats": "10000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.52559679999999998",
+            "checksum": "537246.00247757859"
+          },
+          {
+            "case": "TI_method2",
+            "repeats": "100000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "2.2381015",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_append",
+            "repeats": "201",
+            "allocations": "42000",
+            "requested_bytes": "17050688",
+            "seconds": "0.1203003",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_write",
+            "repeats": "1",
+            "allocations": "111642",
+            "requested_bytes": "14141960",
+            "seconds": "0.12008729999999999",
+            "checksum": "545886.8348379283"
+          }
+        ]
+      ],
+      "after": [
+        [
+          {
+            "case": "BPM_section",
+            "repeats": "1000",
+            "allocations": "12000",
+            "requested_bytes": "3264000",
+            "seconds": "0.0118353",
+            "checksum": "-32666.032559523883"
+          },
+          {
+            "case": "BPM_workspace",
+            "repeats": "1000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.010975800000000001",
+            "checksum": "-65332.065119044826"
+          },
+          {
+            "case": "17_observers_block4",
+            "repeats": "30",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.058070900000000002",
+            "checksum": "-70390.241988900714"
+          },
+          {
+            "case": "propagation",
+            "repeats": "10000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.238343",
+            "checksum": "537246.00247757859"
+          },
+          {
+            "case": "TI_method2",
+            "repeats": "100000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.0035950000000000001",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_append",
+            "repeats": "201",
+            "allocations": "5136",
+            "requested_bytes": "29315648",
+            "seconds": "0.1101565",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_write",
+            "repeats": "1",
+            "allocations": "36562",
+            "requested_bytes": "3607944",
+            "seconds": "0.1124846",
+            "checksum": "545886.8348379283"
+          }
+        ],
+        [
+          {
+            "case": "BPM_section",
+            "repeats": "1000",
+            "allocations": "12000",
+            "requested_bytes": "3264000",
+            "seconds": "0.012674899999999999",
+            "checksum": "-32666.032559523883"
+          },
+          {
+            "case": "BPM_workspace",
+            "repeats": "1000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.0117102",
+            "checksum": "-65332.065119044826"
+          },
+          {
+            "case": "17_observers_block4",
+            "repeats": "30",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.0489635",
+            "checksum": "-70390.241988900714"
+          },
+          {
+            "case": "propagation",
+            "repeats": "10000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.25286049999999999",
+            "checksum": "537246.00247757859"
+          },
+          {
+            "case": "TI_method2",
+            "repeats": "100000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.0057704999999999996",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_append",
+            "repeats": "201",
+            "allocations": "5136",
+            "requested_bytes": "29315648",
+            "seconds": "0.1241874",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_write",
+            "repeats": "1",
+            "allocations": "36562",
+            "requested_bytes": "3607944",
+            "seconds": "0.115728",
+            "checksum": "545886.8348379283"
+          }
+        ],
+        [
+          {
+            "case": "BPM_section",
+            "repeats": "1000",
+            "allocations": "12000",
+            "requested_bytes": "3264000",
+            "seconds": "0.0164096",
+            "checksum": "-32666.032559523883"
+          },
+          {
+            "case": "BPM_workspace",
+            "repeats": "1000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.010926",
+            "checksum": "-65332.065119044826"
+          },
+          {
+            "case": "17_observers_block4",
+            "repeats": "30",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.050709499999999998",
+            "checksum": "-70390.241988900714"
+          },
+          {
+            "case": "propagation",
+            "repeats": "10000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.2593473",
+            "checksum": "537246.00247757859"
+          },
+          {
+            "case": "TI_method2",
+            "repeats": "100000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.0037669999999999999",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_append",
+            "repeats": "201",
+            "allocations": "5136",
+            "requested_bytes": "29315648",
+            "seconds": "0.1144881",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_write",
+            "repeats": "1",
+            "allocations": "36562",
+            "requested_bytes": "3607944",
+            "seconds": "0.1084985",
+            "checksum": "545886.8348379283"
+          }
+        ],
+        [
+          {
+            "case": "BPM_section",
+            "repeats": "1000",
+            "allocations": "12000",
+            "requested_bytes": "3264000",
+            "seconds": "0.0116633",
+            "checksum": "-32666.032559523883"
+          },
+          {
+            "case": "BPM_workspace",
+            "repeats": "1000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.0107957",
+            "checksum": "-65332.065119044826"
+          },
+          {
+            "case": "17_observers_block4",
+            "repeats": "30",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.050628399999999997",
+            "checksum": "-70390.241988900714"
+          },
+          {
+            "case": "propagation",
+            "repeats": "10000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.2448639",
+            "checksum": "537246.00247757859"
+          },
+          {
+            "case": "TI_method2",
+            "repeats": "100000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.0035081999999999999",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_append",
+            "repeats": "201",
+            "allocations": "5136",
+            "requested_bytes": "29315648",
+            "seconds": "0.1172969",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_write",
+            "repeats": "1",
+            "allocations": "36562",
+            "requested_bytes": "3607944",
+            "seconds": "0.118376",
+            "checksum": "545886.8348379283"
+          }
+        ],
+        [
+          {
+            "case": "BPM_section",
+            "repeats": "1000",
+            "allocations": "12000",
+            "requested_bytes": "3264000",
+            "seconds": "0.0117308",
+            "checksum": "-32666.032559523883"
+          },
+          {
+            "case": "BPM_workspace",
+            "repeats": "1000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.0108115",
+            "checksum": "-65332.065119044826"
+          },
+          {
+            "case": "17_observers_block4",
+            "repeats": "30",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.0491621",
+            "checksum": "-70390.241988900714"
+          },
+          {
+            "case": "propagation",
+            "repeats": "10000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.2388334",
+            "checksum": "537246.00247757859"
+          },
+          {
+            "case": "TI_method2",
+            "repeats": "100000",
+            "allocations": "0",
+            "requested_bytes": "0",
+            "seconds": "0.0043559999999999996",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_append",
+            "repeats": "201",
+            "allocations": "5136",
+            "requested_bytes": "29315648",
+            "seconds": "0.11729000000000001",
+            "checksum": "545886.8348379283"
+          },
+          {
+            "case": "metrics_write",
+            "repeats": "1",
+            "allocations": "36562",
+            "requested_bytes": "3607944",
+            "seconds": "0.12572369999999999",
+            "checksum": "545886.8348379283"
+          }
+        ]
+      ]
+    },
+    "scope": "Microbenchmarks; cumulative requested bytes, not peak RSS. Timings exclude compilation.",
+    "metrics_files_byte_identical": true,
+    "summary": {
+      "BPM_section": {
+        "before": {
+          "median_seconds": 0.0894117,
+          "allocations": 26000,
+          "requested_bytes": 156496000
+        },
+        "after": {
+          "median_seconds": 0.0118353,
+          "allocations": 12000,
+          "requested_bytes": 3264000
+        },
+        "elapsed_reduction_percent": 86.76314173648414
+      },
+      "BPM_workspace": {
+        "before": {
+          "median_seconds": 0.011269,
+          "allocations": 0,
+          "requested_bytes": 0
+        },
+        "after": {
+          "median_seconds": 0.010926,
+          "allocations": 0,
+          "requested_bytes": 0
+        },
+        "elapsed_reduction_percent": 3.0437483361434037
+      },
+      "17_observers_block4": {
+        "before": {
+          "median_seconds": 0.0565013,
+          "allocations": 41670,
+          "requested_bytes": 12307680
+        },
+        "after": {
+          "median_seconds": 0.0506284,
+          "allocations": 0,
+          "requested_bytes": 0
+        },
+        "elapsed_reduction_percent": 10.394274114046931
+      },
+      "propagation": {
+        "before": {
+          "median_seconds": 0.5571981,
+          "allocations": 0,
+          "requested_bytes": 0
+        },
+        "after": {
+          "median_seconds": 0.2448639,
+          "allocations": 0,
+          "requested_bytes": 0
+        },
+        "elapsed_reduction_percent": 56.05442660339295
+      },
+      "TI_method2": {
+        "before": {
+          "median_seconds": 2.2078889,
+          "allocations": 0,
+          "requested_bytes": 0
+        },
+        "after": {
+          "median_seconds": 0.003767,
+          "allocations": 0,
+          "requested_bytes": 0
+        },
+        "elapsed_reduction_percent": 99.82938453107853
+      },
+      "metrics_append": {
+        "before": {
+          "median_seconds": 0.1203003,
+          "allocations": 42000,
+          "requested_bytes": 17050688
+        },
+        "after": {
+          "median_seconds": 0.11729,
+          "allocations": 5136,
+          "requested_bytes": 29315648
+        },
+        "elapsed_reduction_percent": 2.502321274344277
+      },
+      "metrics_write": {
+        "before": {
+          "median_seconds": 0.1261302,
+          "allocations": 111642,
+          "requested_bytes": 14141960
+        },
+        "after": {
+          "median_seconds": 0.115728,
+          "allocations": 36562,
+          "requested_bytes": 3607944
+        },
+        "elapsed_reduction_percent": 8.247192187120934
+      }
+    }
+  },
+  "ti_method2_max_absolute_difference": 2.59269e-11,
+  "limits": [
+    "TI method 2 uses tolerance 1e-10, not bitwise identity.",
+    "No overall turbine speedup claimed from local benchmarks.",
+    "Tail reuse holds up to 2B-1 observer slots.",
+    "Contiguous history can increase cumulative allocation bytes during capacity growth.",
+    "No new experimental validation or MKL timing in this run."
+  ]
+}

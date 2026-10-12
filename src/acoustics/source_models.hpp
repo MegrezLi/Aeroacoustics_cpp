@@ -60,7 +60,8 @@ struct TnoWorkspace {
     // One side's frequency-independent boundary-layer profile.
     Spectrum ke, uc, ag, amplitude, denominator, normalization;
     Spectrum frequencies, bandwidth;
-    TnoWorkspace();
+    // BPM/Howe calls need no TNO arrays. Allocate only on the first active integral.
+    void prepare_storage();
 };
 struct TnoSource {
     double mach{}, span{};

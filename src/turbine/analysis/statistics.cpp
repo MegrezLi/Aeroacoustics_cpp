@@ -128,15 +128,30 @@ std::size_t interval(const std::vector<ArrivalSample> &s, double t) {
 }
 } // namespace
 ArrivalSample ArrivalSeries::at(double t) const {
-    auto i = interval(samples_, t);
-    const auto &a = samples_[i], &b = samples_[i + 1];
+    ArrivalSample result;
+    auto cursor = interval(samples_, t);
+    at_into(t, result, cursor);
+    return result;
+}
+void ArrivalSeries::at_into(double t, ArrivalSample &r, std::size_t &cursor) const {
+    if (samples_.size() < 2 || !std::isfinite(t) || t < samples_.front().reception ||
+        t > samples_.back().reception)
+        throw std::out_of_range("Receiver time outside available emission history");
+    if (cursor >= samples_.size() - 1 || t < samples_[cursor].reception)
+        cursor = interval(samples_, t);
+    else
+        while (cursor + 2 < samples_.size() && t >= samples_[cursor + 1].reception)
+            ++cursor;
+    const auto &a = samples_[cursor], &b = samples_[cursor + 1];
     double f = (t - a.reception) / (b.reception - a.reception);
-    ArrivalSample r{t, a.emission + f * (b.emission - a.emission), a.wind + f * (b.wind - a.wind), a.power};
+    r.reception = t;
+    r.emission = a.emission + f * (b.emission - a.emission);
+    r.wind = a.wind + f * (b.wind - a.wind);
+    r.power.resize(a.power.size());
     r.frequency_hz = (1 - f) * a.frequency_hz + f * b.frequency_hz;
     r.distance_m = (1 - f) * a.distance_m + f * b.distance_m;
     for (std::size_t j = 0; j < r.power.size(); ++j)
         r.power[j] = (1 - f) * a.power[j] + f * b.power[j];
-    return r;
 }
 double ArrivalSeries::doppler(double t) const {
     auto i = interval(samples_, t);

@@ -11,7 +11,7 @@ struct AcousticWorkspace::Impl {
     Spectrum weighting;
     detail::TnoWorkspace integration;
     std::vector<detail::PreparedSection> sources;
-    Snapshot output;
+    Snapshot output, tail;
     Mechanisms reflected;
     std::shared_ptr<const OutdoorPropagation> propagation;
 
@@ -52,6 +52,7 @@ void AcousticWorkspace::evaluate_blocks(const std::vector<Node> &nodes, const st
     auto &work = *impl_;
     if (observers.empty()) {
         work.output.clear();
+        work.tail.clear();
         return;
     }
     work.sources.resize(nodes.size());
@@ -60,15 +61,16 @@ void AcousticWorkspace::evaluate_blocks(const std::vector<Node> &nodes, const st
     for (std::size_t n = 0; n < nodes.size(); ++n)
         detail::prepare_section(work.parameters, work.models, nodes[n].section, work.integration,
                                 work.sources[n]);
-    // Shrink if this workspace previously served the full-snapshot API.
-    if (work.output.size() > block_size)
-        work.output.resize(block_size);
+    // Keep the remainder separate: shrinking a nested vector destroys its spectra.
+    const auto full_count = std::min(block_size, observers.size());
+    work.output.resize(full_count);
+    work.tail.resize(observers.size() % full_count);
     for (std::size_t first = 0; first < observers.size();) {
         const auto count = std::min(block_size, observers.size() - first);
-        work.output.resize(count);
+        auto &block = count == full_count ? work.output : work.tail;
         for (std::size_t local = 0; local < count; ++local) {
             const auto o = first + local;
-            auto &output = work.output[local];
+            auto &output = block[local];
             output.resize(nodes.size());
             for (std::size_t n = 0; n < nodes.size(); ++n) {
                 const auto &node = nodes[n];
@@ -98,7 +100,7 @@ void AcousticWorkspace::evaluate_blocks(const std::vector<Node> &nodes, const st
                 }
             }
         }
-        consume(first, work.output);
+        consume(first, block);
         first += count;
     }
 }
