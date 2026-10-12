@@ -1,0 +1,267 @@
+{
+  "date": "2026-10-07",
+  "baseline": "90bc40778fed432061d449177550e5273b35bfb9",
+  "environment": {
+    "os": "Windows",
+    "compiler": "GCC 16.2.0",
+    "configuration": "Release",
+    "MKL": false
+  },
+  "regression": {
+    "receiver_dt_s": [
+      0.1,
+      0.2,
+      0.07,
+      0.125
+    ],
+    "LAeq_dB": 17.032913781186615,
+    "partial_silence_L50_L95": "-Infinity",
+    "C_ABI_NaN_frequency": "nonzero status; nonempty error; unchanged output and counter",
+    "db_sum_NaN": "exception",
+    "moving_sources_clipped_window_background_wind_bins": "passed"
+  },
+  "tests": [
+    {
+      "command": [
+        "build-review-0930/review_regression_probe.exe",
+        "build-review-0930/fix-validation-1007/regression"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "build-review-0930/mechanism_probe.exe"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "build-review-0930/acoustic_workspace_probe.exe",
+        "verify",
+        "build-review-0930/fix-validation-1007/workspace.csv"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "build-review-0930/reliability_probe.exe",
+        "examples/IEA_LB_RWT-AeroAcoustics/Airfoils/RotorSE_FAST_IEA_landBased_RWT_AeroDyn_Polar_10.dat",
+        "build-review-0930/fix-validation-1007/reliability-unit"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "build-review-0930/metrics_probe.exe",
+        "examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst",
+        "examples/engineering/surfaces.dat",
+        "build-review-0930/fix-validation-1007/metrics-probe"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "build-review-0930/simulation_api_probe.exe",
+        "examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst",
+        "build-review-0930/fix-validation-1007/simulation-probe"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "build-review-0930/performance_api_probe.exe",
+        "examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst",
+        "build-review-0930/fix-validation-1007/performance-probe"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "build-review-0930/farm_probe.exe",
+        "examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "build-review-0930/trailing_edge_probe.exe"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "C:/Users/DELL/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
+        "tests/compare_fortran.py",
+        "build-review-0930/libaeroacoustics_shared.dll",
+        "--fortran-compiler",
+        "gfortran",
+        "--report",
+        "build-review-0930/fix-validation-1007/kernels.json"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "C:/Users/DELL/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
+        "tests/run_standalone.py",
+        "build-review-0930/aeroacoustics_turbine.exe",
+        "build-review-0930/fix-validation-1007/official",
+        "--report",
+        "build-review-0930/fix-validation-1007/official.json"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "C:/Users/DELL/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
+        "tests/run_perturbation.py",
+        "build-review-0930/aeroacoustics_turbine.exe",
+        "build-review-0930/fix-validation-1007/wind9",
+        "--report",
+        "build-review-0930/fix-validation-1007/wind9.json"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "C:/Users/DELL/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
+        "tests/check_reliability.py",
+        "build-review-0930/aeroacoustics_turbine.exe",
+        "build-review-0930/fix-validation-1007/reliability"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "C:/Users/DELL/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
+        "tests/check_metrics.py",
+        "build-review-0930/aeroacoustics_turbine.exe",
+        "build-review-0930/fix-validation-1007/metrics-cli"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "C:/Users/DELL/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
+        "tests/check_engineering.py",
+        "build-review-0930/aeroacoustics_turbine.exe",
+        "build-review-0930/fix-validation-1007/engineering-cli"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "C:/Users/DELL/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
+        "tests/check_farm.py",
+        "build-review-0930",
+        "build-review-0930/fix-validation-1007/farm-cli"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "C:/Users/DELL/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
+        "tests/check_trailing_edge.py",
+        "build-review-0930",
+        "build-review-0930/fix-validation-1007/trailing-edge-cli"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "C:/Users/DELL/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
+        "tests/compare_trailing_edge.py",
+        "build-review-0930",
+        "build-review-0930/fix-validation-1007/trailing-edge-reference",
+        "--fortran-compiler",
+        "gfortran"
+      ],
+      "exit": 0
+    }
+  ],
+  "final_ABI_reruns": [
+    "review_regression_probe: passed",
+    "compare_fortran.py: passed"
+  ],
+  "kernels": {
+    "backend": "Portable C++17",
+    "cases": 204,
+    "TNO_cases": 16,
+    "evaluated_values": 56576,
+    "values_by_operation": {
+      "1": 6936,
+      "2": 20808,
+      "3": 6936,
+      "4": 6936,
+      "5": 6936,
+      "6": 6936,
+      "7": 1088
+    },
+    "fortran_max_abs_error_dB": {
+      "1": 2.842170943040401e-14,
+      "2": 4.547473508864641e-13,
+      "3": 1.4210854715202004e-14,
+      "4": 2.842170943040401e-14,
+      "5": 4.263256414560601e-14,
+      "6": 0.0,
+      "7": 5.684341886080802e-14
+    },
+    "fortran_literal_precision": "promoted to double",
+    "tolerance_dB": 2e-08,
+    "kernel_calls": 1240
+  },
+  "full_case": {
+    "official": {
+      "IEA_LB_RWT-AeroAcoustics_1.out": {
+        "compared_values": 402,
+        "max_abs_error_dB": 7.817849999725013e-05,
+        "tolerance_dB": 0.001
+      },
+      "IEA_LB_RWT-AeroAcoustics_2.out": {
+        "compared_values": 13668,
+        "max_abs_error_dB": 0.00020574810000084653,
+        "tolerance_dB": 0.01
+      },
+      "IEA_LB_RWT-AeroAcoustics_3.out": {
+        "compared_values": 95676,
+        "max_abs_error_dB": 0.0008517038999968918,
+        "tolerance_dB": 0.01
+      },
+      "IEA_LB_RWT-AeroAcoustics_4.out": {
+        "compared_values": 36180,
+        "max_abs_error_dB": 0.0007665902999995922,
+        "tolerance_dB": 0.05
+      }
+    },
+    "wind9": {
+      "IEA_LB_RWT-AeroAcoustics_1.out": {
+        "compared_values": 402,
+        "max_abs_error_dB": 1.5829100000530616e-05,
+        "tolerance_dB": 0.001
+      },
+      "IEA_LB_RWT-AeroAcoustics_2.out": {
+        "compared_values": 13668,
+        "max_abs_error_dB": 8.222400000335028e-05,
+        "tolerance_dB": 0.01
+      },
+      "IEA_LB_RWT-AeroAcoustics_3.out": {
+        "compared_values": 95676,
+        "max_abs_error_dB": 0.00017699829999884287,
+        "tolerance_dB": 0.01
+      },
+      "IEA_LB_RWT-AeroAcoustics_4.out": {
+        "compared_values": 36180,
+        "max_abs_error_dB": 0.005636691599999466,
+        "tolerance_dB": 0.05
+      }
+    }
+  },
+  "source_sha256": {
+    "src/turbine/analysis/metrics.cpp": "b2dbfbcbf76715b6707a7d4be87ce476c26f5b89a9bd55bc68419fd65dddb3c5",
+    "src/turbine/analysis/statistics.cpp": "2510793cb75d0141f850e237fafe97dd09081e6d9e6fe07b3af34d327b2d3f38",
+    "src/interfaces/c_api.cpp": "5efbc0027d4c69db1d089f33bd36a82b709d9942ca4fe4837c66501aefdb9577",
+    "src/acoustics/spectrum.cpp": "fa4489a69b05b50360efaab28e3d25e25c27298a5264bedb2e1c43c938598e1e",
+    "tests/review_regression_probe.cpp": "7c552d92900d04a90390eac459991a6ff93c1b8069f1f03848ed15d1f037d1ae"
+  },
+  "hash_convention": "UTF-8 without BOM; normalized LF"
+}

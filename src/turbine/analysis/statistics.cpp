@@ -19,6 +19,14 @@ LevelStatistics level_statistics(const std::vector<double> &t, const std::vector
     const double duration = t.back() - t.front();
     auto quantile = [&](double fraction) {
         double lo = *std::min_element(p.begin(), p.end()), hi = *std::max_element(p.begin(), p.end());
+        // Constant intervals put a point mass at the minimum (including exact silence).
+        // Bisection alone only approaches zero and invents a finite dB floor.
+        double minimum_duration = 0;
+        for (std::size_t i = 1; i < t.size(); ++i)
+            if (p[i - 1] == lo && p[i] == lo)
+                minimum_duration += t[i] - t[i - 1];
+        if (minimum_duration >= fraction * duration)
+            return level(lo);
         for (int iteration = 0; iteration < 80 && lo < hi; ++iteration) {
             double q = .5 * lo + .5 * hi, cumulative = 0;
             for (std::size_t i = 1; i < t.size(); ++i) {
