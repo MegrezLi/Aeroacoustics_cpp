@@ -1,4 +1,4 @@
-"""Paired P4-P7 timings. Run without concurrent builds/tests; no physics in this script."""
+"""Paired workspace, output, solver and batch timings; run without concurrent builds/tests."""
 import argparse
 import hashlib
 import json
@@ -8,22 +8,23 @@ import statistics
 import subprocess
 import time
 from pathlib import Path
-from check_performance import variant, ROOT, CASE
+from support import variant, ROOT, CASE
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('before', type=Path, help='fd193c7 build directory')
+    p.add_argument('before', type=Path, help='Baseline build directory')
     p.add_argument('after', type=Path)
     p.add_argument('output', type=Path)
     p.add_argument('--rounds', type=int, default=5)
+    p.add_argument('--baseline-commit', required=True)
     args = p.parse_args()
     assert args.rounds > 0
     before, after, output = args.before.resolve(), args.after.resolve(), args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     suffix = '.exe' if (after / 'aeroacoustics_turbine.exe').exists() else ''
     executable = lambda build, name: str(build / (name + suffix))
-    report = {'baseline_commit': 'fd193c7f9fb6b467e5f9f06c25e1b187f327691c',
+    report = {'baseline_commit': args.baseline_commit,
               'platform': platform.platform(), 'logical_cpus': os.cpu_count(),
               'rounds': args.rounds, 'results': {}}
     report['executable_sha256'] = {name: hashlib.sha256(Path(executable(build, 'aeroacoustics_turbine')).read_bytes()).hexdigest()

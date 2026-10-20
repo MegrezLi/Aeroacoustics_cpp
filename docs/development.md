@@ -70,10 +70,10 @@
 ### 构建文件
 
 - 根目录 `CMakeLists.txt`：构建开关、编译标准、MKL 查找和输出位置。
-- [CMakeLists.txt](../src/CMakeLists.txt)：声学静态库及动态库的共用源文件清单。
+- [CMakeLists.txt](../src/CMakeLists.txt)：声学源码编译一次，通过对象库生成静态库和动态库。
 - [turbine/CMakeLists.txt](../src/turbine/CMakeLists.txt)：整机模块库。
-- [apps/CMakeLists.txt](../src/apps/CMakeLists.txt)：截面、整机、批量、风场和独立验证五个可执行程序。
-- 根目录 `tests/CMakeLists.txt`：数值对照探针。
+- [apps/CMakeLists.txt](../src/apps/CMakeLists.txt)：截面、BPM 文献算例、整机、批量、风场和独立验证程序。
+- [tests/CMakeLists.txt](../tests/CMakeLists.txt)：探针及 CTest 注册，命令行测试共用 `tests/support.py` 生成输入变体。
 
 公开头文件路径、构建目标名称及可执行文件位置保持兼容。原有 `section_spectrum()`、`snapshot_spectrum()` 和返回独立快照的 `AcousticDriver::step()` 仍可使用；连续计算可使用复用缓冲区的接口。构建及运行命令见根目录 README。
 

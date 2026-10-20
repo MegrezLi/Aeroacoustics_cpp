@@ -4,6 +4,31 @@
 
 Fortran 对照检验移植一致性；解析测试与步长收敛检验新增模型的实现。两者都不能替代现场声学测量和机型参数标定。所有命令在仓库根目录执行，测试输出目录应使用新目录。
 
+## 统一测试入口
+
+需要 Python 3.11+ 与 NumPy；直接编译 Fortran 对照还需 GFortran。
+
+```sh
+python -m pip install 'numpy>=1.26,<3'
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DAEROACOUSTICS_BUILD_TESTS=ON -DAEROACOUSTICS_TEST_FORTRAN=ON
+cmake --build build -j 4
+ctest --test-dir build --output-on-failure -j 2
+```
+
+Windows/MinGW 先运行 `tools/use_gcc.ps1`，配置加 `-G "MinGW Makefiles"`；多配置生成器的构建与 CTest 均加 `-C Release`。没有 GFortran 时省略 `AEROACOUSTICS_TEST_FORTRAN=ON`，仍运行已保存的整机 Fortran 结果对照。
+
+| 标签 | 内容 |
+| --- | --- |
+| `unit` | 声源开关、C ABI、声能合成、工作区、状态、统计、模型与输入检查 |
+| `integration` | 各命令行及组合模型回归 |
+| `reference` | 8/9 m/s 整机基线；启用时增加声学内核和尾缘 Fortran 对照 |
+| `example` | 截面示例、BPM 文献算例及分析脚本 |
+| `concurrency` | 五组含并发调用的原生测试，Linux CI 另用 ThreadSanitizer 执行 |
+
+例如 `ctest --test-dir build -L unit --output-on-failure` 只运行单元检查。每次执行的输出保留在 `build/test-results/测试名-随机后缀/`，可重复运行且不会互相覆盖。失败日志会给出具体目录。完整原 OpenFAST 的结构/UA 对照需要另行构建上游程序，命令见下文。
+
+声源测试同时覆盖 NaN/+Inf 拒绝、−Inf 静音、C ABI 失败时输出不变；统计测试覆盖部分静音百分位、移动声源能量守恒及不同 ReceiverDT 下的积分一致性。
+
 <a id="fortran"></a>
 
 ## Fortran 与独立 C++ 对照
@@ -15,8 +40,8 @@ Fortran 对照检验移植一致性；解析测试与步长收敛检验新增模
 先按 README 编译。以下命令在项目根目录执行，需要 Python 3.11+ 与 NumPy。Windows 对可执行文件加 `.exe`。
 
 ```sh
-python tests/run_standalone.py build/aeroacoustics_turbine build/official-check --report build/full-case.json
-python tests/run_perturbation.py build/aeroacoustics_turbine build/wind9-check --report build/wind9.json
+python tests/check_reference.py build/aeroacoustics_turbine build/official-check --report build/full-case.json
+python tests/check_reference.py --wind-speed 9 build/aeroacoustics_turbine build/wind9-check --report build/wind9.json
 ```
 
 第一项核对官方 101 个输入文件的 SHA256，再运行完整 20 秒。第二项复制相同输入，只将 InflowWind 的 `HWindSpeed` 改成 9 m/s，并与单独运行的原 Fortran 对比。两项均逐值比较全部四个声学输出文件，共 201 个时刻、145,926 个声学值。
@@ -51,7 +76,7 @@ python tools/fetch_openfast.py
 cmake -S _work/openfast -B _work/build-reference -DCMAKE_BUILD_TYPE=Release -DDOUBLE_PRECISION=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake --build _work/build-reference --target openfast -j 4
 python tools/run_full_case.py --executable _work/build-reference/glue-codes/openfast/openfast --label fortran-reference
-python tests/compare_full_case.py _work/runs/fortran-reference build/official-check --report build/recomputed-reference.json
+python tests/compare_full_case.py _work/runs/fortran-reference build/official-check/outputs --report build/recomputed-reference.json
 ```
 
 Windows 使用 MinGW，并按 [工具链说明](development.md#toolchain) 将 BLAS/LAPACK 指向 MKL。`run_full_case.py` 为原程序创建独立目录，保存日志、输入和程序哈希，确认正常结束；已有目录不会被覆盖。无需 C++ 接入补丁。
@@ -97,7 +122,7 @@ python tests/check_runtime_windows.py build/aeroacoustics_turbine.exe _work/runt
 ### 图表与记录
 
 ```sh
-python tools/plot_validation.py reference/results/IEA_LB_RWT-AeroAcoustics build/official-check
+python tools/plot_validation.py reference/results/IEA_LB_RWT-AeroAcoustics build/official-check/outputs
 ```
 
 绘图另需 Matplotlib。曲线读取实际输出；平均频谱先转声能求平均，再转换为 dB。导出文件为 `examples/results/official_oaspl.csv`、`official_mean_spectrum.csv` 和 `docs/full-case-validation.png`。
@@ -108,11 +133,11 @@ python tools/plot_validation.py reference/results/IEA_LB_RWT-AeroAcoustics build
 
 ## 声级、文件输出与查表诊断（R1–R3）
 
-本次处理非有限声级、零声能输出语义、文件写入检查和查表范围诊断。物理公式及默认端点插值策略保持不变。
+以下说明非有限声级、零声能输出语义、文件写入检查和查表范围诊断。物理公式及默认端点插值策略保持不变。
 
 ### R1：区分静音与计算异常
 
-2026-10-07 补充：公开 `db_sum()` 在求最大值前检查每个声级，拒绝 NaN/+Inf；C ABI 按操作校验频率和所用物理字段，并在复制任何通道前检查全部输出。失败时返回非零、保留调用方缓冲区，不增加成功计数；未使用字段与 TNO 的有符号外缘速度比/非正 Cf 关闭语义保持兼容。`review_regression_probe` 覆盖这两条路径、部分静音百分位，以及粗化/非整比网格、移动声源、裁剪窗口、背景声能和风速分箱的统计守恒。该探针已接入 CI。
+公开 `db_sum()` 在求最大值前检查每个声级，拒绝 NaN/+Inf；C ABI 按操作校验频率和所用物理字段，并在复制任何通道前检查全部输出。失败时返回非零、保留调用方缓冲区，不增加成功计数；未使用字段与 TNO 的有符号外缘速度比/非正 Cf 关闭语义保持兼容。`mechanism_probe` 覆盖声能合成与 C ABI，`metrics_probe` 覆盖部分静音百分位、不同接收网格、移动声源、裁剪窗口、背景声能和风速分箱的统计守恒。两者均通过 CTest 接入 CI。
 
 - `-Inf` 继续表示零声能，参与总量求和时贡献为零。
 - `NaN`、`+Inf`、声级转声能时溢出，以及累加得到的非有限/负声能均报错。
@@ -171,8 +196,8 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DAEROACOUSTICS_BUILD_TESTS=ON
 cmake --build build -j 4
 ./build/reliability_probe examples/IEA_LB_RWT-AeroAcoustics/Airfoils/RotorSE_FAST_IEA_landBased_RWT_AeroDyn_Polar_10.dat build/reliability-unit
 python tests/check_reliability.py build/aeroacoustics_turbine build/reliability-cli
-python tests/run_standalone.py build/aeroacoustics_turbine build/official-check --report build/full-case.json
-python tests/run_perturbation.py build/aeroacoustics_turbine build/wind9 --report build/wind9.json
+python tests/check_reference.py build/aeroacoustics_turbine build/official-check --report build/full-case.json
+python tests/check_reference.py --wind-speed 9 build/aeroacoustics_turbine build/wind9 --report build/wind9.json
 ```
 
 CLI 测试要求新的输出目录，以保留每次故障测试的证据。测试中修改的输入仅在该目录的副本内，不修改官方输入。
@@ -355,4 +380,4 @@ python tests/check_trailing_edge.py build build/te-cli
 
 整机检查包括相同边界层下更换声学模型不改变动力学、其他机制不变、观察点分块一致，以及闭环控制、塔架、表面数据、空气吸收、统计和风场入口组合。普通/MKL 构建和原 8/9 m/s 的 20 秒 Fortran/C++ 回归分别执行。Howe 直尾缘与锯齿另运行 20 秒合成整机对比。
 
-结果、程序哈希和验证范围见 [validation-trailing-edge.json](validation-trailing-edge.json)。这些证据验证实现及连接关系，没有将合成边界层、Fortran 数值一致性或短时整机差值称为实际降噪收益。其他候选壁压谱/散射模型和装置实测验证仍见《待优化》后续范围。
+结果、程序哈希和验证范围见 [validation-trailing-edge.json](validation-trailing-edge.json)。这些证据验证实现及连接关系，没有将合成边界层、Fortran 数值一致性或短时整机差值称为实际降噪收益。候选尾缘模型的适用范围与数据要求见 [工程模型](engineering.md#trailing-edge)。

@@ -7,7 +7,7 @@ import math
 import re
 import subprocess
 from pathlib import Path
-from check_performance import ROOT, CASE, variant
+from support import ROOT, CASE, variant
 
 
 def rows(path):

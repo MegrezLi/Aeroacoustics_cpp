@@ -120,8 +120,8 @@ TNO 可显式选择 `reference`（默认，两侧速度比为 1）或 `input`（
 cmake -S . -B build -DAEROACOUSTICS_BUILD_TESTS=ON
 cmake --build build --config Release -j 4
 python tests/compare_fortran.py build/libaeroacoustics_shared.so --fortran-compiler gfortran --report build/kernels.json
-python tests/run_standalone.py build/aeroacoustics_turbine build/official-check --report build/full-case.json
-python tests/run_perturbation.py build/aeroacoustics_turbine build/wind9-check --report build/wind9.json
+python tests/check_reference.py build/aeroacoustics_turbine build/official-check --report build/full-case.json
+python tests/check_reference.py --wind-speed 9 build/aeroacoustics_turbine build/wind9-check --report build/wind9.json
 ```
 
 Windows 将 `.so` 换成 `libaeroacoustics_shared.dll`，并给可执行文件加 `.exe`。GitHub Actions 执行 Linux 编译、这三项对比、声学与整机缓冲区检查，以及声源组合、库接口、检查点、工程控制/传播、并发和异常检查。已有 Fortran 源码与结果保存在 `reference/`。
@@ -146,7 +146,7 @@ Windows 将 `.so` 换成 `libaeroacoustics_shared.dll`，并给可执行文件�
 
 ## 性能
 
-本轮增加 TNO 按需缓冲区、观察点尾块复用、连续接收点历史、前后缘传播参数共享和 TI 方法 2 滚动统计。实现边界、回归检查与性能复现见 [五项优化说明](docs/optimization-five.md)。
+TNO 按需分配工作区，观察点按块求值，表面状态按翼型编号索引，接收点历史连续存储。接口、缓存边界及基准命令见 [性能说明](docs/performance.md)。
 
 时间循环复用结构、气动与声学工作区；节点声源计算在观察点间共享，输出按需聚合。已有优化的测试条件、计时与复现命令统一放在 [性能文档](docs/performance.md)。独立工况可并行运行；MKL 是否加速取决于 TNO 积分规模，不能据此推断整机一定更快。
 
@@ -189,7 +189,6 @@ Intel oneMKL 是可选后端，用于 TNO 积分的向量指数和 BLAS 求和�
 | [工程模型](docs/engineering.md) | 非稳态风、闭环控制、室外传播、表面数据与多机尾流 |
 | [验证](docs/validation.md) | Fortran 对照、解析检查、异常测试和复现命令 |
 | [性能](docs/performance.md) | 分块、并行、求解选项和历史性能数据 |
-| [待优化](待优化.md) | 已完成项、原始代码审查和后续工程需求 |
 
 ## 源码
 

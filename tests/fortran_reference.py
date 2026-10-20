@@ -14,7 +14,7 @@ NAMES=['Log10AA','LBLVS','TBLTE','TIPNOIS','InflowNoise','BLUNT','G5COMP',
        'DIRECTL','Simple_Guidati','TBLTE_TNO']
 
 def build(fc,precision):
-    folder=ROOT/'_work/fortran-reference'/precision
+    folder=Path(os.environ.get('AEROACOUSTICS_TEST_WORKDIR', ROOT/'_work'))/'fortran-reference'/precision
     folder.mkdir(parents=True,exist_ok=True)
     main=(ROOT/'reference/fortran/AeroAcoustics.f90').read_text(encoding='utf-8')
     kind=8 if precision=='double' else 4

@@ -1,11 +1,10 @@
 #include "turbine/surface.hpp"
 #include <algorithm>
 namespace turbine {
-SurfaceData::SurfaceData(const std::filesystem::path &path)
-    : airfoil(0),
-      boundary_layer(aeroacoustics::BLTable::read(InputFile(path).file("BoundaryLayer").string())),
+SurfaceData::SurfaceData(const std::filesystem::path &path) : SurfaceData(InputFile(path)) {}
+SurfaceData::SurfaceData(const InputFile &f)
+    : airfoil(0), boundary_layer(aeroacoustics::BLTable::read(f.file("BoundaryLayer").string())),
       prepared(boundary_layer) {
-    InputFile f(path);
     const int id = f.integer("AirfoilID");
     if (id < 1)
         throw std::invalid_argument("Surface AirfoilID must be one based");
@@ -27,11 +26,11 @@ SurfaceData::SurfaceData(const std::filesystem::path &path)
     if (name.empty() || provenance.empty() || uncertainty_note.empty() || alpha_min >= alpha_max ||
         re_min <= 0 || re_min >= re_max || alpha_min < boundary_layer.aoa.front() ||
         alpha_max > boundary_layer.aoa.back() || re_min < boundary_layer.reynolds.front() ||
-        re_max > boundary_layer.reynolds.back() || transition_suction < 0 || transition_suction > 1 ||
-        transition_pressure < 0 || transition_pressure > 1 || roughness_m < 0 || erosion_m < 0 ||
-        relative_uncertainty < 0 || relative_uncertainty > 1 || te_thickness_m <= 0 || te_angle_deg < 0 ||
-        te_angle_deg > 14)
-        throw std::invalid_argument("Invalid surface metadata/coverage: " + path.string());
+        re_max > boundary_layer.reynolds.back() || transition_suction < 0 ||
+        transition_suction > 1 || transition_pressure < 0 || transition_pressure > 1 ||
+        roughness_m < 0 || erosion_m < 0 || relative_uncertainty < 0 || relative_uncertainty > 1 ||
+        te_thickness_m <= 0 || te_angle_deg < 0 || te_angle_deg > 14)
+        throw std::invalid_argument("Invalid surface metadata/coverage: " + f.path.string());
     for (const auto &v : boundary_layer.values)
         for (int side = 0; side < 2; ++side)
             if (v[side] <= 0 || v[2 + side] <= 0 || v[4 + side] < v[2 + side] || v[6 + side] < 0)
@@ -48,8 +47,9 @@ SurfaceData::SurfaceData(const std::filesystem::path &path)
 aeroacoustics::BoundaryLayer SurfaceData::at(double alpha, double re, double chord) const {
     if (!std::isfinite(alpha) || !std::isfinite(re) || alpha < alpha_min || alpha > alpha_max ||
         re < re_min || re > re_max)
-        throw std::out_of_range("Surface dataset " + name + " outside validated AoA/Re range: alpha=" +
-                                std::to_string(alpha) + ", Re=" + std::to_string(re));
+        throw std::out_of_range("Surface dataset " + name +
+                                " outside validated AoA/Re range: alpha=" + std::to_string(alpha) +
+                                ", Re=" + std::to_string(re));
     return prepared.interpolate(alpha, re, chord);
 }
 std::shared_ptr<const SurfaceSet> SurfaceSet::read(const std::filesystem::path &path) {
@@ -58,19 +58,19 @@ std::shared_ptr<const SurfaceSet> SurfaceSet::read(const std::filesystem::path &
     if (n < 1 || n > 10000)
         throw std::invalid_argument("Invalid surface dataset count");
     auto result = std::make_shared<SurfaceSet>();
+    result->data_.reserve(std::size_t(n));
+    result->index_.reserve(std::size_t(n));
     for (const auto &file : f.files_after("StateFiles", std::size_t(n))) {
         SurfaceData data(file);
-        if (result->find(data.airfoil))
+        if (!result->index_.emplace(data.airfoil, result->data_.size()).second)
             throw std::invalid_argument("Duplicate surface AirfoilID");
         result->data_.push_back(std::move(data));
     }
     return result;
 }
 const SurfaceData *SurfaceSet::find(std::size_t id) const noexcept {
-    for (const auto &d : data_)
-        if (d.airfoil == id)
-            return &d;
-    return nullptr;
+    const auto it = index_.find(id);
+    return it == index_.end() ? nullptr : &data_[it->second];
 }
 Case SurfaceSet::apply(const Case &original) const {
     Case c = original;

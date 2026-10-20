@@ -6,7 +6,7 @@ import re
 import subprocess
 from pathlib import Path
 import numpy as np
-from check_performance import variant, ROOT, CASE
+from support import variant, ROOT, CASE
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)

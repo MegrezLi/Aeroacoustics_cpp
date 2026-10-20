@@ -1,5 +1,6 @@
 #pragma once
 #include "turbine/input.hpp"
+#include <unordered_map>
 namespace turbine {
 // A dataset is a measured/computed state, never a roughness-to-noise correction.
 struct SurfaceData {
@@ -13,9 +14,13 @@ struct SurfaceData {
     aeroacoustics::PreparedBLTable prepared;
     explicit SurfaceData(const std::filesystem::path &);
     aeroacoustics::BoundaryLayer at(double alpha_deg, double re, double chord) const;
+
+  private:
+    explicit SurfaceData(const InputFile &);
 };
 class SurfaceSet {
     std::vector<SurfaceData> data_;
+    std::unordered_map<std::size_t, std::size_t> index_;
 
   public:
     static std::shared_ptr<const SurfaceSet> read(const std::filesystem::path &);

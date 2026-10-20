@@ -20,18 +20,20 @@ set(acoustic_sources
   numerics/backend.cpp
   interfaces/c_api.cpp
 )
-add_library(aeroacoustics STATIC ${acoustic_sources})
-add_library(aeroacoustics_shared SHARED ${acoustic_sources})
+add_library(acoustic_objects OBJECT ${acoustic_sources})
+set_target_properties(acoustic_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(acoustic_objects PUBLIC
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/aeroacoustics>)
+if(AEROACOUSTICS_USE_MKL)
+  target_compile_definitions(acoustic_objects PUBLIC AERO_USE_MKL)
+  target_link_libraries(acoustic_objects PUBLIC MKL::MKL)
+endif()
+add_library(aeroacoustics STATIC)
+add_library(aeroacoustics_shared SHARED)
 foreach(library aeroacoustics aeroacoustics_shared)
-  target_include_directories(${library} PUBLIC
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include/aeroacoustics>)
-  if(AEROACOUSTICS_USE_MKL)
-    target_compile_definitions(${library} PUBLIC AERO_USE_MKL)
-    target_link_libraries(${library} PUBLIC MKL::MKL)
-  endif()
+  target_link_libraries(${library} PUBLIC acoustic_objects)
 endforeach()
-set_target_properties(aeroacoustics PROPERTIES POSITION_INDEPENDENT_CODE ON)
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${acoustic_sources})
 
 if(AEROACOUSTICS_BUILD_TURBINE)

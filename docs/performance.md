@@ -1,16 +1,8 @@
 # 性能与求解选项
 
-2026-10-12 的五项优化见 [按需缓冲区、尾块复用、接收点历史、传播共享与滚动 TI](optimization-five.md)。该轮在四项正确性修复之后实施；新增尾块缓存的内存口径和实测均在新文档中说明。
-
-[分块、并行与求解器](#p4-p7) · [结构工作区与边界层](#p1-p3) · [初次优化记录](#initial)
-
-本文集中说明性能接口、缓存边界和历史实测。各阶段保留各自的基线、计时口径与报告，速度结论仅适用于对应工况和机器。工程控制/传播增加了计算量，尚未开展单独的性能优化对比。
-
 <a id="p4-p7"></a>
 
 ## 观察点分块、独立工况并行与结构求解（P4–P7）
-
-实现日期：2026-09-16。对比基线为 `fd193c7`，即 S1–S3 完成后的版本。物理模型和支持范围不变。
 
 ### P4：TNO 剖面与频带缓存
 
@@ -18,7 +10,7 @@
 
 频带宽度缓存在 `TnoWorkspace`，频率列表变化时重建。剖面只在当前节点、当前侧的频率循环中复用，每次采样都依据最新边界层重算。直接调用 `spl_integrate()` 仍会准备自身的剖面；没有跨物理状态使用过期缓存。
 
-这项改动不改变 61 点积分规则，也不改变 TNO 外缘速度比约定。整机截面路径仍按参考实现使用单位速度比；直接 `tblte_tno()` 使用传入的速度比。E9 仍是独立待办。
+TNO 使用 61 点积分。整机默认 `reference` 模式采用单位外缘速度比；`input` 模式使用边界层输入速度比，配置见 [尾缘模型](engineering.md#trailing-edge)。
 
 ### P5：按需聚合与观察点分块
 
@@ -70,11 +62,11 @@ auto outcomes = turbine::run_cases({
 
 MKL 构建在批量工作线程内用 `mkl_set_num_threads_local(1)` 限制内部线程，结束时恢复原线程设置，避免外层工况并行再叠加 MKL 并行。普通版本依赖 C++ 标准线程库，无 OpenMP 依赖。
 
-本轮只并行独立工况。单个工况的时间步、节点和观察点仍串行，保证原求和和状态推进顺序。单工况不会因为选择较大的批量线程数而加速；线程数还应考虑每份模型和工作区所占内存。
+批量接口并行独立工况。单个工况的时间步、节点和观察点仍串行，保证原求和和状态推进顺序。单工况不会因为选择较大的批量线程数而加速；线程数还应考虑每份模型和工作区所占内存。
 
 ### P7：求解选项与收敛诊断
 
-默认 `SolverMode::reference` 保留固定扰动、每轮重建 Jacobian 及修正量判停，与本次改动前的数值路径一致。`SolverOptions` 可设置：
+默认 `SolverMode::reference` 使用固定扰动、每轮重建 Jacobian 及修正量判停。`SolverOptions` 可设置：
 
 | 字段 | 默认值 | 含义 |
 | --- | --- | --- |
@@ -98,197 +90,35 @@ Jacobian 只在当前时间步内复用。如果残差没有至少下降 10%，�
 
 求解选项、计数和演化状态随复制及检查点保存；`reset()` 保留选项并清零状态与计数。默认值仍不由 `.fst` 的 `ConvTol`、`MaxConvIter` 或 `DT_UJac` 控制。
 
-### 验证与复现
-
-- 与 `fd193c7` 比较：官方 8 m/s、9 m/s、`BLMod=2` 各 20 秒，以及 TNO 0.1 秒，默认模式的数值文件、掩码和查表报告逐字节一致。新增结构诊断字段单独核对。
-- 普通和 MKL 后端执行原 Fortran 声学公式、8/9 m/s 整机对照。scaled 模式也执行两个完整整机对照，沿用原容差。
-- BPM/TNO 的完整快照与 1/4/13/20 观察点块逐项一致；四类输出需求的共同结果一致。声学库的 TI 方法 1/2 另比较分块与完整路径，覆盖采样、非采样和统计缓冲区填满后的状态。
-- 结构测试包含 8/9 m/s 与 0.003125/0.00625/0.0125 s 三种步长、同一步内复用/重建 Jacobian、非零演化状态的检查点重放、重置和不收敛诊断。这不是任意初始挠度或新机型验证。
-- 串行与多线程的 BPM/TNO 批量输出逐字节一致；测试独立失败和目录冲突。CI 使用 GCC ThreadSanitizer 检查普通版本的并行路径，不检测 MKL 动态库内部。
-
-```sh
-./build/performance_api_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst build/performance-api
-python tests/check_performance.py build build/performance-cli
-python tests/check_refactor.py /baseline/build/aeroacoustics_turbine build/aeroacoustics_turbine build/before-after --baseline-commit fd193c7f9fb6b467e5f9f06c25e1b187f327691c
-python tests/benchmark_performance.py /baseline/build build build/timing --rounds 5
-```
-
-测试目录使用新目录。计时应在没有其他构建和测试运行时进行；比较程序使用同一编译器、Release 配置和 MKL 设置。声学内核统计预热后的 C++ 循环耗时，整机与批量统计包含启动和文件输出的外部墙钟时间。
-
-### 本机计时
-
-Windows / GCC 16.2.0，Release，未启用 MKL。新旧版本交替运行五轮，以下为中位数。整机含文件输出；TNO 行为 30 节点、34 频率的声学工作区测试。不同阶段的绝对耗时不能与旧文档直接拼接比较。
-
-| 测试 | 优化前 / 第一种设置 | 优化后 / 第二种设置 | 耗时减少 |
-| --- | ---: | ---: | ---: |
-| TNO，2 个观察点，3 次频谱计算 | 1.143 s | 1.119 s | 2.1% |
-| TNO，16 个观察点，3 次频谱计算 | 1.149 s | 1.132 s | 1.5% |
-| 20 s 整机，仅总声压级 | 1.505 s | 1.499 s | 0.4% |
-| 20 s 整机，全部输出 | 1.696 s | 1.647 s | 2.8% |
-| 20 s 整机，reference → scaled | 1.653 s | 1.528 s | 7.6% |
-| 4 个完整工况，1 → 4 个工作线程 | 6.634 s | 2.852 s | 57.0% |
-
-TNO 的变化较小；两组 BPM 频谱测试也有百分之几的波动，不据此宣称普遍提速。默认整机模式的主要收益是减少频谱暂存与无用聚合，耗时接近原版。独立工况并行的吞吐提升更明显。
-
-官方 20 s 工况中，scaled 模式把结构加速度计算从 115,200 次降为 57,984 次，Jacobian 构造从 28,800 次降为 9,696 次；总迭代轮数从 9,600 增为 9,632。整机还包含 BEM、UA、声学和文件输出，因此整体耗时不会按结构调用数的比例下降。
-
-原始五轮计时、可执行文件哈希、公式和整机误差见 [validation-performance.json](validation-performance.json)。结果反映当前机型、工况和硬件，不是跨机器加速保证。
-
 <a id="p1-p3"></a>
 
-## 结构运动、缓冲区与边界层采样（P1–P3）
+## 缓存与内存
 
-2026-09-14 完成。优化基线为 [`e5c57ab`](https://github.com/MegrezLi/Aeroacoustics_cpp/commit/e5c57aba793b889e3adf6e8396c9004b5d56ca99)，包含 R1–R3 可靠性修改。本次没有改变气动或声学公式、结构自由度、时间积分系数及 Newton 收敛条件。
+| 对象 | 复用范围与边界 |
+| --- | --- |
+| 结构运动、气动网格 | 一次状态求值共享；状态改变后重算，Newton 试探状态不能复用上一轮结果 |
+| `PreparedBLTable` | 校验一次并持有独立表格；插值仍使用当前攻角、Re 和弦长 |
+| `SurfaceSet` | 元数据只读一次，按翼型编号索引查找；表面数据顺序保持输入顺序 |
+| `TnoWorkspace` | 首次有效 TNO 求值才分配积分数组；BPM/Howe 不承担这部分内存 |
+| 观察点分块 | 完整块和尾块分别复用；固定配置预热后不再反复分配内部频谱 |
+| `ArrivalHistory` | 连续时间/声能数组，插值直接累加到目标缓冲区；查询游标属于调用者 |
+| 室外传播 | 同一节点分别准备前缘、尾缘两条路径，供对应声源共享；不跨时间缓存 |
+| TI 方法 2 | 滚动均值和中心平方和，每个窗口长度完整重算一次，摊销更新为 O(1) |
 
-### 改动
+分块大小为 B 且存在尾块时，最多保留 B 个完整块位置和 B−1 个尾块位置。连续历史仍随时长增长，扩容会复制数据；`MaxValues` 继续限制容量。累计分配字节不等于峰值内存。
 
-| 项目 | 修改后的行为 | 主要文件 |
-| --- | --- | --- |
-| P1 | 叶片基底在气动求值和结构迭代入口分别按叶片准备；一次结构状态求值只建立一组节点运动，载荷映射和加速度装配共用 | `blade_dynamics.cpp`、`rotor.cpp`、`solver.cpp` |
-| P2 | `Solver` 持有 `RotorWorkspace`、`LoadWorkspace`；气动结果、结构运动、映射输入和结果数组重复使用 | `rotor.hpp`、`solver.hpp`、`mesh.cpp` |
-| P3 | 冻结并验证边界层表；仅在声学采样时，对实际发声节点插值；采样判断由 `AcousticDriver` 统一提供 | `aeroacoustics.hpp`、`driver.cpp`、`turbine_main.cpp` |
+工作区归各个仿真对象所有，复制和检查点保存独立状态。TI 滚动中心矩使用 `long double`，与逐次全窗口求和允许舍入差异。C++ 对象布局变化后，调用方需重新编译。
 
-#### P1：共享范围明确到一次状态求值
-
-`Rotor::structural_acceleration()` 依次调用 `motions_into()`、`structural_loads_into()` 和接收节点运动的 `acceleration()` 重载。后两步使用同一组运动。每个 Jacobian 扰动都会重建运动，避免把基础状态或上一个扰动的结果带入当前计算。
-
-本算例每片叶片有 17 个结构积分节点，加根、尖共 19 个运动节点。原来一次结构求值在载荷映射中计算 17 次运动，在加速度装配中计算 18 次；现在批量计算 19 次。基底也不再随每个节点重复求三角函数。
-
-气动仍由预测状态计算一次；结构 Newton 校正期间气动分布载荷固定，映射力臂随当前结构状态更新。声学仍读取该步保存的预测气动状态。三片叶片的基础状态和扰动现在逐片处理；现有固定塔架模型中叶片之间没有结构耦合。
-
-#### P2：复用容量，清零累加量
-
-新增 `Rotor::evaluate_into()`、`MotionMap::transfer_into()` 和 `LoadMap::transfer_into()`。原有返回值接口保留，内部调用新实现；需要连续计算时使用工作区接口。
-
-每次映射均重置结果，气动求值先清零平均速度，再写入各节点字段。输入输出使用同一向量时，映射接口报错。工作区由调用者持有，`Rotor` 没有新增隐藏的可变缓存；不同求解器实例使用独立暂存区。数组长度变化时允许重新分配，不保证所有未来网格和异常路径都没有分配。
-
-风场节点查询的错误字符串改为仅在异常分支构造，避免部分编译器在每次有效查询时也分配临时字符串；地面以下的幂律风查询仍然报错。
-
-`turbine_workspace_probe` 对本算例预热后连续 50 个完整 `Solver::step()` 计数，观察到 **0 次 `operator new/new[]` 调用**。该计数不包括初始化、文件输出或异常诊断，也不代表程序完全不占用堆内存。
-
-#### P3：冻结表格，按声学需求查询
-
-`PreparedBLTable` 保存表格的私有副本，构造时检查坐标轴、数组形状及有限值；后续查询只检查查询参数并执行范围诊断和插值。原 `BLTable` 的公开数组仍可编辑，旧 `interpolate()` 保留每次检查。修改原表不会影响已准备的副本，需要更新时重新构造。
-
-`is_sample_time()` 和 `first_node()` 给整机入口提供与声学驱动一致的采样条件。默认 20 秒、`DT=0.00625`、`DT_AA=0.1`、`BldPrcnt=70` 下，如果启用表格边界层，调用次数由 `3201 × 90 = 288090` 降为 `201 × 66 = 13266`，减少约 **95.4%**。这是按循环与配置计算的插值次数，不能直接解释为整机加速比例；默认经验边界层工况没有这部分插值。
-
-所有节点的速度、入流和湍流强度仍按每个时间步更新，声学采样使用更新前的 TI。边界层超界报告现在只统计实际执行的声学查询；严格模式也只在这些查询发生时检查范围。整机初始化仍读取并验证所需表文件。BEM 和 UA 的查表诊断范围不变。
-
-### 实测
-
-Windows、GCC 16.2.0、Release `-O3 -DNDEBUG`，未启用 MKL。旧程序和新程序分别预热一次，再交替运行五轮，取内部墙钟时间的中位数，包含输入读取和文件输出。三个计时工况均运行 20 秒、3200 步，输出 201 个声学时刻。
-
-| 工况 | 优化前 | 优化后 | 耗时减少 |
-| --- | ---: | ---: | ---: |
-| 官方 8 m/s | 1.985 s | 1.627 s | 18.1% |
-| 9 m/s 扰动 | 2.005 s | 1.570 s | 21.7% |
-| 8 m/s，`BLMod=2` | 2.188 s | 1.749 s | 20.0% |
-
-这组数据衡量 P1–P3 的整体收益，没有单独归因到每一项，也没有测量本次 MKL 加速比。结果受机器负载、编译器及输出规模影响。逐轮时间、程序和输出 SHA256 见 [验证数据](validation-coupling.json)。之前一轮优化的数据仍见 [原优化记录](performance.md#initial)，两轮基线不同。
-
-### 数值与接口检查
-
-- 上述三个工况，以及 `TBLTEMod=2` 的 0.1 秒短工况：每个工况的 `dynamics.csv`、四份声学 `.out` 和四份 `.mask` 与优化前逐字节一致。短 TNO 工况只用于回归，没有作为计时基准。
-- 独立结构探针的 5700 行、网格探针的 4700 行，以及 2 秒求解探针的全部节点气动力和状态，与旧程序逐字节一致。
-- 普通和 MKL 版本均通过官方 8 m/s、9 m/s 整机 Fortran 对照；每个工况核对 101 个输入文件和 145926 个声学值，原容差保持不变。
-- 两个后端均通过 204 个声学配置、56576 个数值的 Fortran 公式对照，包含 16 个 TNO 配置，最大绝对误差约 `4.55×10⁻¹³ dB`。
-- 新增探针检查重复映射清零、刚体平移、恒定线载荷守恒、输入输出别名拒绝、只读表与原表分离、双线性插值及端点钳制、严格查表策略、采样时间，以及两种 TI 方法的逐步更新和采样前状态。
-- R1–R3 的单元及命令行异常测试通过。GitHub Actions 增加了整机工作区探针。
-
-这些结果验证实现一致性，不替代风机噪声的实测验证。
-
-### 复现
+## 验证与性能比较
 
 ```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DAEROACOUSTICS_BUILD_TESTS=ON
-cmake --build build -j 4
-./build/turbine_workspace_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst
-python tests/benchmark_coupling.py /path/to/baseline/aeroacoustics_turbine build/aeroacoustics_turbine build/coupling-benchmark --baseline-commit e5c57aba793b889e3adf6e8396c9004b5d56ca99
+ctest --test-dir build -L unit --output-on-failure
+python tests/benchmark_optimizations.py /baseline/optimization_benchmark /candidate/optimization_benchmark build/paired-benchmark --rounds 5
+python tests/check_refactor.py /baseline/aeroacoustics_turbine /candidate/aeroacoustics_turbine build/refactor-check --baseline-commit BASELINE_SHA
 ```
 
-基准程序应从所指定提交单独构建，并与候选程序使用相同编译器和优化选项。输出目录须不存在，脚本会在该目录复制工况并修改风速或模型开关。Windows 给程序路径加 `.exe`；运行前配置编译器运行库路径。Python 只负责任务调度和结果比较。
+基准程序分别用对应版本的头文件和静态库编译，两边使用相同编译器、Release 选项与 MKL 设置。脚本预热后交替运行，记录中位数、分配次数、累计字节、数值校验和与程序哈希。`check_refactor.py` 比较默认 8 m/s、9 m/s、表格边界层和短时 TNO 工况的数值文件。
 
-<a id="initial"></a>
+`check_refactor.py` 加 `--rounds 5` 可预热并交替计时；工作区、输出数量、求解器和批量运行的专项计时使用 `tests/benchmark_performance.py BEFORE_BUILD AFTER_BUILD OUTPUT --baseline-commit BASELINE_SHA`。
 
-## 声源准备与发射分离：初次优化记录
-
-本次优化针对结构载荷重复映射、声源重复计算、临时数组分配、固定配置重复解析，以及经验模型中沿用的 Fortran 式组织方式。基线为 `ad44bfd`，物理模型、输入文件、时间网格和收敛阈值保持不变。
-
-### 修改内容
-
-| 问题 | 修改 | 主要代码 |
-| --- | --- | --- |
-| 数值 Jacobian 扰动一片叶片时，重新映射三片叶片的载荷 | 新增单叶片映射函数；每轮 Newton 迭代由 30 次单叶片映射减少为 12 次 | [rotor.cpp](../src/turbine/coupling/rotor.cpp)、[solver.cpp](../src/turbine/coupling/solver.cpp) |
-| 每个观察点重复计算同一节点的边界层、声源谱形和 TNO 积分 | 分为 `prepare_*()` 与 `emit_*()`；先按节点准备声源，再按观察点施加距离和指向性 | [source_models.hpp](../src/acoustics/source_models.hpp)、[spectrum.cpp](../src/acoustics/spectrum.cpp)、[workspace.cpp](../src/acoustics/workspace.cpp) |
-| 时间循环、频谱装配和 TNO 积分反复创建或复制数组 | 工作区保存节点、频谱和积分数组；主程序复用四类输出数组，并通过只读快照指针读取结果 | [driver.cpp](../src/acoustics/driver.cpp)、[tno.cpp](../src/acoustics/tno.cpp)、[turbine_main.cpp](../src/apps/turbine_main.cpp) |
-| 节点和输出循环反复解析固定输入，重复校验参数和计算 A 计权 | 初始化时缓存 `SkewOptions`、`NrOutFile`、已校验声学参数和 A 计权；动态截面输入仍逐次检查 | [rotor.cpp](../src/turbine/coupling/rotor.cpp)、[workspace.cpp](../src/acoustics/workspace.cpp) |
-| 经验公式集中在一个大文件，参数列表长，变量声明和数组下标沿用 Fortran 风格 | 按边界层、BPM 尾缘、其他 BPM 声源、入流、谱形和指向性拆分；使用具名数据类型、局部变量及从零开始的循环 | [源码索引](development.md#source)、[kernel_compat.cpp](../src/acoustics/kernel_compat.cpp) |
-
-BPM 的共享边界层在每个节点、每个声学采样时刻只计算一次。TNO 两侧积分也只准备一次，观察点变化只影响后续距离和指向性计算。缓存不会跨时间保留过期声源：新的速度、攻角、湍流强度和边界层输入会重新生成当前谱形。
-
-经验公式的系数、分段条件、钝度频谱逐频带累积归一化和声级下限沿用原实现。此次没有增加噪声模型或改变气动与结构的推进次序。
-
-### 性能结果
-
-环境：Windows 11、Intel Core i7-11800H、GCC 16.2.0、Release（`-O3 -DNDEBUG`），普通 C++ 后端，未启用 MKL。基线和优化版先预热，再交替运行五轮，以下取中位数。原始样本、可执行文件 SHA256 和输出差异保存在 [validation-optimization.json](validation-optimization.json)。
-
-#### 完整 20 秒算例
-
-| 工况 | 优化前 | 优化后 | 加速比 | 耗时减少 |
-| --- | ---: | ---: | ---: | ---: |
-| 官方 8 m/s | 3.536 s | 1.824 s | 1.94× | 48.4% |
-| 9 m/s 扰动 | 3.497 s | 1.794 s | 1.95× | 48.7% |
-
-计时来自 `run.json`，覆盖程序内的初始化、3200 步推进、201 次声学采样及输出处理，不包含外部启动进程的开销。没有缩短物理时长或减少输出。
-
-#### 声学局部测试
-
-每次快照使用 30 个节点和 34 个频率；BPM 测量批次包含 20 次快照，TNO 包含 2 次，表内折算为一次快照。基线调用原 `snapshot_spectrum()`，优化版复用 `AcousticWorkspace`，因此加速同时包含声源共享和缓冲区复用的收益。
-
-| 模型 | 观察点数 | 优化前 | 优化后 | 加速比 |
-| --- | ---: | ---: | ---: | ---: |
-| BPM | 2 | 2.013 ms | 0.659 ms | 3.06× |
-| BPM | 16 | 16.508 ms | 1.169 ms | 14.13× |
-| TNO | 2 | 739.289 ms | 361.894 ms | 2.04× |
-| TNO | 16 | 6078.342 ms | 364.610 ms | 16.67× |
-
-多观察点共享计算时收益更明显。以上是特定测试输入的局部结果，不能直接作为整机加速比。官方整机默认使用 BPM，不启用 TNO；此次数据也不是 MKL 与普通后端的速度比较。
-
-### 数值检查
-
-- **Fortran 公式对照**：普通和 MKL 后端分别通过 56,576 个值、204 组配置的对照，包含 16 组 TNO 配置。最大绝对差异约 `4.55×10⁻¹³ dB`，阈值为 `2×10⁻⁸ dB`。见 [普通后端报告](validation-fortran-portable.json) 和 [MKL 报告](validation-fortran-mkl.json)。
-- **整机 Fortran 对照**：官方 8 m/s 和 9 m/s 扰动各检查 145,926 个声学值及 101 个输入文件，均满足原有阈值。见 [官方工况报告](validation-full-case.json) 和 [扰动工况报告](validation-wind9.json)。
-- **优化前后整机对照**：两个工况的 `dynamics.csv` 均逐字节一致；9 m/s 的四份声学文件也逐字节一致。8 m/s 仅频带输出文件出现约 `1×10⁻¹⁰ dB` 的末位变化，其余三份一致。
-- **工作区复用**：36 组配置与状态组合改变节点数、观察点数、攻角、TI、边界层和 A 计权，检查复用输出与独立截面调用，并与旧 C++ 库比较 21,420 个值；有限值最大差异约 `5.68×10⁻¹⁴ dB`。普通和 MKL 后端均通过复用检查。
-- **声学驱动状态**：两个 TI 计算分支、边界层表、展向选点、厚度提取和积分辅助功能与旧 C++ 输出对照通过；驱动频谱最大差异约 `1.14×10⁻¹³ dB`。
-
-公式对照误差与整机误差含义不同。整机仍包含 C++ 和原 Fortran 求根及耦合迭代的数值差异，原有支持范围见 [模块说明](development.md#scope)。
-
-### 接口与复现
-
-`AcousticWorkspace::evaluate()` 返回内部快照的只读引用，`AcousticDriver::step_view()` 在采样时刻返回只读指针，其他时刻返回空指针。调用者须在下一次相应调用前使用完数据；需要持久保存时自行复制。各求解实例分别持有工作区，同一工作区不应被多个线程同时写入。
-
-原 `AcousticDriver::step()` 继续返回独立快照；`section_spectrum()`、`snapshot_spectrum()`、标量模型函数和 C ABI 保留。应用使用新 C++ 头文件后应重新编译。整机仍可仅用 C++ 编译和运行；Python 脚本仅负责测试调度和数值文件比较。
-
-构建与核心验证：
-
-```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DAEROACOUSTICS_BUILD_TESTS=ON
-cmake --build build -j 4
-./build/acoustic_workspace_probe verify build/workspace.csv
-python tests/compare_fortran.py build/libaeroacoustics_shared.so --fortran-compiler gfortran --report build/kernels.json
-python tests/run_standalone.py build/aeroacoustics_turbine build/official-check --report build/full-case.json
-python tests/run_perturbation.py build/aeroacoustics_turbine build/wind9 --report build/wind9.json
-```
-
-在同一机器上构建优化前基线，并将新探针以兼容模式链接至旧库。下面使用单配置生成器、GCC/Clang：
-
-```sh
-git worktree add --detach build-baseline-src ad44bfd
-cmake -S build-baseline-src -B build-baseline -DCMAKE_BUILD_TYPE=Release
-cmake --build build-baseline -j 4
-c++ -std=c++17 -O3 -DNDEBUG -DAERO_BENCHMARK_LEGACY -Ibuild-baseline-src/include tests/acoustic_workspace_probe.cpp build-baseline/libaeroacoustics.a -o build-baseline/acoustic_workspace_probe
-python tests/benchmark_optimization.py build-baseline build --wind9-case build/wind9/inputs/IEA_LB_RWT-AeroAcoustics.fst --repeats 5 --baseline-commit ad44bfd --report build/optimization.json
-```
-
-Windows / MinGW 先运行 `. ./tools/use_gcc.ps1`，使用 `-G 'MinGW Makefiles'`，将 `.so` 改为 `libaeroacoustics_shared.dll` 并为可执行文件加 `.exe`；手动编译探针时将 `c++` 换为 `g++`。9 m/s 输入由前面的 `run_perturbation.py` 生成。复现实测值时应保持编译选项一致，并避免同时执行其他高负载任务。
+计时受硬件、负载和工况影响；以本机重测结果判断收益。历史原始数据保留在 [五项优化记录](validation-optimization-five.json)、[分块与求解器记录](validation-performance.json) 中，不作为当前版本的计时承诺。

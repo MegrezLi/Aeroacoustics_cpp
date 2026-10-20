@@ -1,30 +1,11 @@
 """P4-P7 CLI regressions; Python only schedules C++ and compares saved Fortran output."""
 import argparse
 import json
-import re
-import shutil
 import subprocess
 from pathlib import Path
-from compare_full_case import CASE, run
+from compare_full_case import run
 
-ROOT = Path(__file__).resolve().parents[1]
-
-
-def variant(destination, changes):
-    shutil.copytree(ROOT / 'examples' / CASE, destination)
-    for key, value in changes.items():
-        count = 0
-        for path in destination.rglob('*'):
-            if not path.is_file():
-                continue
-            text, n = re.subn(r'(?m)^(\s*)\S+(\s+' + key + r'\b)',
-                              lambda m: m[1] + str(value) + m[2], path.read_text(encoding='utf-8-sig'))
-            if n:
-                path.write_text(text, encoding='utf-8')
-                count += n
-        assert count == 1, key
-    return destination / (CASE + '.fst')
-
+from support import ROOT, CASE, variant
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)

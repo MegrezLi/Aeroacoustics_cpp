@@ -12,56 +12,20 @@ jobs:
           python-version: '3.12'
       - run: sudo apt-get update && sudo apt-get install -y gfortran
       - run: python -m pip install 'numpy>=1.26,<3'
-      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DAEROACOUSTICS_BUILD_TESTS=ON
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DAEROACOUSTICS_BUILD_TESTS=ON -DAEROACOUSTICS_TEST_FORTRAN=ON
       - run: cmake --build build -j 2
-      - run: ./build/aeroacoustics_example build/spectrum.csv
-      - run: ./build/aeroacoustics_bpm1989 build/bpm1989.csv --check
-      - run: python examples/bpm1989/analyze.py build/bpm1989.csv --output-dir build/bpm1989-report
-      - run: ./build/acoustic_workspace_probe verify build/workspace.csv
-      - run: ./build/mechanism_probe
-      - run: ./build/validation_probe
-      - run: ./build/review_regression_probe build/review-regression
-      - run: ./build/optimization_probe
-      - run: python tests/compare_trailing_edge.py build build/trailing-edge-reference --fortran-compiler gfortran
-      - run: ./build/farm_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst
-      - run: ./build/semantics_modules_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst
-      - run: ./build/engineering_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst examples/engineering/controller.dat
-      - run: ./build/metrics_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst examples/engineering/surfaces.dat build/metrics-probe
-      - run: ./build/performance_api_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst build/performance-api
-      - run: ./build/simulation_api_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst build/api-check
-      - run: ./build/turbine_workspace_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst
-      - run: ./build/reliability_probe examples/IEA_LB_RWT-AeroAcoustics/Airfoils/RotorSE_FAST_IEA_landBased_RWT_AeroDyn_Polar_10.dat build/reliability-unit
-      - run: python tests/check_reliability.py build/aeroacoustics_turbine build/reliability-cli
-      - run: python tests/compare_fortran.py build/libaeroacoustics_shared.so --fortran-compiler gfortran --report build/validation.json
-      - run: python tests/run_standalone.py build/aeroacoustics_turbine build/official-case --report build/full-case.json
-      - run: python tests/run_perturbation.py build/aeroacoustics_turbine build/wind9 --report build/wind9.json
-      - run: python tests/check_performance.py build build/performance-cli
-      - run: python tests/check_semantics.py build/aeroacoustics_turbine build/semantics-cli
-      - run: python tests/check_engineering.py build/aeroacoustics_turbine build/engineering-cli
-      - run: python tests/check_metrics.py build/aeroacoustics_turbine build/metrics-cli
-      - run: python tests/check_validation.py build build/validation-cli
-      - run: python tests/check_farm.py build build/farm-cli
-      - run: python tests/check_trailing_edge.py build build/trailing-edge-cli
+      - run: ctest --test-dir build --output-on-failure -j 2
   thread-sanitizer:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       # Keep ASLR within the virtual address range supported by GCC ThreadSanitizer.
       - run: sudo sysctl -w vm.mmap_rnd_bits=28
       - run: cmake -S . -B build-tsan -DCMAKE_BUILD_TYPE=RelWithDebInfo -DAEROACOUSTICS_BUILD_TESTS=ON -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer" -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread"
       - run: cmake --build build-tsan --target performance_api_probe engineering_probe metrics_probe farm_probe trailing_edge_probe -j 2
-      - run: ./build-tsan/performance_api_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst build-tsan/api
-        env:
-          TSAN_OPTIONS: halt_on_error=1
-      - run: ./build-tsan/engineering_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst examples/engineering/controller.dat
-        env:
-          TSAN_OPTIONS: halt_on_error=1
-      - run: ./build-tsan/metrics_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst examples/engineering/surfaces.dat build-tsan/metrics-probe
-        env:
-          TSAN_OPTIONS: halt_on_error=1
-      - run: ./build-tsan/farm_probe examples/IEA_LB_RWT-AeroAcoustics/IEA_LB_RWT-AeroAcoustics.fst
-        env:
-          TSAN_OPTIONS: halt_on_error=1
-      - run: ./build-tsan/trailing_edge_probe
+      - run: ctest --test-dir build-tsan -L concurrency --output-on-failure
         env:
           TSAN_OPTIONS: halt_on_error=1

@@ -5,7 +5,7 @@ import json
 import subprocess
 from pathlib import Path
 import numpy as np
-from check_performance import ROOT, CASE, variant
+from support import ROOT, CASE, variant
 
 
 def main():

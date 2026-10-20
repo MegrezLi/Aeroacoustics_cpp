@@ -3,7 +3,7 @@ import argparse
 import json
 import subprocess
 from pathlib import Path
-from check_performance import variant, ROOT, CASE
+from support import variant, ROOT, CASE
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)

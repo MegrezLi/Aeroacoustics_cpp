@@ -2,13 +2,12 @@
 import argparse
 import hashlib
 import json
-import re
-import shutil
+import platform
+import statistics
 import subprocess
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-CASE = 'IEA_LB_RWT-AeroAcoustics'
+from support import CASE, variant
 
 
 def main():
@@ -16,33 +15,42 @@ def main():
     p.add_argument('before', type=Path)
     p.add_argument('after', type=Path)
     p.add_argument('output', type=Path)
-    p.add_argument('--baseline-commit', default='2d7fda532b389371a854c49daad9e96282c938b1')
+    p.add_argument('--baseline-commit', required=True)
+    p.add_argument('--rounds', type=int, default=1, help='Use 3+ rounds for alternating timings after warm-up')
     args = p.parse_args()
+    if args.rounds < 1:
+        p.error('--rounds must be positive')
     args.output.mkdir(parents=True, exist_ok=False)
     executables = {'before': args.before.resolve(), 'after': args.after.resolve()}
     result = {'baseline_commit': args.baseline_commit,
+              'platform': platform.platform(),
+              'rounds': args.rounds,
               'executables_sha256': {k: hashlib.sha256(v.read_bytes()).hexdigest() for k, v in executables.items()},
               'cases': {}}
     for name, key, value, duration in [('official8', None, None, 20), ('wind9', 'HWindSpeed', '9', 20),
                                        ('table_bl2', 'BLMod', '2', 20), ('tno', 'TBLTEMod', '2', .1)]:
         folder = args.output / name
         inputs = folder / 'inputs'
-        shutil.copytree(ROOT / 'examples' / CASE, inputs)
-        if key:
-            count = 0
-            for f in inputs.rglob('*'):
-                if f.is_file():
-                    text, n = re.subn(r'(?m)^(\s*)\S+(\s+' + key + r'\b)',
-                                      lambda m: m[1] + value + m[2], f.read_text(encoding='utf-8-sig'))
-                    if n:
-                        f.write_text(text, encoding='utf-8')
-                        count += n
-            assert count == 1
-        for version, exe in executables.items():
-            subprocess.run([str(exe), str((inputs / (CASE + '.fst')).resolve()),
+        variant(inputs, {key: value} if key else {})
+        def execute(version):
+            subprocess.run([str(executables[version]), str((inputs / (CASE + '.fst')).resolve()),
                             str((folder / version).resolve()), str(duration)], check=True,
                            capture_output=True, text=True)
+            meta = json.loads((folder / version / 'run.json').read_text())
+            assert meta['steps'] == (16 if name == 'tno' else 3200)
+            assert meta['acoustic_samples'] == (2 if name == 'tno' else 201)
+            return meta['elapsed_seconds']
+
+        timings = {version: [] for version in executables}
+        if args.rounds > 1:
+            for version in executables:
+                execute(version)
+        for trial in range(args.rounds):
+            for version in (['before', 'after'] if trial % 2 == 0 else ['after', 'before']):
+                timings[version].append(execute(version))
         hashes = {}
+        assert {f.name for f in (folder / 'before').iterdir()} == {
+            f.name for f in (folder / 'after').iterdir()}, (name, 'output file set')
         for f in (folder / 'before').iterdir():
             if f.name == 'run.json':
                 a, b = [json.loads((folder / version / f.name).read_text()) for version in executables]
@@ -57,7 +65,12 @@ def main():
             before, after = f.read_bytes(), (folder / 'after' / f.name).read_bytes()
             assert before == after, (name, f.name)
             hashes[f.name] = hashlib.sha256(after).hexdigest()
-        result['cases'][name] = {'duration_s': duration, 'byte_identical_sha256': hashes}
+        result['cases'][name] = {'duration_s': duration, 'byte_identical_sha256': hashes,
+                                'seconds': timings}
+        if args.rounds > 1:
+            medians = {k: statistics.median(v) for k, v in timings.items()}
+            result['cases'][name].update(median_seconds=medians,
+                                        speedup=medians['before'] / medians['after'])
         print(name, 'all numerical files and lookup report byte-identical', flush=True)
         (args.output / 'report.json').write_text(json.dumps(result, indent=2), encoding='utf-8')
 
