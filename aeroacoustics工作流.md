@@ -1,10 +1,10 @@
 # IEA_LB_RWT-AeroAcoustics 工作流
 
-本文沿着 `aeroacoustics_turbine` 的实际 C++ 调用链，说明官方算例从输入文件到结构、气动和声学结果的计算过程。对应 S1–S3 重构及 P4–P7 优化后的实现，层次、接口迁移和状态管理见 [仿真接口说明](docs/development.md#simulation)。文中的函数名均可在链接的源码中查到；调用树省略了标准库函数和通用向量运算。
+本文按 C++ 调用顺序解释整机算例：输入 → 结构与气动 → 声学 → 输出。首次运行先看 [README](README.md)，修改模型时按第 9 节定位源码。
 
-R1–R3 更新增加了非法声级检查、同名 `.mask`、查表报告与严格策略，见 [可靠性说明](docs/validation.md#reliability)。
+`.mask`、非法声级与查表超界的处理见[输出与诊断](docs/validation.md#reliability)。
 
-程序入口是 [src/apps/turbine_main.cpp](src/apps/turbine_main.cpp) 中的 `main()`。整机运行直接调用 C++ 模块，读取 OpenFAST 格式的输入文件；不启动 OpenFAST 可执行程序，也不调用 Fortran 或 Python。Fortran 参考程序属于验证流程，不进入下面的运行链。
+入口是 [turbine_main.cpp](src/apps/turbine_main.cpp) 的 `main()`，读取 OpenFAST 格式输入并调用 C++ 模块。Fortran 参考程序只用于验证。
 
 ## 1. 先看整条计算链
 
@@ -204,7 +204,7 @@ qd = qd_pred + gamma_prime * a
 
 这里的 `1e-9` 和 12 次来自 `SolverOptions` 的默认值；输入文件里的 `ConvTol`、`MaxConvIter`、`DT_UJac` 等字段并未用于设置这段 Newton 循环。
 
-固定塔架条件下，扰动一片叶片的模态不会改变另外两片的映射。因此每轮迭代逐片执行一次基础映射和三次扰动映射，三片合计 12 次。此处减少了重复计算，数值 Jacobian 的定义不变。
+固定塔架下三片叶片独立迭代：每轮每片执行一次基础映射和三次扰动映射，合计 12 次。
 
 积分与 Newton 算法位于 `coupling/integrator.cpp`，三叶片物理适配位于 `coupling/structural_adapter.cpp`。`DofLayout` 将当前九个模态划分为三个独立块。通用积分器也能求解其他尺寸的完整耦合块；增加塔架、平台等共享自由度还需实现相应物理方程和耦合关系，不能只扩展数组。
 
@@ -253,8 +253,6 @@ solve_bem(options, input, airfoil, previous_phi)
 ```
 
 BEM 求根的未知量是入流角 `phi`；攻角为入流角减局部扭角。求根阶段调用静态极曲线 `Airfoil::at()`。取得诱导状态并完成偏斜修正之后，才调用非定常翼型模型计算载荷系数。
-
-因此，`UnsteadyAirfoil::evaluate()` 不在 `bem_residual()` 的内部。这也将 BEM 的求根迭代与翼型历史状态推进分开。
 
 ### 5.3 非定常翼型模型怎样使用历史状态
 
@@ -427,19 +425,15 @@ L_sum = 10 × log10(Σ E_k)
 
 第 4 个文件仍为全部 90 个气动节点保留列，未选入声学范围的节点写入零声能对应的 `0 dB` 占位值。关闭机制等零声能项也遵循兼容输出中零声能写为 `0 dB` 的约定。每份 `.out` 的同名 `.mask` 与时间/通道逐项对应：0 表示零声能占位，1 表示有效正声能；应结合掩码解释这些零值。
 
-### 8.1 TNO 缓存、并行与求解诊断
+### 8.1 缓存、并行与求解诊断
 
-TNO 在 `prepare_profile()` 中为当前节点、当前侧计算一次 61 点边界层剖面；`integrate_profile()` 对各频率按行连续装配矩阵并积分。频带宽度在频率列表变化时更新，积分求和顺序保持不变。
-
-批量入口 `aeroacoustics_batch` → `run_cases()` → 各线程独立 `run_case()`。各工况分别持有 `Simulation`、TNO 工作区和诊断会话；同一个工况的时间步仍依次推进。
-
-`--solver=scaled` 可选择尺度化扰动、修正量与残差共同判停，以及同一步内 Jacobian 复用；残差停滞/恶化或连续复用两次后重建。默认 `reference` 保留每轮重建与原判停条件。`Solver::diagnostics()` 与 `run.json` 给出迭代和计算次数，失败报告附带时间、叶片和残差。完整参数与验证见 [P4–P7 说明](docs/performance.md#p4-p7)。
+TNO 每个节点、每侧准备一次边界层剖面，供全部频率和观察点复用。`aeroacoustics_batch` 并行独立工况；单工况仍按时间顺序推进。求解器默认 `reference`，`--solver=scaled` 启用尺度化差分与 Jacobian 复用。参数及计数含义见[性能与求解选项](docs/performance.md)。
 
 ### 8.2 频带、单位和模块元数据
 
 `FrequencyBands::openfast_reference()` 为原 34 个名义中心分配不重叠的二进制三分之一倍频程边界。`AcousticAggregator` 验证中心列表，将声级转换成相对均方声压后叠加；`AcousticResult::power` 的含义是 `〈p²〉/(20 μPa)²`，并非声功率 W。结果携带频带与计权状态，`FileOutput` 检查匹配后写出 dB 或 dBA。
 
-`run.json` 保存参考声压、频带边界、TNO 参考带宽约定，以及结构自由度名称、单位、尺度和耦合块。另有 `PressurePsd`、`BandMeanSquarePressure`、`BandSoundPressureLevel`、`BandSoundPower` 等类型供库调用；PSD 要先按 Hz 带宽积分，不能直接与频带能量混用。详细公式与接口见 [S4–S5 说明](docs/development.md#quantities-modules)。
+`run.json` 保存参考声压、频带边界、TNO 参考带宽约定，以及结构自由度名称、单位、尺度和耦合块。另有 `PressurePsd`、`BandMeanSquarePressure`、`BandSoundPressureLevel`、`BandSoundPower` 等类型供库调用；PSD 要先按 Hz 带宽积分，不能直接与频带能量混用。详细公式与接口见 [声学量与接口](docs/development.md#quantities-modules)。
 
 ## 9. 按问题定位源码
 
@@ -461,13 +455,9 @@ TNO 在 `prepare_profile()` 中为当前节点、当前侧计算一次 61 点边
 | 频率列表 | [aeroacoustics.hpp](include/aeroacoustics.hpp)：`Parameters::freqlist` | 频谱维度和输出列数，修改后需重新编译 |
 | 输出列、声级聚合、文件命名 | [results.cpp](src/turbine/simulation/results.cpp)、[file_output.cpp](src/turbine/simulation/file_output.cpp) | 四个声学文件、结构 CSV 和运行记录 |
 
-完整阅读顺序可沿 `main()` → `run_case()` → `Simulation` → `Solver` → `Rotor` 展开；查气动算法进入 `bem.cpp` 和 `unsteady.cpp`，查结构进入 `blade_dynamics.cpp` 和 `mesh.cpp`，查声学进入 `driver.cpp` → `workspace.cpp` → `spectrum.cpp` → 各模型的 `prepare_*()` 与 `emit_*()`。
+模型状态通过 `state()`、`time()`、`aerodynamic()` 读取。复制、检查点和重置规则见[仿真接口](docs/development.md#simulation)。
 
-P1–P3 的缓冲区所有权、接口使用约定和配对计时见 [耦合与采样优化](docs/performance.md#p1-p3)。
-
-S1–S3 将状态读取改为 `solver.state()`、`time()`、`aerodynamic()` 等只读接口；`checkpoint()`/`restore()` 同时处理结构、气动和声学历史。完整契约见 [仿真接口说明](docs/development.md#simulation)。
-
-## 10. E1–E2 可选工程配置
+## 10. 风场、控制与传播
 
 命令行先读取 `--wind-grid`、`--controller`、`--propagation`，分别建立只读风场、控制器参数和传播参数。它们通过 `RunOptions` 进入 `Simulation`；不指定时保留原参考路径。
 
@@ -492,9 +482,9 @@ Solver::advance()
   FileOutput                              声学文件、模态、operation.csv、元数据
 ```
 
-新增传动链/执行器是与叶片模态分步交换数据的独立状态系统；主时间步内其气动输入冻结。传播使用均匀介质直线路径，已有 `1/r²` 不会重复计算。新示例、单位、控制参数和数值收敛结果见 [E1–E2 工程说明](docs/engineering.md)。
+传动链/执行器是与叶片模态分步交换数据的独立状态系统；主时间步内其气动输入冻结。传播使用均匀介质直线路径，已有 `1/r²` 不会重复计算。示例、单位、控制参数和步长对照见 [控制与传播配置](docs/engineering.md)。
 
-## 11. E3、E5、E7：表面数据与接收点工程统计
+## 11. 表面数据与接收点统计
 
 ```text
 main()
@@ -536,10 +526,9 @@ main()
     全部输出成功后写 run.json
 ```
 
-检查点和重置包含新增接收历史，表面数据保持只读。宽带时延是声级包络处理，音调来自外部输入；它们不产生音频波形，也不代替完整 IEC/IOA 评价流程。详细单位、数据来源与组合限制见 [工程模型](docs/engineering.md#receiver-metrics)。
+检查点和重置包含接收历史，表面数据保持只读。宽带时延处理声级包络，音调由外部输入。配置及组合限制见[接收点统计](docs/engineering.md#receiver-metrics)。
 
-
-## 12. E8 独立数据验证与不确定性
+## 12. 独立数据验证与不确定性
 
 运行顺序为：准备工况与测量数据 → 运行 C++ 整机/批量算例 → 导入或整理对应预测量 → 执行 `aeroacoustics_validate`。此程序独立于整机时间积分，不改变声源模型或自动校准结果。
 
@@ -550,10 +539,9 @@ main()
 | `budget` | `budget_files()` | `uncertainty_budget()`，中心差分与相关矩阵分解 | 左右导数、曲率、标准/扩展不确定度 |
 | `ensemble` | `ensemble_file()` | `ensemble_statistics()`，均值/标准差/分位数 | 等权模拟样本的分布摘要 |
 
-测量来源、数据划分、单位、适用条件、不确定度和计算来源须随输入提供。扰动计算或联合分布抽样由调用方组织；测试脚本只调度 C++，不实现物理和统计算法。详细输入格式和示例见 [E8 验证说明](docs/validation.md#independent-validation)。
+测量来源、数据划分、单位、适用条件、不确定度和计算来源须随输入提供。扰动计算或联合分布抽样由调用方组织；测试脚本只调度 C++，不实现物理和统计算法。详细输入格式和示例见 [独立数据验证](docs/validation.md#independent-validation)。
 
-
-## 13. E6 多机尾流、塔架与固定声源
+## 13. 多机尾流、塔架与固定声源
 
 ```text
 farm_main → FarmOptions::read(farm.dat)
@@ -578,10 +566,9 @@ farm_main → FarmOptions::read(farm.dat)
     写风场时序、受声点、声源贡献、推力诊断和固定声源清单；最后写 farm.json
 ```
 
-局部叶素坐标加机组 XY 原点得到场址坐标，公共受声点减该原点传给单机声学。风向沿用 `SteadyWind` 的 `(cos(PropagationDir), -sin(PropagationDir), 0)` 约定。所有机组使用共同源时间；这里不调用 E5 的接收时延重采样。尾流不向上游反馈，也无尾流传播时延。配置示例和适用范围见 [E6 工程说明](docs/engineering.md#farm)。
+局部叶素坐标加机组 XY 原点得到场址坐标，公共受声点减该原点传给单机声学。风向沿用 `SteadyWind` 的 `(cos(PropagationDir), -sin(PropagationDir), 0)` 约定。所有机组使用共同源时间；不执行接收时延重采样。尾流不向上游反馈，也无尾流传播时延。配置示例和适用范围见 [多机配置](docs/engineering.md#farm)。
 
-
-## 14. E4/E9 尾缘模型与外缘速度比
+## 14. 尾缘模型与外缘速度比
 
 ```text
 --trailing-edge=FILE → TrailingEdgeOptions::read() → validate()

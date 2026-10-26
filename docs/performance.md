@@ -2,9 +2,9 @@
 
 <a id="p4-p7"></a>
 
-## 观察点分块、独立工况并行与结构求解（P4–P7）
+## 观察点分块、工况并行与结构求解
 
-### P4：TNO 剖面与频带缓存
+### TNO 剖面与频带缓存
 
 `prepare_tno()` 对每个节点的每一侧调用一次 `prepare_profile()`，保存 61 个高度上的边界层量，再供该侧全部频率使用。34 个频率下，剖面计算次数由每侧 34 次降为 1 次。积分矩阵按波数行连续写入，求和仍按原来的高度顺序执行。
 
@@ -12,7 +12,7 @@
 
 TNO 使用 61 点积分。整机默认 `reference` 模式采用单位外缘速度比；`input` 模式使用边界层输入速度比，配置见 [尾缘模型](engineering.md#trailing-edge)。
 
-### P5：按需聚合与观察点分块
+### 按需聚合与观察点分块
 
 `OutputLayout` 和 `AcousticAggregator` 按 `NrOutFile` 生成标签、分配并累计结果。只请求第 1 类输出时，仍计算所有启用机制对总声能的贡献；第 2–4 类输出数组为空。
 
@@ -39,9 +39,11 @@ Simulation::next()
 
 官方两观察点、`NrOutFile=1` 时，聚合数组由原来的 726 个 double 减少为 2 个，即 5,808 字节降为 16 字节。最终请求的输出仍随观察点数量增加。
 
-### P6：独立工况并行
+### 独立工况并行
 
-新增 `turbine::run_cases()` 和 `aeroacoustics_batch`。线程领取完整工况，各自创建模型、求解器、TI/UA 状态、查表诊断和 TNO 工作区。返回数组与任务输入顺序一致。一个工况失败时记录错误，其余工况继续完成；命令行只要有一个工况失败便返回非零退出码。
+`turbine::run_cases()` 和 `aeroacoustics_batch`。线程领取完整工况，各自创建模型、求解器、TI/UA 状态、查表诊断和 TNO 工作区。返回数组与任务输入顺序一致。一个工况失败时记录错误，其余工况继续完成；命令行只要有一个工况失败便返回非零退出码。
+
+先准备 `case8/` 和 `case9/` 两份独立输入，并创建父目录 `results/`：
 
 ```sh
 ./build/aeroacoustics_batch 2 case8/IEA_LB_RWT-AeroAcoustics.fst results/wind8 case9/IEA_LB_RWT-AeroAcoustics.fst results/wind9
@@ -64,7 +66,7 @@ MKL 构建在批量工作线程内用 `mkl_set_num_threads_local(1)` 限制内�
 
 批量接口并行独立工况。单个工况的时间步、节点和观察点仍串行，保证原求和和状态推进顺序。单工况不会因为选择较大的批量线程数而加速；线程数还应考虑每份模型和工作区所占内存。
 
-### P7：求解选项与收敛诊断
+### 求解选项与收敛诊断
 
 默认 `SolverMode::reference` 使用固定扰动、每轮重建 Jacobian 及修正量判停。`SolverOptions` 可设置：
 
@@ -84,7 +86,7 @@ abs(f[i] - current_acc[i]) /
   (residual_absolute + residual_relative * max(acceleration_scale[i], abs(f[i]), abs(current_acc[i])))
 ```
 
-Jacobian 只在当前时间步内复用。如果残差没有至少下降 10%，或已经连续复用两次，则重新差分构造；下一时间步一定重建。`reuse_jacobian=false` 可单独核对每轮重建路径。没有引入解析/自动微分 Jacobian，也没有把小型 3×3 系统移交给 MKL。
+Jacobian 只在当前时间步内复用。如果残差没有至少下降 10%，或已经连续复用两次，则重新差分构造；下一时间步一定重建。`reuse_jacobian=false` 可单独核对每轮重建路径。
 
 `Solver::diagnostics()` 返回累计迭代数、加速度计算次数、Jacobian 构造次数、单步最大迭代数，以及最后一轮的残差和修正量。残差是最后一轮线性化点上的值；不是额外重算修正后状态所得。`run.json` 保存模式、累计计数和最后残差。失败消息包含时间、叶片、迭代与范数；整轮达到上限时范数为三片叶片最大值。对状态、加速度、Jacobian、修正量及尺度执行有限值检查。
 
@@ -121,4 +123,4 @@ python tests/check_refactor.py /baseline/aeroacoustics_turbine /candidate/aeroac
 
 `check_refactor.py` 加 `--rounds 5` 可预热并交替计时；工作区、输出数量、求解器和批量运行的专项计时使用 `tests/benchmark_performance.py BEFORE_BUILD AFTER_BUILD OUTPUT --baseline-commit BASELINE_SHA`。
 
-计时受硬件、负载和工况影响；以本机重测结果判断收益。历史原始数据保留在 [五项优化记录](validation-optimization-five.json)、[分块与求解器记录](validation-performance.json) 中，不作为当前版本的计时承诺。
+比较时固定硬件、编译选项和工况，使用脚本输出的配对计时。历史原始数据：[缓存与分配](validation-optimization-five.json)、[分块与求解器](validation-performance.json)。
